@@ -1,0 +1,47 @@
+# --- R session artifacts ---
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj.user
+.Rproj.user/
+
+# --- renv (dependency lockfiles stay; local library excluded) ---
+renv/library/
+renv/local/
+renv/staging/
+renv/cellar/
+renv/python/
+renv/sandbox/
+renv/.gitignore
+
+# --- build artifacts ---
+*.Rcheck/
+.Rbuildignore
+*.tar.gz
+*.zip
+src/*.o
+src/*.so
+src/*.dll
+
+# --- data raw / large archives (P2 data pipeline) ---
+data-raw/
+TCMNP-main.zip
+*.rds.bak
+*.sqlite
+*.fst
+*.parquet
+
+# --- docs big files ---
+docs/*.txt
+docs/*.log
+docs/*.zip
+docs/*.exe
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*~
+.idea/
+.vscode/
