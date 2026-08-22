@@ -1,14 +1,14 @@
 Package: TCMNP
 Type: Package
 Title: Traditional Chinese Medicine Network Pharmacology
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: 
-    person(given = "Jinkun",
-           family = "Liu",
+    person(given = "JianXiao",
+           family = "Zheng",
            role = c("aut", "cre"),
-           email = "liujinkun007@gmail.com",
-           comment = c(ORCID = "0000-0003-2212-9617"))
-Description: A visualization tool for network pharmacology data analysis.
+           email = "zhengjianxiao@tjutcm.edu.cn",
+           comment = c(affiliation = "Haihe Laboratory of Modern Traditional Chinese Medicine, Tianjin University of Traditional Chinese Medicine"))
+Description: A visualization tool for network pharmacology data analysis, powered by an integrated multi-source database (TCMSP, HERB 2.0, BATMAN-TCM 2.0, ETCM2, TTD). All underlying data are from open public sources; see inst/extdata/DATA-README.md for versioning and licensing details.
 License: GPL (>= 3) + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -37,7 +37,6 @@ Imports:
     tidygraph,
     methods,
     VennDetail
-biocViews: ComplexHeatmap, ggtree, clusterProfiler, DOSE, org.Hs.eg.db, VennDetail
 Remotes: 
     github::davidsjoberg/ggsankey
 Depends: R (>= 4.1)
@@ -50,7 +49,6 @@ Suggests:
     utils
 Config/testthat/edition: 3
 NeedsCompilation: no
-Packaged: 2023-07-21 03:56:48 UTC; ljk
-Author: Jinkun Liu [aut, cre] (<https://orcid.org/0000-0003-2212-9617>)
-Maintainer: Jinkun Liu <liujinkun007@gmail.com>
+Author: JianXiao Zheng [aut, cre] (Haihe Laboratory of Modern Traditional Chinese Medicine, Tianjin University of Traditional Chinese Medicine)
+Maintainer: JianXiao Zheng <zhengjianxiao@tjutcm.edu.cn>
 Config/roxygen2/version: 8.1.0
