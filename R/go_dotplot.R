@@ -78,7 +78,7 @@ go_dotplot <- function(go.diff,
   go_enrich <- go.diff %>%
     tidyr::drop_na() %>%
     dplyr::group_by(ONTOLOGY) %>%
-    top_n(n = top) %>%
+    dplyr::slice_max(Count, n = top) %>%
     dplyr::mutate(richFactor = Count / as.numeric(sub("/\\d+", "", BgRatio)))
   go_enrich <- go_enrich[order(go_enrich$richFactor,
     decreasing = FALSE

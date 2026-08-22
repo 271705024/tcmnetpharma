@@ -11,7 +11,7 @@ venn_net(
   label.size = 3,
   label.degree = 1,
   label.repel = TRUE,
-  edge.color = c("#5BAA56", "#f49d98", "#4186B7", "#8679BE"),
+  edge.color = c("#5BAA56", "#f49d98", "#4186B7", "#8679BE", "#F5D18B"),
   edge.alpha = 0.5,
   edge.width = 0.5,
   edge.type = "arc",
@@ -68,8 +68,8 @@ venn network
 data(venn_data, package = "TCMNP")
 set.seed(1234)
 gene <- names(sort(table(venn_data$gene), decreasing = TRUE))[1:50]
-data <- venn_data[venn.data$gene \%in\% gene, ]
-data2 <- dplyr::sample_n(venn_data, 100) \%>\%
+data <- venn_data[venn_data$gene \%in\% gene, ]
+data2 <- dplyr::slice_sample(venn_data, n = 100) \%>\%
   rbind(data)
 venn_net(data2, label.degree = 1,graph.layout = "fr")
 venn_net(data2, edge.type = "hive", label.degree = 4)

@@ -53,7 +53,7 @@
 #' set.seed(1234)
 #' gene <- names(sort(table(venn_data$gene), decreasing = TRUE))[1:50]
 #' data <- venn_data[venn_data$gene %in% gene, ]
-#' data2 <- dplyr::sample_n(venn_data, 100) %>%
+#' data2 <- dplyr::slice_sample(venn_data, n = 100) %>%
 #'   rbind(data)
 #' venn_net(data2, label.degree = 1,graph.layout = "fr")
 #' venn_net(data2, edge.type = "hive", label.degree = 4)

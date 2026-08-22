@@ -85,7 +85,7 @@ data_alluvial <- dplyr::left_join(xfbdf, path,
 ) \%>\%
   dplyr::distinct() \%>\%
   tidyr::drop_na() \%>\%
-  dplyr::sample_n(30, replace = FALSE) \%>\%
+  dplyr::slice_sample(n = 30) \%>\%
   as.data.frame()
 tcm_alluvial_dot(data_alluvial)
 }

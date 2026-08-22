@@ -26,7 +26,7 @@
 #'
 #' @examples
 #' data("xfbdf", package = "TCMNP")
-#' data <- xfbdf %>% dplyr::sample_n(30, replace = FALSE)
+#' data <- xfbdf %>% dplyr::slice_sample(n = 30)
 #' tcm_sankey(data, text.position = 1)
 
 tcm_sankey <- function(data_sankey,

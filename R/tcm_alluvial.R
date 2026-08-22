@@ -27,7 +27,7 @@
 #'
 #' @examples
 #' data("xfbdf", package = "TCMNP")
-#' data <- xfbdf %>% dplyr::sample_n(30, replace = FALSE)
+#' data <- xfbdf %>% dplyr::slice_sample(n = 30)
 #' tcm_alluvial(data, text.position = 1)
 tcm_alluvial <- function(data,
                          text.size = 3,

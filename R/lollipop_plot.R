@@ -27,7 +27,6 @@
 #' @importFrom ggplot2 expansion
 #' @importFrom ggplot2 margin
 #' @importFrom dplyr mutate
-#' @importFrom dplyr top_n
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom stringr str_wrap
 #' @importFrom stats reorder

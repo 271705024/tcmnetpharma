@@ -76,7 +76,7 @@ degree_plot <- function(data,
     as.data.frame()
   data_sorted <- deg3 %>%
     dplyr::group_by(type) %>%
-    top_n(top, wt = degree) %>%
+    dplyr::slice_max(degree, n = top) %>%
     arrange(., type, desc(degree))
   data_sorted$id <- factor(data_sorted$id, levels = data_sorted$id)
 

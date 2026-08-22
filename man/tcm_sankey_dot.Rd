@@ -84,7 +84,7 @@ data_sankey <- left_join(xfbdf, path,
 ) \%>\%
   dplyr::distinct() \%>\%
   tidyr::drop_na() \%>\%
-  dplyr::sample_n(30, replace = FALSE) \%>\%
+  dplyr::slice_sample(n = 30) \%>\%
   as.data.frame()
 tcm_sankey_dot(data_sankey)
 }

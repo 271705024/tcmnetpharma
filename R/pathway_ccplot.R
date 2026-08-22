@@ -27,7 +27,6 @@
 #' @importFrom dplyr select
 #' @importFrom dplyr mutate
 #' @importFrom dplyr group_by
-#' @importFrom dplyr mutate_at
 #' @importFrom dplyr summarise
 #' @importFrom ggraph ggraph
 #' @importFrom ggraph geom_edge_fan
@@ -139,7 +138,7 @@ pathway_ccplot <- function(data,
       dplyr::mutate(from = .data[[se_index[[1]]]]) %>%
       tidyr::unite(., to, se_index, sep = "/") %>%
       dplyr::select(., from, to) %>%
-      dplyr::mutate_at(., c("from", "to"), as.character)
+      dplyr::mutate(dplyr::across(c(from, to), as.character))
   } else {
     list <- lapply(seq(2, length(se_index)), function(i) {
       dots <- se_index[1:i]
@@ -147,7 +146,7 @@ pathway_ccplot <- function(data,
         tidyr::unite(from, dots[-length(dots)], sep = "/", remove = FALSE) %>%
         tidyr::unite(., to, dots, sep = "/") %>%
         dplyr::select(., from, to) %>%
-        dplyr::mutate_at(., c("from", "to"), as.character)
+        dplyr::mutate(dplyr::across(c(from, to), as.character))
     })
     newdata2 <- do.call("rbind", list) %>% as.data.frame(newdata2)
   }

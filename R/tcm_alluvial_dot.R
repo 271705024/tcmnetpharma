@@ -33,7 +33,6 @@
 #' @importFrom ggplot2 scale_colour_distiller
 #' @importFrom dplyr select
 #' @importFrom dplyr mutate
-#' @importFrom dplyr sample_n
 #' @importFrom ggsankey make_long
 #' @importFrom ggsankey geom_alluvial
 #' @importFrom ggsankey geom_alluvial_text
@@ -68,7 +67,7 @@
 #' ) %>%
 #'   dplyr::distinct() %>%
 #'   tidyr::drop_na() %>%
-#'   dplyr::sample_n(30, replace = FALSE) %>%
+#'   dplyr::slice_sample(n = 30) %>%
 #'   as.data.frame()
 #' tcm_alluvial_dot(data_alluvial)
 #' }

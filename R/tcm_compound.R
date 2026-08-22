@@ -24,7 +24,6 @@
 #' @importFrom circlize circos.clear
 #' @importFrom dplyr mutate
 #' @importFrom dplyr group_by
-#' @importFrom dplyr top_n
 #' @importFrom dplyr arrange
 #' @importFrom dplyr select
 #' @importFrom utils data

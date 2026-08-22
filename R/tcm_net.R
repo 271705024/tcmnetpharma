@@ -52,7 +52,7 @@
 #' data("xfbdf", package = "TCMNP")
 #' network.data <- xfbdf %>%
 #'   dplyr::select(herb, molecule, target) %>%
-#'   sample_n(100, replace = FALSE) %>%
+#'   dplyr::slice_sample(n = 100) %>%
 #'   as.data.frame()
 #' tcm_net(network.data, node.color= "Spectral",
 #' label.degree = 1, rem.dis.inter = TRUE,graph.layout = "fr",

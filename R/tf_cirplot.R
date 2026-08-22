@@ -27,7 +27,7 @@
 #' set.seed(1234)
 #' data <- tf_data[, 1:2] %>%
 #'   distinct() %>%
-#'   sample_n(100)
+#'   dplyr::slice_sample(n = 100)
 #' tf_cirplot(data, color = "Spectral")
 #' }
 tf_cirplot <- function(data,
