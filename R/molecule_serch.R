@@ -14,12 +14,12 @@
 #' molecule_filter<- molecule_serch(molecule)
 #' head(molecule_filter)
 molecule_serch <- function(molecule, ...){
-    if (all(molecule %in% (unique(tcmsp$Molecule_name))) == FALSE) {
-      molecule_deficiency <- setdiff(molecule, unique(tcmsp$Molecule_name))
+    if (all(molecule %in% (unique(tcm_network$Molecule_name))) == FALSE) {
+      molecule_deficiency <- setdiff(molecule, unique(tcm_network$Molecule_name))
       print(paste0(molecule_deficiency, " is/are not in the datasets."))
       molecule <- molecule[-match(molecule_deficiency, molecule)]
     }
-  molecule2 <- tcmsp[which((tcmsp$Molecule_name) %in% molecule), ] %>%
+  molecule2 <- tcm_network[which((tcm_network$Molecule_name) %in% molecule), ] %>%
       dplyr::select(c(3:5, 9)) %>%
       dplyr::distinct(.keep_all = TRUE) %>%
       tidyr::drop_na()

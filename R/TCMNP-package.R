@@ -64,7 +64,7 @@ if (getRversion() >= "2.15.1") {
     "RichFactor",
     "rowname",
     "size",
-    "tcmsp",
+    "tcm_network",
     "type",
     "x",
     "Candidate.Target.genes",

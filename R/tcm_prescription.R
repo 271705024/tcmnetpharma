@@ -31,13 +31,13 @@ tcm_prescription <- function(data,
   data <- as.data.frame(data)
   colnames(data)<- 'disease_gene'
 
-  tcmsp2 <- tcmsp[tcmsp$Target %in% data$disease_gene, ] %>%
+  tcm_network2 <- tcm_network[tcm_network$Target %in% data$disease_gene, ] %>%
     tidyr::drop_na() %>%
     dplyr::distinct(., .keep_all = TRUE) %>%
     dplyr::filter(., OB >= OB.value & DL >= DL.value)
 
   # Count the frequency of occurrence of herbs
-  herb_frq <- tcmsp2 %>%
+  herb_frq <- tcm_network2 %>%
     dplyr::select(Herb_cn_name) %>%
     dplyr::group_by(Herb_cn_name) %>%
     dplyr::mutate(freq = dplyr::n()) %>%
@@ -70,7 +70,7 @@ tcm_prescription <- function(data,
   herb_name <- herb_frq$Herb_cn_name
   herb_name_has_compound <- intersect(herb_name, names(herb_compound))
   n <- length(herb_name)
-  universeherb <- unique(tcmsp$Herb_cn_name)
+  universeherb <- unique(tcm_network$Herb_cn_name)
   N <- length(universeherb)
 
   results <- c()

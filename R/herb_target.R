@@ -23,12 +23,12 @@ herb_target <- function(herb,
                         type = "Herb_cn_name",
                         ...) {
   if (type == "Herb_cn_name") {
-    if (all(herb %in% (unique(tcmsp$Herb_cn_name))) == FALSE) {
-      herb_deficiency <- setdiff(herb, unique(tcmsp$Herb_cn_name))
+    if (all(herb %in% (unique(tcm_network$Herb_cn_name))) == FALSE) {
+      herb_deficiency <- setdiff(herb, unique(tcm_network$Herb_cn_name))
       print(paste0(herb_deficiency, " is/are not in the datasets."))
       herb <- herb[-match(herb_deficiency, herb)]
     }
-    fufang <- tcmsp[which((tcmsp$Herb_cn_name) %in% herb), ] %>%
+    fufang <- tcm_network[which((tcm_network$Herb_cn_name) %in% herb), ] %>%
       dplyr::filter(OB >= OB.value & DL >= DL.value) %>%
       dplyr::select(c(3:5, 9)) %>%
       dplyr::distinct(.keep_all = TRUE) %>%
@@ -36,12 +36,12 @@ herb_target <- function(herb,
     colnames(fufang) <- c("herb", "molecule_id", "molecule", "target")
     return(fufang)
   } else if (type == "Herb_name_pin_yin") {
-    if (all(herb %in% (unique(tcmsp$Herb_name_pin_yin))) == FALSE) {
-      herb_deficiency <- setdiff(herb, unique(tcmsp$Herb_name_pin_yin))
+    if (all(herb %in% (unique(tcm_network$Herb_name_pin_yin))) == FALSE) {
+      herb_deficiency <- setdiff(herb, unique(tcm_network$Herb_name_pin_yin))
       print(paste0(herb_deficiency, " is/are not in the datasets."))
       herb <- herb[-match(herb_deficiency, herb)]
     }
-    fufang <- tcmsp[which((tcmsp$Herb_name_pin_yin) %in% herb), ] %>%
+    fufang <- tcm_network[which((tcm_network$Herb_name_pin_yin) %in% herb), ] %>%
       dplyr::filter(OB >= OB.value & DL >= DL.value) %>%
       dplyr::select(c(3:5, 9)) %>%
       dplyr::distinct(.keep_all = TRUE) %>%

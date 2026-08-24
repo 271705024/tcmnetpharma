@@ -14,12 +14,12 @@
 #' target_filter<- target_serch(target, type = "Herb_name_pin_yin")
 #' head(target_filter)
 target_serch <- function(target, ...){
-    if (all(target %in% (unique(tcmsp$Target))) == FALSE) {
-      target_deficiency <- setdiff(target, unique(tcmsp$Target))
+    if (all(target %in% (unique(tcm_network$Target))) == FALSE) {
+      target_deficiency <- setdiff(target, unique(tcm_network$Target))
       print(paste0(target_deficiency, " is/are not in the datasets."))
       target <- target[-match(target_deficiency, target)]
     }
-    fufang <- tcmsp[which((tcmsp$Target) %in% target), ] %>%
+    fufang <- tcm_network[which((tcm_network$Target) %in% target), ] %>%
       dplyr::select(c(3:5, 9)) %>%
       dplyr::distinct(.keep_all = TRUE) %>%
       tidyr::drop_na()

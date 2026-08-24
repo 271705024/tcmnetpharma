@@ -35,5 +35,14 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 
 - 标准键：成分 InChIKey（主）+ PubChem CID（辅）；靶点 Entrez Gene ID；草药拼音+中文双键
 - 关系主源：BATMAN；未映射数据入 raw_unmapped（保留原始 ID）
-- 清洗脚本：data-raw/cleaning/{01_parse,02_map,03_merge,05_qc}.py（可复现）
+- 清洗脚本：data-raw/cleaning/{01_parse,02_map,03_merge,05_qc,05b_verify}.py（可复现）
 - 完整规格：docs/data-cleaning-spec-2026-08-22.md / docs/data-cleaning-qc-plan-2026-08-22.md
+
+## 已知数据特征（源数据约定，非错误）
+
+| 特征 | 说明 |
+|---|---|
+| **herb_cn/herb_en 空缺 = BATMAN_ONLY** | 宽表 8.93% 行（1,365 味）为 BATMAN 独有草药（HERB/TCMSP/ETCM2 三库均未收录的生僻种/拉丁学名音译/菌藻类），中英文同步为空；常用药全部有中英文名。非合并缺陷，行数守恒已核验（wide ⊂ herb_browse，无凭空） |
+| **`'NA'` 字符串占位缺失** | HERB 源数据用字符串 `'NA'`（非 NaN/空）表示缺失，常见于 TCMSP_id/PubChem_id/InChIKey 列；查询时需统一按缺失处理 |
+| **BATMAN ChEBI 化学本体节点** | predicted 靶点列含约 0.26% 非基因条目（如 `acid 128`），为 ChEBI 本体注释；这些行 target_symbol_std 为空（靶点侧未映射），分析时应过滤 |
+| **HERB 靶点符号大小写不统一** | 同一基因可能并存 `Hand2`/`HAND2` 两种写法；宽表按 Entrez 主键合并（正确），符号写法为显示层差异；HGNC 规范符号本身含混合大小写（如 `C12orf57`），不可简单 upper |

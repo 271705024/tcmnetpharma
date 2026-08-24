@@ -8,9 +8,9 @@ test_that("核心数据集存在且结构稳定", {
   expect_gt(nrow(xfbdf), 1000)
   expect_named(xfbdf, c("herb", "molecule_id", "molecule", "target"))
 
-  # herb_pm —— tcm_compound() 依赖列（拼音/性味归经）
+  # herb_pm —— tcm_compound() 依赖列（拼音/性味归经）；2026-08-24 更新：409 → HERB 全量 6,860
   expect_named(herb_pm, c("Herb_cn_name", "Herb_name_pinyin", "Property", "Flavor", "Meridian"))
-  expect_equal(nrow(herb_pm), 409)
+  expect_gt(nrow(herb_pm), 6000)
 
   # trrust —— tf_filter() 依赖列
   expect_true(all(c("TF", "Target") %in% colnames(trrust)))
@@ -35,16 +35,16 @@ test_that("核心数据集存在且结构稳定", {
   expect_named(mahuang, c("Chemical Component", "Candidate Target genes"))
 })
 
-test_that("内部数据 tcmsp 结构稳定（核心依赖）", {
-  tcmsp <- TCMNP:::tcmsp
-  expect_true(is.data.frame(tcmsp))
-  expect_gt(nrow(tcmsp), 400000)
-  expect_named(tcmsp, c("Herb_cn_name", "HERB_NAME_PIN_YIN", "Herb_name_pin_yin",
+test_that("内部数据 tcm_network 结构稳定（核心依赖）", {
+  tcm_network <- TCMNP:::tcm_network
+  expect_true(is.data.frame(tcm_network))
+  expect_gt(nrow(tcm_network), 400000)
+  expect_named(tcm_network, c("Herb_cn_name", "HERB_NAME_PIN_YIN", "Herb_name_pin_yin",
                         "Molecule_name", "MOL_ID", "OB", "DL",
                         "Target_full_name", "Target"))
-  expect_true(is.numeric(tcmsp$OB))
-  expect_true(is.numeric(tcmsp$DL))
+  expect_true(is.numeric(tcm_network$OB))
+  expect_true(is.numeric(tcm_network$DL))
   # 关键列无全空
-  expect_gt(sum(!is.na(tcmsp$Target)), 0)
-  expect_gt(length(unique(tcmsp$Herb_cn_name)), 100)
+  expect_gt(sum(!is.na(tcm_network$Target)), 0)
+  expect_gt(length(unique(tcm_network$Herb_cn_name)), 100)
 })
