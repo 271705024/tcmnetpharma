@@ -25,6 +25,7 @@ src/*.dll
 
 # --- data raw / large archives (P2 data pipeline) ---
 data-raw/
+data-interim/
 TCMNP-main.zip
 *.rds.bak
 *.sqlite
