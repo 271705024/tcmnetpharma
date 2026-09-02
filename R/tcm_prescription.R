@@ -51,48 +51,57 @@ tcm_prescription <- function(data,
     dplyr::select(herb, compound) %>%
     as.data.frame()
 
-  # Hypergeometric distribution calculation
-  # 背景中药数目(m），就是所有复方注释到的所有草药的数目
-  # The number of background Chinese medicines (m) is the
-  # number of all herbal medicines annotated in all compounds.
-
-  # 特定复方上的草药数目（n）
-  # Number of herbs on a specific recipe (n)
-
-  # 目的复方中草药与背景草药m重合的草药数目（k）
-  # The number of herbs (k) that overlap the purpose compound
-  # Chinese herbal medicine and the background herbal medicine m
-
-  # k中落在特定复方中的草药数（a）
-  # The number of herbs in k that fall into a specific compound (a)
-  herb_compound <- tapply(tmp[, 2], as.factor(tmp[, 1]), function(x) x)
-  compound_herb <- tapply(tmp[, 1], as.factor(tmp[, 2]), function(x) x)
+  # Hypergeometric distribution calculation (vectorized, P3.1 2026-09-02)
+  # 原实现为嵌套 R 循环（O(方剂×草药)，441k 行 compoundfinal 下 >30min）；
+  # 改为 dplyr group_by 计数 + 向量化 phyper（全量 <10s）。
+  # 背景中药数目 N=universeherb；复方草药数 M；命中背景集的高频草药数 k。
   herb_name <- herb_frq$Herb_cn_name
-  herb_name_has_compound <- intersect(herb_name, names(herb_compound))
-  n <- length(herb_name)
   universeherb <- unique(tcm_network$Herb_cn_name)
   N <- length(universeherb)
+  n <- length(herb_name)
+  herb_name_has_compound <- intersect(herb_name, unique(tmp$herb))
 
-  results <- c()
-  for (i in names(compound_herb)) {
-    M <- length(intersect(compound_herb[[i]], universeherb))
-    if (M < 5) next
-    exp_count <- n * M / N
-    k <- 0
-    for (j in herb_name_has_compound) {
-      if (i %in% herb_compound[[j]]) k <- k + 1
-    }
-    Oddratio <- k / exp_count
-    if (k == 0) next
-    p <- phyper(k - 1, M, N - M, n, lower.tail = F)
-    results <- rbind(results, c(i, p, Oddratio, exp_count, k, M))
-  }
-  results <- as.data.frame(results, stringsAsFactors = F)
-  colnames(results) <- c("CompoundId", "Pvalue", "OddsRatio", "ExpCount", "Count", "Size")
+  stat <- tmp %>%
+    dplyr::filter(herb %in% universeherb) %>%            # 仅背景集内草药计入 M
+    dplyr::group_by(compound) %>%
+    dplyr::summarise(M = dplyr::n(), .groups = "drop") %>%
+    dplyr::filter(M >= 5)                                # 原逻辑：M < 5 跳过
+
+  hf <- tmp %>%
+    dplyr::filter(herb %in% herb_name_has_compound) %>%  # 高频草药计数 k
+    dplyr::group_by(compound) %>%
+    dplyr::summarise(k = dplyr::n(), .groups = "drop")
+
+  stat <- stat %>%
+    dplyr::left_join(hf, by = "compound") %>%
+    dplyr::mutate(k = ifelse(is.na(k), 0L, k)) %>%
+    dplyr::filter(k > 0)                                 # 原逻辑：k == 0 跳过
+
+  stat <- stat %>%
+    dplyr::mutate(
+      exp_count = n * M / N,
+      Oddratio = k / exp_count,
+      Pvalue = stats::phyper(k - 1, M, N - M, n, lower.tail = FALSE)
+    )
+
+  results <- stat %>%
+    dplyr::transmute(CompoundId = compound, Pvalue, OddsRatio = Oddratio,
+                     ExpCount = exp_count, Count = k, Size = M)
+
+  # Add the intersection of compound herbal medicine and background herbal medicine
+  herb_map <- tmp %>%
+    dplyr::filter(herb %in% herb_name) %>%
+    dplyr::group_by(compound) %>%
+    dplyr::summarise(herb = paste(unique(herb), collapse = "/"), .groups = "drop")
+  results <- results %>%
+    dplyr::left_join(herb_map, by = c("CompoundId" = "compound")) %>%
+    dplyr::mutate(herb = ifelse(is.na(herb), "", herb))
+
   results$p.adjust <- stats::p.adjust(results$Pvalue, method = "BH") %>%
     base::format(digits = digits.value, nsmall = digits.value) %>%
     as.numeric()
   results <- results[order(results$Count, decreasing = TRUE), ]
+  results <- as.data.frame(results)
   rownames(results) <- 1:nrow(results)
   results$Pvalue <- as.numeric(results$Pvalue) %>%
     base::format(digits = digits.value, nsmall = digits.value) %>%
@@ -105,13 +114,6 @@ tcm_prescription <- function(data,
     as.numeric()
   results$Count <- as.numeric(results$Count)
   results$Size <- as.numeric(results$Size)
-  # Add the intersection of compound herbal medicine and background herbal medicine
-  herb_list <- list()
-  for (i in seq(dplyr::row_number(results))) {
-    herb_list[[i]] <- intersect(tmp[tmp$compound %in% results$CompoundId[i], ]$herb, herb_name) %>%
-      paste0(sep = "", collapse = "/")
-  }
-  results$herb <- unlist(herb_list)
   return(list(herb_frq, results))
 }
 
