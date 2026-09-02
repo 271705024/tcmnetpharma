@@ -33,9 +33,8 @@ tcm_prescription <- function(data,
   genes <- unique(as.character(data$disease_gene))
 
   tcm_network2 <- .tcm_query(sprintf(
-    "SELECT * FROM read_parquet('%s') WHERE Target IN (%s) AND OB >= %s AND DL >= %s",
-    .tcm_parquet_path(), .sql_in(genes),
-    format(OB.value, scientific = FALSE), format(DL.value, scientific = FALSE))) %>%
+    "SELECT * FROM read_parquet('%s') WHERE Target IN (%s) AND %s",
+    .tcm_parquet_path(), .sql_in(genes), .tcm_adme_where(OB.value, DL.value))) %>%
     tidyr::drop_na() %>%
     dplyr::distinct(., .keep_all = TRUE)
 

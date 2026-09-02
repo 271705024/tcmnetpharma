@@ -43,13 +43,13 @@ test_that("内部数据 tcm_network 惰性查询契约（P3.2，compat parquet �
   want <- c("Herb_cn_name", "HERB_NAME_PIN_YIN", "Herb_name_pin_yin",
             "Molecule_name", "MOL_ID", "OB", "DL", "Target_full_name", "Target")
   expect_true(all(want %in% names(meta$columns)))
-  # OB/DL 数值类型
-  expect_true(meta$columns[["OB"]] %in% c("DOUBLE", "FLOAT", "INTEGER", "BIGINT"))
-  expect_true(meta$columns[["DL"]] %in% c("DOUBLE", "FLOAT", "INTEGER", "BIGINT"))
-  # 关键链可查（Target=PTGS2 且 ADME 达标）
+  # OB/DL 类型：VARCHAR（Python 侧源特征，含 'NA' 占位）——过滤用 CAST 解析
+  expect_true(meta$columns[["OB"]] %in% c("VARCHAR", "DOUBLE", "FLOAT", "INTEGER", "BIGINT"))
+  expect_true(meta$columns[["DL"]] %in% c("VARCHAR", "DOUBLE", "FLOAT", "INTEGER", "BIGINT"))
+  # 关键链可查（Target=PTGS2 且 ADME 达标——CAST 后过滤）
   hit <- TCMNP:::.tcm_query(sprintf(
-    "SELECT COUNT(*) AS n FROM read_parquet('%s') WHERE Target IN ('PTGS2') AND OB >= 30 AND DL >= 0.18",
-    TCMNP:::.tcm_parquet_path()))
+    "SELECT COUNT(*) AS n FROM read_parquet('%s') WHERE Target IN ('PTGS2') AND %s",
+    TCMNP:::.tcm_parquet_path(), TCMNP:::.tcm_adme_where(30, 0.18)))
   expect_gt(hit$n, 0)
   # DISTINCT 草药数（背景集规模，应显著大于旧版 499）
   hb <- TCMNP:::.tcm_distinct("Herb_cn_name")

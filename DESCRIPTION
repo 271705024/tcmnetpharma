@@ -15,7 +15,9 @@ Roxygen: list(markdown = TRUE)
 Imports: 
     aplot,
     circlize,
+    DBI,
     dplyr,
+    duckdb,
     ggplot2,
     ggraph,
     ggtree,

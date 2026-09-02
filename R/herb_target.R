@@ -35,8 +35,8 @@ herb_target <- function(herb,
     return(data.frame(herb = character(), molecule_id = character(),
                       molecule = character(), target = character()))
   }
-  extra <- sprintf("OB >= %s AND DL >= %s",
-                   format(OB.value, scientific = FALSE), format(DL.value, scientific = FALSE))
+  extra <- .tcm_adme_where(
+                   OB.value, DL.value)
   fufang <- .tcm_filter(
     check_col, herb,
     c(herb = "Herb_name_pin_yin", molecule_id = "Molecule_name",

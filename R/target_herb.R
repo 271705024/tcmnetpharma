@@ -26,8 +26,8 @@ target_herb <- function(gene, OB.value = 30, DL.value = 0.18, ...) {
     return(data.frame(herb = character(), molecule_id = character(),
                       molecule = character(), target = character()))
   }
-  extra <- sprintf("OB >= %s AND DL >= %s",
-                   format(OB.value, scientific = FALSE), format(DL.value, scientific = FALSE))
+  extra <- .tcm_adme_where(
+                   OB.value, DL.value)
   data_herbs <- .tcm_filter(
     "Target", gene,
     c(herb = "Herb_name_pin_yin", molecule_id = "Molecule_name",
