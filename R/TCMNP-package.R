@@ -123,6 +123,10 @@ if (getRversion() >= "2.15.1") {
     "CompoundId",
     "Pvalue",
     "compound_pinyin",
-    "compound_cn"
+    "compound_cn",
+    "M",
+    "k",
+    "exp_count",
+    "Oddratio"
   ))
 }
