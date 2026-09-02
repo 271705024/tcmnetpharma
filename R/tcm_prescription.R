@@ -27,14 +27,17 @@ tcm_prescription <- function(data,
                              DL.value = 0.18,
                              freq.value = 50,
                              digits.value = 2, ...) {
-  # Search for the right herbal medicine
+  # Search for the right herbal medicine（惰性查询 P3.2：DuckDB 直读 compat parquet）
   data <- as.data.frame(data)
   colnames(data)<- 'disease_gene'
+  genes <- unique(as.character(data$disease_gene))
 
-  tcm_network2 <- tcm_network[tcm_network$Target %in% data$disease_gene, ] %>%
+  tcm_network2 <- .tcm_query(sprintf(
+    "SELECT * FROM read_parquet('%s') WHERE Target IN (%s) AND OB >= %s AND DL >= %s",
+    .tcm_parquet_path(), .sql_in(genes),
+    format(OB.value, scientific = FALSE), format(DL.value, scientific = FALSE))) %>%
     tidyr::drop_na() %>%
-    dplyr::distinct(., .keep_all = TRUE) %>%
-    dplyr::filter(., OB >= OB.value & DL >= DL.value)
+    dplyr::distinct(., .keep_all = TRUE)
 
   # Count the frequency of occurrence of herbs
   herb_frq <- tcm_network2 %>%
@@ -56,7 +59,7 @@ tcm_prescription <- function(data,
   # 改为 dplyr group_by 计数 + 向量化 phyper（全量 <10s）。
   # 背景中药数目 N=universeherb；复方草药数 M；命中背景集的高频草药数 k。
   herb_name <- herb_frq$Herb_cn_name
-  universeherb <- unique(tcm_network$Herb_cn_name)
+  universeherb <- .tcm_distinct("Herb_cn_name")   # 惰性 DISTINCT（去空，P3.2）
   N <- length(universeherb)
   n <- length(herb_name)
   herb_name_has_compound <- intersect(herb_name, unique(tmp$herb))

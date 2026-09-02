@@ -13,16 +13,24 @@
 #' molecule <- c("Hexyl acetate", "quercetin 3-o-rhamnopyranosyl")
 #' molecule_filter<- molecule_serch(molecule)
 #' head(molecule_filter)
-molecule_serch <- function(molecule, ...){
-    if (all(molecule %in% (unique(tcm_network$Molecule_name))) == FALSE) {
-      molecule_deficiency <- setdiff(molecule, unique(tcm_network$Molecule_name))
-      print(paste0(molecule_deficiency, " is/are not in the datasets."))
-      molecule <- molecule[-match(molecule_deficiency, molecule)]
-    }
-  molecule2 <- tcm_network[which((tcm_network$Molecule_name) %in% molecule), ] %>%
-      dplyr::select(c(3:5, 9)) %>%
-      dplyr::distinct(.keep_all = TRUE) %>%
-      tidyr::drop_na()
-    colnames(molecule2) <- c("herb", "molecule_id", "molecule", "target")
-    return(molecule2)
+molecule_serch <- function(molecule, ...) {
+  # 惰性查询（P3.2）：DuckDB 直读 compat parquet，仅拉取 IN 子集
+  hit <- .tcm_distinct_where("Molecule_name",
+                             sprintf("Molecule_name IN (%s)", .sql_in(molecule)))
+  molecule_deficiency <- setdiff(molecule, hit)
+  if (length(molecule_deficiency)) {
+    print(paste0(molecule_deficiency, " is/are not in the datasets."))
+  }
+  molecule <- intersect(molecule, hit)
+  if (!length(molecule)) {
+    return(data.frame(herb = character(), molecule_id = character(),
+                      molecule = character(), target = character()))
+  }
+  molecule2 <- .tcm_filter(
+    "Molecule_name", molecule,
+    c(herb = "Herb_name_pin_yin", molecule_id = "Molecule_name",
+      molecule = "MOL_ID", target = "Target")) %>%
+    dplyr::distinct(.keep_all = TRUE) %>%
+    tidyr::drop_na()
+  return(molecule2)
 }

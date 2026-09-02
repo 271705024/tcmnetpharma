@@ -15,16 +15,25 @@
 #' gene <- c("MAPK1", "JUN", "FOS", "RAC1", "IL1", "IL6")
 #' target_herbs <- target_herb(gene)
 target_herb <- function(gene, OB.value = 30, DL.value = 0.18, ...) {
-  if (all(gene %in% (unique(tcm_network$Target))) == FALSE) {
-    gene_deficiency <- setdiff(gene, unique(tcm_network$Target))
+  # 惰性查询（P3.2）：DuckDB 直读 compat parquet
+  hit <- .tcm_distinct_where("Target", sprintf("Target IN (%s)", .sql_in(gene)))
+  gene_deficiency <- setdiff(gene, hit)
+  if (length(gene_deficiency)) {
     print(paste0(gene_deficiency, " is/are not in the datasets."))
-    gene <- gene[-match(gene_deficiency, gene)]
   }
-  data_herbs <- tcm_network[which(tcm_network$Target %in% gene), ] %>%
-    dplyr::filter(OB >= OB.value & DL >= DL.value) %>%
-    dplyr::select(c(3:5, 9)) %>%
+  gene <- intersect(gene, hit)
+  if (!length(gene)) {
+    return(data.frame(herb = character(), molecule_id = character(),
+                      molecule = character(), target = character()))
+  }
+  extra <- sprintf("OB >= %s AND DL >= %s",
+                   format(OB.value, scientific = FALSE), format(DL.value, scientific = FALSE))
+  data_herbs <- .tcm_filter(
+    "Target", gene,
+    c(herb = "Herb_name_pin_yin", molecule_id = "Molecule_name",
+      molecule = "MOL_ID", target = "Target"),
+    extra_where = extra) %>%
     dplyr::distinct(.keep_all = TRUE) %>%
     tidyr::drop_na()
-  colnames(data_herbs) <- c("herb", "molecule_id", "molecule", "target")
   return(data_herbs)
 }

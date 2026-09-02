@@ -22,31 +22,27 @@ herb_target <- function(herb,
                         DL.value = 0.18,
                         type = "Herb_cn_name",
                         ...) {
-  if (type == "Herb_cn_name") {
-    if (all(herb %in% (unique(tcm_network$Herb_cn_name))) == FALSE) {
-      herb_deficiency <- setdiff(herb, unique(tcm_network$Herb_cn_name))
-      print(paste0(herb_deficiency, " is/are not in the datasets."))
-      herb <- herb[-match(herb_deficiency, herb)]
-    }
-    fufang <- tcm_network[which((tcm_network$Herb_cn_name) %in% herb), ] %>%
-      dplyr::filter(OB >= OB.value & DL >= DL.value) %>%
-      dplyr::select(c(3:5, 9)) %>%
-      dplyr::distinct(.keep_all = TRUE) %>%
-      tidyr::drop_na()
-    colnames(fufang) <- c("herb", "molecule_id", "molecule", "target")
-    return(fufang)
-  } else if (type == "Herb_name_pin_yin") {
-    if (all(herb %in% (unique(tcm_network$Herb_name_pin_yin))) == FALSE) {
-      herb_deficiency <- setdiff(herb, unique(tcm_network$Herb_name_pin_yin))
-      print(paste0(herb_deficiency, " is/are not in the datasets."))
-      herb <- herb[-match(herb_deficiency, herb)]
-    }
-    fufang <- tcm_network[which((tcm_network$Herb_name_pin_yin) %in% herb), ] %>%
-      dplyr::filter(OB >= OB.value & DL >= DL.value) %>%
-      dplyr::select(c(3:5, 9)) %>%
-      dplyr::distinct(.keep_all = TRUE) %>%
-      tidyr::drop_na()
-    colnames(fufang) <- c("herb", "molecule_id", "molecule", "target")
-    return(fufang)
+  # 惰性查询（P3.2）：DuckDB 直读 compat parquet
+  check_col <- if (type == "Herb_cn_name") "Herb_cn_name" else "Herb_name_pin_yin"
+  hit <- .tcm_distinct_where(check_col,
+                             sprintf("%s IN (%s)", check_col, .sql_in(herb)))
+  herb_deficiency <- setdiff(herb, hit)
+  if (length(herb_deficiency)) {
+    print(paste0(herb_deficiency, " is/are not in the datasets."))
   }
+  herb <- intersect(herb, hit)
+  if (!length(herb)) {
+    return(data.frame(herb = character(), molecule_id = character(),
+                      molecule = character(), target = character()))
+  }
+  extra <- sprintf("OB >= %s AND DL >= %s",
+                   format(OB.value, scientific = FALSE), format(DL.value, scientific = FALSE))
+  fufang <- .tcm_filter(
+    check_col, herb,
+    c(herb = "Herb_name_pin_yin", molecule_id = "Molecule_name",
+      molecule = "MOL_ID", target = "Target"),
+    extra_where = extra) %>%
+    dplyr::distinct(.keep_all = TRUE) %>%
+    tidyr::drop_na()
+  return(fufang)
 }

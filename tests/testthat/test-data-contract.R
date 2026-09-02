@@ -35,16 +35,23 @@ test_that("核心数据集存在且结构稳定", {
   expect_named(mahuang, c("Chemical Component", "Candidate Target genes"))
 })
 
-test_that("内部数据 tcm_network 结构稳定（核心依赖）", {
-  tcm_network <- TCMNP:::tcm_network
-  expect_true(is.data.frame(tcm_network))
-  expect_gt(nrow(tcm_network), 400000)
-  expect_named(tcm_network, c("Herb_cn_name", "HERB_NAME_PIN_YIN", "Herb_name_pin_yin",
-                        "Molecule_name", "MOL_ID", "OB", "DL",
-                        "Target_full_name", "Target"))
-  expect_true(is.numeric(tcm_network$OB))
-  expect_true(is.numeric(tcm_network$DL))
-  # 关键列无全空
-  expect_gt(sum(!is.na(tcm_network$Target)), 0)
-  expect_gt(length(unique(tcm_network$Herb_cn_name)), 100)
+test_that("内部数据 tcm_network 惰性查询契约（P3.2，compat parquet 经 DuckDB）", {
+  meta <- TCMNP:::.tcm_meta()
+  # 行数 = 16,347,058（S3-S4 合并产出）
+  expect_gt(meta$rows, 1.5e7)
+  # 9 列契约（与 sysdata 时代一致的列集）
+  want <- c("Herb_cn_name", "HERB_NAME_PIN_YIN", "Herb_name_pin_yin",
+            "Molecule_name", "MOL_ID", "OB", "DL", "Target_full_name", "Target")
+  expect_true(all(want %in% names(meta$columns)))
+  # OB/DL 数值类型
+  expect_true(meta$columns[["OB"]] %in% c("DOUBLE", "FLOAT", "INTEGER", "BIGINT"))
+  expect_true(meta$columns[["DL"]] %in% c("DOUBLE", "FLOAT", "INTEGER", "BIGINT"))
+  # 关键链可查（Target=PTGS2 且 ADME 达标）
+  hit <- TCMNP:::.tcm_query(sprintf(
+    "SELECT COUNT(*) AS n FROM read_parquet('%s') WHERE Target IN ('PTGS2') AND OB >= 30 AND DL >= 0.18",
+    TCMNP:::.tcm_parquet_path()))
+  expect_gt(hit$n, 0)
+  # DISTINCT 草药数（背景集规模，应显著大于旧版 499）
+  hb <- TCMNP:::.tcm_distinct("Herb_cn_name")
+  expect_gt(length(hb), 1000)
 })
