@@ -23,13 +23,27 @@ test_that("核心数据集存在且结构稳定", {
   # disease_data —— 示例疾病基因集
   expect_equal(nrow(disease_data), 790)
 
-  # 通路基因集（KEGG/GSEA）—— 统一 term/gene 两列
-  for (d in list(human_kegg = human_kegg, mu_kegg = mu_kegg,
-                 human_gsea = human_gsea, mu_gsea = mu_gsea)) {
+  # 可再分发基因集（GO + Reactome，替换 KEGG/MSigDB）—— 统一 term/gene 两列
+  gs_sets <- list(human_reactome = human_reactome, mu_reactome = mu_reactome,
+                  human_go = human_go, mu_go = mu_go)
+  for (d in gs_sets) {
     expect_true(is.data.frame(d))
     expect_named(d, c("term", "gene"))
     expect_gt(nrow(d), 1000)
+    expect_gt(length(unique(d$gene)), 1000)          # 基因覆盖
+    expect_true(all(nzchar(d$term) & nzchar(d$gene))) # 无空值
+    expect_false(any(duplicated(d)))                  # 无重复行
   }
+  # term 命名空间校验：GO 前缀 GO:；Reactome 前缀 R-HSA-/R-MMU-
+  expect_true(all(grepl("^GO:", human_go$term)))
+  expect_true(all(grepl("^GO:", mu_go$term)))
+  expect_true(all(grepl("^R-HSA-", human_reactome$term)))
+  expect_true(all(grepl("^R-MMU-", mu_reactome$term)))
+  # 经典通路抽查（同源人类/小鼠应都覆盖）
+  expect_true(any(human_reactome$term == "R-HSA-70171")) # Glycolysis
+  expect_true(any(mu_reactome$term == "R-MMU-70171"))
+  expect_true(any(human_go$term == "GO:0006915"))        # apoptotic process
+  expect_true(any(mu_go$term == "GO:0006915"))
 
   # mahuang —— etcm() 输入契约（ETCM 下载格式）
   expect_named(mahuang, c("Chemical Component", "Candidate Target genes"))

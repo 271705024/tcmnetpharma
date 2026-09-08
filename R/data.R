@@ -129,38 +129,90 @@
 #'
 "trrust"
 
-#' human_kegg
+#' human_reactome
 #'
-#' A data frame with 36788 rows and 2 variables
+#' Human Reactome pathway gene sets (all levels), in long \code{term}/\code{gene} format
+#' for offline enrichment with clusterProfiler \code{enricher}/\code{GSEA}
+#' (pass as \code{TERM2GENE}).
+#'
+#' @format A data frame with 139327 rows and 2 variables:
+#' \describe{
+#'   \item{term}{Reactome stable identifier, e.g. \code{R-HSA-70171} (Glycolysis)}
+#'   \item{gene}{official human gene symbol}
+#' }
+#' @details Replaces the KEGG gene sets (human_kegg, removed; KEGG downloads are
+#'   not redistributable). Built 2026-09-05 from
+#'   \code{reactome.org/download/current/NCBI2Reactome_All_Levels.txt}
+#'   (Homo sapiens, all levels), Entrez IDs mapped to symbols via org.Hs.eg.db.
+#'   Reactome content is licensed CC BY 4.0 (redistributable). The pathway name
+#'   for each term is available in the companion CSV
+#'   \code{data-raw/gene-sets/output/human_reactome_pathway_map.csv}.
 #' @examples
-#' head(human_kegg)
+#' head(human_reactome)
 #'
-"human_kegg"
+"human_reactome"
 
-#' human_gsea
+#' human_go
 #'
-#' A data frame with 7189 rows and 2 variables
+#' Human GO gene sets (BP/CC/MF pooled) in long \code{term}/\code{gene} format
+#' for offline enrichment with clusterProfiler \code{enricher}/\code{GSEA}.
+#'
+#' @format A data frame with 224180 rows and 2 variables:
+#' \describe{
+#'   \item{term}{Gene Ontology identifier, e.g. \code{GO:0006915} (apoptotic process)}
+#'   \item{gene}{official human gene symbol}
+#' }
+#' @details Replaces the MSigDB Hallmark gene sets (human_gsea, removed; MSigDB
+#'   downloads are not redistributable). Built 2026-09-05 from direct GO
+#'   annotations of org.Hs.eg.db (Bioconductor 3.23), evidence codes excluding
+#'   IEA, minimum 2 genes per term. GO content is CC BY 4.0 (Gene Ontology
+#'   Consortium). GO ID -> term name/ontology mapping in companion CSV
+#'   \code{data-raw/gene-sets/output/human_go_go_term_map.csv}.
 #' @examples
-#' head(human_gsea)
+#' head(human_go)
 #'
-"human_gsea"
+"human_go"
 
 
-#' mu_kegg
+#' mu_reactome
 #'
-#' A data frame with 36788 rows and 2 variables
+#' Mouse Reactome pathway gene sets (all levels), in long \code{term}/\code{gene}
+#' format for offline enrichment with clusterProfiler \code{enricher}/\code{GSEA}.
+#'
+#' @format A data frame with 88600 rows and 2 variables:
+#' \describe{
+#'   \item{term}{Reactome stable identifier, e.g. \code{R-MMU-70171} (Glycolysis)}
+#'   \item{gene}{official mouse gene symbol}
+#' }
+#' @details Replaces the KEGG gene sets (mu_kegg, removed). Built 2026-09-05 from
+#'   \code{NCBI2Reactome_All_Levels.txt} (Mus musculus, all levels), Entrez IDs
+#'   mapped to symbols from the org.Mm.eg.db 3.23.0 SQLite annotation.
+#'   Reactome content is licensed CC BY 4.0 (redistributable). Pathway names in
+#'   companion CSV \code{data-raw/gene-sets/output/mu_reactome_pathway_map.csv}.
 #' @examples
-#' head(compound_data)
+#' head(mu_reactome)
 #'
-"mu_kegg"
+"mu_reactome"
 
-#' mu_gsea
+#' mu_go
 #'
-#' A data frame with 7189 rows and 2 variables
+#' Mouse GO gene sets (BP/CC/MF pooled) in long \code{term}/\code{gene} format
+#' for offline enrichment with clusterProfiler \code{enricher}/\code{GSEA}.
+#'
+#' @format A data frame with 271809 rows and 2 variables:
+#' \describe{
+#'   \item{term}{Gene Ontology identifier, e.g. \code{GO:0006915}}
+#'   \item{gene}{official mouse gene symbol}
+#' }
+#' @details Replaces the MSigDB Hallmark gene sets (mu_gsea, removed). Built
+#'   2026-09-05 from direct GO annotations of org.Mm.eg.db 3.23.0 SQLite,
+#'   evidence codes excluding IEA, minimum 2 genes per term. GO content is
+#'   CC BY 4.0 (Gene Ontology Consortium). GO ID -> term name/ontology mapping
+#'   in companion CSV \code{data-raw/gene-sets/output/mu_go_go_term_map.csv}.
 #' @examples
-#' head(mu_gsea)
+#' head(mu_go)
 #'
-"mu_gsea"
+"mu_go"
 
 
 #' compound_data

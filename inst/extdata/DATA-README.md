@@ -16,9 +16,24 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 | 表 | 文件 | 数据版本 | 行数 | 说明 |
 |---|---|---|---|---|
 | standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_0.2.0_2026-08-22 | 待填 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME） |
-| tcmsp_compat | inst/extdata/tcmsp_compat.parquet | TCMNP_0.2.0_2026-08-22 | 待填 | 9 列兼容表（喂现有函数） |
+| tcm_network_compat | inst/extdata/tcm_network_compat.parquet | TCMNP_0.2.0_2026-09-02 | 16,347,058 | 9 列兼容表（喂现有函数；C1 由 tcmsp_compat 更名，DuckDB 惰性查询） |
 | raw_unmapped | inst/extdata/raw_unmapped.parquet | TCMNP_0.2.0_2026-08-22 | 待填 | 未映射/多余数据 |
 | herb_pm | data/herb_pm.rda | TCMNP_0.2.0_2026-08-22 | 待填 | HERB 性味归经（6,892） |
+
+## 可再分发基因集（data/，P3.3，2026-09-05 生成）
+
+> 替代原 human/mu_kegg（KEGG）与 human/mu_gsea（MSigDB Hallmark）——两者下载均不可再分发，已从包内移除（kegg.filter 作为既往分析示例保留并注明来源）。
+
+| 数据集 | 内容 | term 键 | 行数/通路数 | 来源与许可 |
+|---|---|---|---|---|
+| human_go | GO BP/CC/MF 合并，剔 IEA，≥2 基因/term | GO:xxxxxxx | 224,180 行 / 11,626 term | org.Hs.eg.db 3.23.1 直接注释 + GO.db；GO Consortium CC BY 4.0 |
+| mu_go | 同上（小鼠） | GO:xxxxxxx | 271,809 行 / 13,625 term | org.Mm.eg.db 3.23.0 SQLite 注释（直读，未装 R 包）+ GO.db；CC BY 4.0 |
+| human_reactome | Reactome 通路 all-level | R-HSA-xxxxx | 139,327 行 / 2,534 通路 | reactome.org NCBI2Reactome_All_Levels（2026-09-05）；Reactome CC BY 4.0 |
+| mu_reactome | 同上（小鼠） | R-MMU-xxxxx | 88,600 行 / 1,802 通路 | 同上（Mus musculus） |
+
+- 用途：离线 ORA/GSEA 的 TERM2GENE（clusterProfiler::enricher/GSEA）；term→名称/本体映射见 `data-raw/gene-sets/output/*_map.csv`
+- 复现：`data-raw/gene-sets/scripts/{build_go_genesets.R, build_mu_go_sqlite.R, parse_reactome.py, build_reactome_symbol.R}`
+- 决策记录：GO/Reactome 键用稳定 ID（GO 名跨本体重名 1.2 万+、Reactome 名同种内重名 ~85%）；Reactome 用官方 all-level（等价 ReactomePA 默认口径，用户拍板 2026-09-05）；KEGG REST API 在线可选接口为后续待评估项
 
 ## 来源与许可
 

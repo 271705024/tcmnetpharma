@@ -6,14 +6,14 @@
 \alias{TCMNP-package}
 \title{TCMNP: Traditional Chinese Medicine Network Pharmacology}
 \description{
-A visualization tool for network pharmacology data analysis.
+A visualization tool for network pharmacology data analysis, powered by an integrated multi-source database (TCMSP, HERB 2.0, BATMAN-TCM 2.0, ETCM2, TTD). All underlying data are from open public sources; see inst/extdata/DATA-README.md for versioning and licensing details.
 }
 \author{
-\strong{Maintainer}: Jinkun Liu \email{liujinkun007@gmail.com} (\href{https://orcid.org/0000-0003-2212-9617}{ORCID})
+\strong{Maintainer}: JianXiao Zheng \email{zhengjianxiao@tjutcm.edu.cn} (affiliation: Haihe Laboratory of Modern Traditional Chinese Medicine, Tianjin University of Traditional Chinese Medicine)
 
 Authors:
 \itemize{
-  \item Jinkun Liu \email{liujinkun007@gmail.com} (\href{https://orcid.org/0000-0003-2212-9617}{ORCID})
+  \item JianXiao Zheng \email{zhengjianxiao@tjutcm.edu.cn} (affiliation: Haihe Laboratory of Modern Traditional Chinese Medicine, Tianjin University of Traditional Chinese Medicine)
 }
 
 }

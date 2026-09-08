@@ -5,7 +5,7 @@
 \alias{herb_pm}
 \title{Herbal Properties and Meridians}
 \format{
-An object of class \code{data.frame} with 409 rows and 5 columns.
+An object of class \code{data.frame} with 6860 rows and 5 columns.
 }
 \source{
 \url{https://db.ouryao.com/yd2020/index.php?cid=1}
