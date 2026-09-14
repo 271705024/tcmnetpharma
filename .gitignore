@@ -16,7 +16,6 @@ renv/.gitignore
 
 # --- build artifacts ---
 *.Rcheck/
-.Rbuildignore
 *.tar.gz
 *.zip
 src/*.o

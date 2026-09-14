@@ -1,0 +1,7 @@
+^renv$
+^renv\.lock$
+^\.DS_Store$
+^TCMNP\.Rproj$
+^TCMNP\.Rcheck$
+^.*\.tar\.gz$
+^\.git$

@@ -9,7 +9,7 @@ Authors@R:
            email = "zhengjianxiao@tjutcm.edu.cn",
            comment = c(affiliation = "Haihe Laboratory of Modern Traditional Chinese Medicine, Tianjin University of Traditional Chinese Medicine"))
 Description: A visualization tool for network pharmacology data analysis, powered by an integrated multi-source database (TCMSP, HERB 2.0, BATMAN-TCM 2.0, ETCM2, TTD). All underlying data are from open public sources; see inst/extdata/DATA-README.md for versioning and licensing details.
-License: GPL (>= 3) + file LICENSE
+License: GPL-3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports: 
@@ -51,6 +51,4 @@ Suggests:
     utils
 Config/testthat/edition: 3
 NeedsCompilation: no
-Author: JianXiao Zheng [aut, cre] (Haihe Laboratory of Modern Traditional Chinese Medicine, Tianjin University of Traditional Chinese Medicine)
-Maintainer: JianXiao Zheng <zhengjianxiao@tjutcm.edu.cn>
 Config/roxygen2/version: 8.1.0

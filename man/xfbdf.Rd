@@ -8,7 +8,7 @@
 An object of class \code{data.frame} with 5024 rows and 4 columns.
 }
 \source{
-\url{http://www.nhc.gov.cn/cms-search/downFiles/a449a3e2e2c94d9a856d5faea2ff0f94.pdf}
+\url{https://www.nhc.gov.cn/cms-search/downFiles/a449a3e2e2c94d9a856d5faea2ff0f94.pdf}
 }
 \usage{
 xfbdf
