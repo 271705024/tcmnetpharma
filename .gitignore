@@ -45,3 +45,8 @@ Desktop.ini
 *~
 .idea/
 .vscode/
+
+# --- inst/extdata 数据件例外（parquet 为包内运行时数据，必须入库）----
+# 说明：P4 exe 分发包的离线数据源即 inst/extdata/*.parquet，
+#       上游规则 `*.parquet` 会误伤，故此处显式反忽略。
+!inst/extdata/*.parquet
