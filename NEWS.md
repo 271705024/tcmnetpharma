@@ -1,5 +1,14 @@
 # NEWS
 
+## TCMNP 0.2.0（数据修订 2026-09-15）
+
+### 数据质量修复（L3）
+- `iupac_name`/`mol_name` 中的 CAS 号迁入独立 `cas` 列（`standard` 表新增第 23 列；`compat` 表扩为 10 列，新增 `CAS`）
+- 分子名经 PubChem 回填（889 个 CID），`mol_name` 空值清零
+- `mapping_status` 列语义修复（原先误写 InChIKey 值）
+- `herb_cn_source` 溯源加守卫；数据版本升至 `TCMNP_1.1.0_2026-09-15`
+- 详见 `docs/l3-data-defect-fix-report-2026-09-15.md`
+
 ## TCMNP 0.2.0 (2026-08-22)
 
 ### 数据（重大更新：单一 TCMSP → 多源整合）

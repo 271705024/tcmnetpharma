@@ -98,7 +98,7 @@ pathway_ccplot <- function(data,
     list <- lapply(seq_along(se_index), function(i) {
       dots <- se_index[1:i]
       kegg.df %>%
-        dplyr::group_by(.dots = dots) %>%
+        dplyr::group_by(dplyr::across(dplyr::all_of(dots))) %>%
         dplyr::summarise(
           node.size = sum(.data[[value]]),
           node.level = se_index[[i]],
@@ -148,14 +148,14 @@ pathway_ccplot <- function(data,
         dplyr::select(., from, to) %>%
         dplyr::mutate(dplyr::across(c(from, to), as.character))
     })
-    newdata2 <- do.call("rbind", list) %>% as.data.frame(newdata2)
+    newdata2 <- do.call("rbind", list) %>% as.data.frame()
   }
 
   if (is.null(root)) {
     edges_kegg <- newdata2
   } else {
     root_data <- kegg.df %>%
-      dplyr::group_by(.dots = se_index[[1]]) %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(se_index[[1]]))) %>%
       dplyr::summarise(count = n(), .groups = 'drop') %>%
       dplyr::mutate(from = root, to = as.character(.data[[se_index[[1]]]])) %>%
       dplyr::select(., from, to)

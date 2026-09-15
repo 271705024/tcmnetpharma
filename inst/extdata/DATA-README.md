@@ -11,14 +11,18 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 - 每次数据更新：patch+1（同日多次修订）或 minor+1（数据源版本变化）；major 用于结构破坏性变更
 - 版本记录于每张表的 manifest（`data_version` 字段）
 
-## 当前版本（待清洗产出后填充）
+## 当前版本
 
 | 表 | 文件 | 数据版本 | 行数 | 说明 |
 |---|---|---|---|---|
-| standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_0.2.0_2026-08-22 | 待填 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME） |
-| tcm_network_compat | inst/extdata/tcm_network_compat.parquet | TCMNP_0.2.0_2026-09-02 | 16,347,058 | 9 列兼容表（喂现有函数；C1 由 tcmsp_compat 更名，DuckDB 惰性查询） |
-| raw_unmapped | inst/extdata/raw_unmapped.parquet | TCMNP_0.2.0_2026-08-22 | 待填 | 未映射/多余数据 |
-| herb_pm | data/herb_pm.rda | TCMNP_0.2.0_2026-08-22 | 待填 | HERB 性味归经（6,892） |
+| standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_1.1.0_2026-09-15 | 16,269,242 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME；L3-P3 新增 `cas` 列） |
+| tcm_network_compat | inst/extdata/tcm_network_compat.parquet | TCMNP_1.1.0_2026-09-15 | 16,269,242 | 10 列兼容表（喂现有函数；C1 由 tcmsp_compat 更名，DuckDB 惰性查询；新增 `CAS` 列） |
+| raw_unmapped | inst/extdata/raw_unmapped.parquet | TCMNP_1.1.0_2026-09-15 | 4,988,060 | 未映射/多余数据 |
+| herb_pm | data/herb_pm.rda | TCMNP_0.2.0_2026-08-22 | 6,860 | HERB 性味归经（6,892 去空后） |
+
+> L3 数据缺陷修复（2026-09-15）：`iupac_name`/`mol_name` 中的 CAS 号已迁入独立 `cas` 列；
+> 分子名经 PubChem 回填（889 CID）；`mapping_status` 列语义修复；`herb_cn_source` 溯源加守卫。
+> 详见 `docs/l3-data-defect-fix-report-2026-09-15.md`。
 
 ## 可再分发基因集（data/，P3.3，2026-09-05 生成）
 

@@ -16,8 +16,13 @@
 NULL
 
 ## quiets concerns of R CMD check re: the .'s that appear in pipelines
+## 注意：globalVariables() 只能在「已注册且未锁定」的包命名空间中调用。
+## 若在 R CMD INSTALL 的源码求值阶段（此时命名空间已锁定）直接调用，
+## 会抛 "namespace ... is locked" 并使 INSTALL 报出误导性的
+## "ERROR: lazy loading failed for package"（真实原因被 R 吞掉）。
+## 因此这里用 try() 包住：安装期静默跳过，仅在开发期（devtools::load_all 等）生效。
 if (getRversion() >= "2.15.1") {
-  utils::globalVariables(c(
+  try(utils::globalVariables(c(
     "Herb_cn_name",
     "HERB_NAME_PIN_YIN",
     "Herb_name_pin_yin",
@@ -128,5 +133,5 @@ if (getRversion() >= "2.15.1") {
     "k",
     "exp_count",
     "Oddratio"
-  ))
+  )), silent = TRUE)
 }
