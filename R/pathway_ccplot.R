@@ -62,7 +62,23 @@ pathway_ccplot <- function(data,
   } else if (is.data.frame(data)) {
     data <- data %>% tidyr::drop_na()
   } else {
-    print("The data format must be S4 object or data frame.")
+    stop(
+      "`data` must be an S4 object (e.g. clusterProfiler result with a ",
+      "`@result` slot) or a data frame with KEGG/GO enrichment results; got: ",
+      if (is.null(data)) "NULL" else paste(class(data), collapse = "/"),
+      call. = FALSE
+    )
+  }
+  if (nrow(data) == 0L) {
+    stop("`data` has 0 rows after dropping NA; nothing to plot.", call. = FALSE)
+  }
+  # `top` 的语义是「取前 top 条通路」，但 tidyverse 的 `df[1:top, ]` 在
+  # top > nrow 时会用 NA 行补齐，NA 行会一路流进 kegg.df，最终生成
+  # 标签为 "NA" 的幽灵节点（而非报错）。取二者较小值，使语义与调用者
+  # 直觉一致：要多少给多少，不够就有多少给多少。
+  top <- min(as.integer(top), nrow(data))
+  if (top < 1L) {
+    stop("`top` must be >= 1.", call. = FALSE)
   }
 
   if (all(c("ID", "Description", "geneID") %in% colnames(data))) {
@@ -185,6 +201,17 @@ pathway_ccplot <- function(data,
       size = text.size[1], hjust = "outward"
     ) +
     scale_colour_manual(values = rep(
+      RColorBrewer::brewer.pal(8, color.node),
+      ifelse(label.name == "ID",
+        length(unique(path$ID)),
+        length(unique(path$"Description"))
+      )
+    )) +
+    # 边（edge）的离散颜色同样需要显式色阶：
+    # geom_edge_diagonal 用的是 edge_colour 美学，上面的 scale_colour_manual
+    # 只作用于 node 的 colour，边色会退化为原始字符串（如 "KEGG"、通路名），
+    # 渲染时报 `Unknown colour name`。此处补上对应的 edge 色阶。
+    ggraph::scale_edge_colour_manual(values = rep(
       RColorBrewer::brewer.pal(8, color.node),
       ifelse(label.name == "ID",
         length(unique(path$ID)),
