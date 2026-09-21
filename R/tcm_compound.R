@@ -35,11 +35,15 @@
 #'            "cang zhu", "guang huo xiang", "yi yi ren",
 #'            "hu zhang", "qing hao", "ma bian cao", "lu gen",
 #'            "ting li zi", "shi gao", "gan cao")
+#' # Join on `herb_key` (ASCII, whitespace-free) rather than the raw pinyin.
+#' # herb_pm stores spaced pinyin ("ma huang") while the network tables store
+#' # unspaced keys ("mahuang"); herb_key makes the lookup work for both.
+#' herb_key = gsub("[^a-z0-9]", "", tolower(herb))
 #' xfbdf.comp = data.frame( herb = herb,
 #'   weight = c(6, 15, 15, 10, 15, 30, 20, 12, 30, 30, 15, 30, 10),
-#'   property = herb_pm[match(herb, herb_pm$Herb_name_pinyin), ]$Property,
-#'   flavor = herb_pm[match(herb, herb_pm$Herb_name_pinyin), ]$Flavor,
-#'   meridian = herb_pm[match(herb, herb_pm$Herb_name_pinyin), ]$Meridian
+#'   property = herb_pm[match(herb_key, herb_pm$herb_key), ]$Property,
+#'   flavor = herb_pm[match(herb_key, herb_pm$herb_key), ]$Flavor,
+#'   meridian = herb_pm[match(herb_key, herb_pm$herb_key), ]$Meridian
 #' )
 #' tcm_compound(xfbdf.comp)
 #' }

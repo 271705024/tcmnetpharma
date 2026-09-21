@@ -61,6 +61,20 @@ dot_plot <- function(data,
                      text.size = 10,
                      text.width = 35,
                      title = NULL, ...) {
+  # Slice to the requested number of categories.
+  #
+  # DEFECT FIXED 2026-09-21: `top` used to be forwarded as
+  #     ggplot(data2, showCategory = top, ...)
+  # but `showCategory` is not a ggplot2 parameter. ggplot2 silently ignores
+  # unknown arguments, so NOTHING was ever sliced and every row was drawn
+  # (e.g. 2,214 GO terms collapsed the y-axis into an unreadable black band).
+  # bubble_plot() already did this correctly via `[1:top, ]`; dot_plot() now
+  # matches that behaviour.
+  if (isS4(data)) data <- data@result
+  data <- as.data.frame(data)
+  if (!is.null(top) && is.finite(top) && top > 0 && nrow(data) > top) {
+    data <- data[seq_len(top), , drop = FALSE]
+  }
   # Rich Factor
   data2 <- dplyr::mutate(data,
                          richFactor = Count / as.numeric(sub(
@@ -70,7 +84,6 @@ dot_plot <- function(data,
   )
   # ggplot2 plotting
   p <- ggplot(data2,
-              showCategory = top,
               aes(richFactor, stats::reorder(Description, richFactor))
   ) +
     geom_point(aes(color = p.adjust, size = Count)) +
