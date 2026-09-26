@@ -63,13 +63,13 @@ dot_plot <- function(data,
                      title = NULL, ...) {
   # Slice to the requested number of categories.
   #
-  # DEFECT FIXED 2026-09-21: `top` used to be forwarded as
-  #     ggplot(data2, showCategory = top, ...)
-  # but `showCategory` is not a ggplot2 parameter. ggplot2 silently ignores
-  # unknown arguments, so NOTHING was ever sliced and every row was drawn
-  # (e.g. 2,214 GO terms collapsed the y-axis into an unreadable black band).
-  # bubble_plot() already did this correctly via `[1:top, ]`; dot_plot() now
-  # matches that behaviour.
+  # ## ★ E2 修复（2026-09-21）：`top` 参数被静默忽略 → 图表退化
+  # 根因 —— `top` 曾以 `ggplot(data2, showCategory = top, ...)` 形式转发，
+  #   但 `showCategory` 并非 ggplot2 的合法参数。ggplot2 对未知参数**静默忽略**，
+  #   因此切片从未发生、全部行次照画（实测：2,214 条 GO term 把 y 轴糊成黑块）。
+  # 方案 —— 显式取前 `top` 行；与 `bubble_plot()` 既有的 `[1:top, ]` 行为对齐。
+  # 回归锚点 —— `logs/errors-xuanfuhua-e2e-2026-09-21.md` §E2；
+  #   验证见 `tests/xuanfuhua-2026-09-21/output`（4 张 top 驱动图均 rows=15）。
   if (isS4(data)) data <- data@result
   data <- as.data.frame(data)
   if (!is.null(top) && is.finite(top) && top > 0 && nrow(data) > top) {

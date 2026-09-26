@@ -15,8 +15,7 @@
 #' head(molecule_filter)
 molecule_serch <- function(molecule, ...) {
   # 惰性查询（P3.2）：DuckDB 直读 compat parquet，仅拉取 IN 子集
-  hit <- .tcm_distinct_where("Molecule_name",
-                             sprintf("Molecule_name IN (%s)", .sql_in(molecule)))
+  hit <- .tcm_distinct_where("Molecule_name", molecule)
   molecule_deficiency <- setdiff(molecule, hit)
   if (length(molecule_deficiency)) {
     print(paste0(molecule_deficiency, " is/are not in the datasets."))

@@ -16,7 +16,7 @@
 #' target_herbs <- target_herb(gene)
 target_herb <- function(gene, OB.value = 30, DL.value = 0.18, ...) {
   # 惰性查询（P3.2）：DuckDB 直读 compat parquet
-  hit <- .tcm_distinct_where("Target", sprintf("Target IN (%s)", .sql_in(gene)))
+  hit <- .tcm_distinct_where("Target", gene)
   gene_deficiency <- setdiff(gene, hit)
   if (length(gene_deficiency)) {
     print(paste0(gene_deficiency, " is/are not in the datasets."))

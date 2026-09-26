@@ -32,9 +32,12 @@ tcm_prescription <- function(data,
   colnames(data)<- 'disease_gene'
   genes <- unique(as.character(data$disease_gene))
 
+  # 手拼 SQL 时凡引用 parquet 列名一律经 .tcm_col_db() 映射（大小写折叠碰撞，
+  # 见 docs/data-management-spec-2026-08-24.md 3. 命名规则）。
   tcm_network2 <- .tcm_query(sprintf(
-    "SELECT * FROM read_parquet('%s') WHERE Target IN (%s) AND %s",
-    .tcm_parquet_path(), .sql_in(genes), .tcm_adme_where(OB.value, DL.value))) %>%
+    "SELECT * FROM read_parquet('%s') WHERE \"%s\" IN (%s) AND %s",
+    .tcm_parquet_path(), .tcm_col_db("Target"), .sql_in(genes),
+    .tcm_adme_where(OB.value, DL.value))) %>%
     tidyr::drop_na() %>%
     dplyr::distinct(., .keep_all = TRUE)
 

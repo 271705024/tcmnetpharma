@@ -87,12 +87,13 @@ bar_plot <- function(data,
   }
   # Ordering.
   #
-  # DEFECT FIXED 2026-09-21: the bars were always drawn in Count order
-  # (via reorder(Description, Count)), so a caller could not surface the most
-  # SIGNIFICANT terms. Sorting by Count puts uninformative umbrella terms on
-  # top -- e.g. GO:0005515 "protein binding" (1,276 genes) ranks first in any
-  # human gene list while carrying no specific biological signal.
-  # `sort.by = "p.adjust"` now ranks by significance instead.
+  # ## ★ E4 修复（2026-09-21）：排序硬编码为 Count → 无法突出最显著条目
+  # 根因 —— 柱条恒按 `reorder(Description, Count)` 排序，调用方无法按显著性出图。
+  #   按 Count 排序会把**泛化伞状词条**顶到最前：如 GO:0005515「protein binding」
+  #   （1,276 个基因）在任何人类基因列表里都排第一，却不携带任何特异性生物学信号。
+  # 方案 —— 新增 `sort.by` 参数，`"p.adjust"` 时按显著性排序（次键 -Count）。
+  # 回归锚点 —— `logs/errors-xuanfuhua-e2e-2026-09-21.md` §E4；
+  #   验证见 `tests/xuanfuhua-2026-09-21`（bar_plot 含 sort.by 即通过）。
   if (sort.by == "p.adjust") {
     data <- data[order(data$p.adjust, -data$Count), , drop = FALSE]
   } else {
@@ -107,11 +108,12 @@ bar_plot <- function(data,
   ) %>%
     dplyr::slice(1:top)
     data2$richFactor <- data2$richFactor %>% round(digits = 2)
-  # Set the drawing order explicitly by fixing factor levels, rather than by
-  # calling reorder() inside aes(). Doing it in aes() creates a second y scale
-  # and triggers "Scale for y is already present" while silently overriding
-  # the scale_y_discrete() below; fixing the levels keeps a single scale and
-  # makes the order unambiguous.
+  # 绘图顺序。
+  #
+  # ## ★ E4 附带修复（2026-09-21）：`reorder()` 写在 `aes()` 内 → 双 y 标度
+  # 根因 —— 在 `aes()` 里调 `reorder()` 会创建第二个 y 标度，触发
+  #   `Scale for y is already present` 警告，并**静默覆盖**下方的 `scale_y_discrete()`。
+  # 方案 —— 改为显式设定 `factor(levels=...)`，保持单一标度，顺序无歧义。
   ord <- order(if (sort.by == "p.adjust") data2$p.adjust else -data2$Count)
   data2$Description <- factor(data2$Description,
                               levels = rev(data2$Description[ord]))

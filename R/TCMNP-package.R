@@ -24,7 +24,7 @@ NULL
 if (getRversion() >= "2.15.1") {
   try(utils::globalVariables(c(
     "Herb_cn_name",
-    "HERB_NAME_PIN_YIN",
+    "herb_pinyin_raw",
     "Herb_name_pin_yin",
     "MOL_ID",
     "Molecule_name",

@@ -15,7 +15,7 @@
 #' head(target_filter)
 target_serch <- function(target, ...) {
   # 惰性查询（P3.2）：DuckDB 直读 compat parquet
-  hit <- .tcm_distinct_where("Target", sprintf("Target IN (%s)", .sql_in(target)))
+  hit <- .tcm_distinct_where("Target", target)
   target_deficiency <- setdiff(target, hit)
   if (length(target_deficiency)) {
     print(paste0(target_deficiency, " is/are not in the datasets."))

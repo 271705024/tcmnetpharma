@@ -98,6 +98,19 @@ tcmnp_build_info <- function(field = NULL) {
 }
 
 #' 内部：本地化的提示文案（\uXXXX 转义，保证 locale 无关）
+#'
+#' ## ★ E8 修复（2026-09-22，commit c7bcb2c）：裸中文字符串常量 → \uXXXX 转义
+#' 根因 —— 本文件原以裸中文字符串常量书写这几条提示文案。R 4.6.1 (ucrt) 在
+#'   安装期把其 `Encoding` 标记错标为 "ASCII"，随字节码写进 `R/TCMNP.rdb`；
+#'   运行期在 UTF-8 locale 下反序列化该记录即抛 `embedded nul in string`。
+#'   **是「安装期写坏、运行期按 locale 才暴露」的延迟缺陷** —— C locale 下完全正常。
+#' 方案 —— 全部文案改 `\uXXXX` 转义（纯 ASCII，Encoding 标记恒正确），
+#'   并抽出本助手集中管理；文案**字节内容与转义前逐字节一致**（87/37/52）。
+#' 回归锚点 —— `logs/errors-utf8-nul-encoding-2026-09-22.md`；
+#'   闸门：`build_app.py::_preflight_source_encoding()`（静态预扫）+
+#'   `stage_verify()` locale 矩阵（C + zh_CN.UTF-8）；复现：`_probe31.R`。
+#' 工具 —— `python data-raw/tools/escape_cn_strings.py --apply --dir TCMNP-main/R`
+#'
 #' @keywords internal
 #' @noRd
 .tcmnp_note <- function(key) {

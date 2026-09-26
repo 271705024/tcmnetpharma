@@ -24,8 +24,9 @@ herb_target <- function(herb,
                         ...) {
   # 惰性查询（P3.2）：DuckDB 直读 compat parquet
   check_col <- if (type == "Herb_cn_name") "Herb_cn_name" else "Herb_name_pin_yin"
-  hit <- .tcm_distinct_where(check_col,
-                             sprintf("%s IN (%s)", check_col, .sql_in(herb)))
+  # 列名映射与 WHERE 构造均由 .tcm_distinct_where() 内部完成（契约统一，
+  # 调用方不可能漏映射）。背景见 docs/data-management-spec-2026-08-24.md（3. 命名规则）。
+  hit <- .tcm_distinct_where(check_col, herb)
   herb_deficiency <- setdiff(herb, hit)
   if (length(herb_deficiency)) {
     print(paste0(herb_deficiency, " is/are not in the datasets."))
