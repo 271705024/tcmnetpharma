@@ -15,11 +15,21 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 
 | 表 | 文件 | 数据版本 | 行数 | 说明 |
 |---|---|---|---|---|
-| standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_1.1.0_2026-09-15 | 16,269,242 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME；L3-P3 新增 `cas` 列） |
-| tcm_network_compat | inst/extdata/tcm_network_compat.parquet | TCMNP_1.1.0_2026-09-15 | 16,269,242 | 10 列兼容表（喂现有函数；C1 由 tcmsp_compat 更名，DuckDB 惰性查询；新增 `CAS` 列） |
-| raw_unmapped | inst/extdata/raw_unmapped.parquet | TCMNP_1.1.0_2026-09-15 | 4,988,060 | 未映射/多余数据 |
+| standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_1.1.1_2026-09-28 | 16,269,134 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME；含 `cas` 列） |
+| tcm_network_compat | inst/extdata/tcm_network_compat.parquet | TCMNP_1.1.1_2026-09-28 | 16,202,124 | 10 列兼容表（喂现有函数；DuckDB 惰性查询；含 `CAS` 列；已按 10 列判重） |
+| raw_unmapped | inst/extdata/raw_unmapped.parquet | TCMNP_1.1.1_2026-09-28 | 4,988,060 | 未映射/多余数据 |
 | herb_pm | data/herb_pm.rda | TCMNP_0.2.0_2026-08-22 | 6,860 | HERB 性味归经（6,892 去空后） |
 
+> **数据版本 1.1.1（2026-09-28）修复内容**：分子名守卫（`mol_name`/`iupac_name` 的
+> `CID <数字>` 占位符与 CAS 号一律不再充当名称）；BATMAN predicted 引用的 1,090 个
+> Entrez 经 `org.Hs.eg.db` 补全为 HGNC 符号（靶点空值清零）；compat 表按 10 列判重
+> （-67,010 行）；HERB 靶点枢纽按物种过滤（剔除 187 个小鼠条目，-398 行）。
+> 详见 `docs/defect-fix-b1b2b3-2026-09-28.md`。
+>
+> **查询口径（boss 2026-09-28 拍板「尽量全」）**：`herb_target()` / `target_herb()`
+> 默认**保留**源侧无 OB/DL 的行，并以 `adme` 列标注（`ok` / `no_adme`）；
+> 传 `include_missing = FALSE` 可回到旧的「仅保留过阈值行」口径。
+>
 > L3 数据缺陷修复（2026-09-15）：`iupac_name`/`mol_name` 中的 CAS 号已迁入独立 `cas` 列；
 > 分子名经 PubChem 回填（889 CID）；`mapping_status` 列语义修复；`herb_cn_source` 溯源加守卫。
 > 详见 `docs/l3-data-defect-fix-report-2026-09-15.md`。

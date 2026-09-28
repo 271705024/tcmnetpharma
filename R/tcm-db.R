@@ -105,6 +105,25 @@
   .tcm_query(q)
 }
 
+# 同 .tcm_filter，但允许追加**原生 SQL 表达式**列（如 CASE 计算列）。
+# extra_select: named chr，name = 输出列名，value = 原始 SQL 表达式。
+.tcm_filter_ex <- function(col, vals, col_aliases, extra_where = NULL, extra_select = NULL) {
+  p <- .tcm_parquet_path()
+  sel_parts <- vapply(names(col_aliases), function(nm) {
+    sprintf("%s AS \"%s\"", .tcm_col_db(col_aliases[[nm]]), nm)
+  }, character(1))
+  if (!is.null(extra_select)) {
+    sel_parts <- c(sel_parts, vapply(names(extra_select), function(nm) {
+      sprintf("%s AS \"%s\"", extra_select[[nm]], nm)
+    }, character(1)))
+  }
+  sel <- paste(sel_parts, collapse = ", ")
+  q <- sprintf("SELECT %s FROM read_parquet('%s') WHERE \"%s\" IN (%s)",
+               sel, p, .tcm_col_db(col), .sql_in(vals))
+  if (!is.null(extra_where)) q <- paste0(q, " AND ", extra_where)
+  .tcm_query(q)
+}
+
 # DISTINCT values of a column (non-empty). `vals` optionally restricts the
 # result to a value set. The WHERE clause is built HERE from `col`/`vals` so
 # callers CANNOT forget the column-name mapping -- the old signature took a
@@ -117,7 +136,11 @@
   if (!is.null(vals)) {
     where <- sprintf("%s AND \"%s\" IN (%s)", where, cdb, .sql_in(vals))
   }
-  q <- sprintf("SELECT DISTINCT \"%s\" AS v FROM read_parquet('%s') WHERE %s",
+  # ORDER BY 不可省：DuckDB 对 parquet 是并行扫描，无 ORDER BY 时
+  # `SELECT DISTINCT` 的行序**每次运行都可能不同**。上游一旦用 head(n) 取子集
+  # （如 GUI 的查询候选项），同一输入两次就会给不同结果 —— 实测 flaky。
+  # 别名 v 在此处可用；distinct 值量级仅 7k~34k，排序开销可忽略。
+  q <- sprintf("SELECT DISTINCT \"%s\" AS v FROM read_parquet('%s') WHERE %s ORDER BY v",
                cdb, p, where)
   .tcm_query(q)$v
 }
@@ -141,8 +164,33 @@
 # OB/DL are VARCHAR (Python-side source trait, contains 'NA' placeholders):
 # filter with an explicit CAST. Column names go through .tcm_col_db() so this
 # stays collision-safe (see the map notes at the top of this file).
-.tcm_adme_where <- function(OB.value, DL.value) {
-  sprintf("CAST(\"%s\" AS DOUBLE) >= %s AND CAST(\"%s\" AS DOUBLE) >= %s",
-          .tcm_col_db("OB"), format(OB.value, scientific = FALSE),
-          .tcm_col_db("DL"), format(DL.value, scientific = FALSE))
+#
+# ★ 口径变更（boss 2026-09-28 拍板「尽量全」）------------------------------
+# 旧行为：只保留 OB>=x 且 DL>=y 的行 → 那些**源侧没有 OB/DL**的行（实测占
+#   compat 的 80.33%，几乎都是 BATMAN predicted 边）被静默丢弃，用户看到的是
+#   「少而准」但并非全部证据。
+# 新行为（include_missing = TRUE，默认）：**缺失 OB/DL 的行一并保留**，并在结果
+#   里以 `adme` 列标注（'ok' = 通过阈值；'no_adme' = 源侧无 OB/DL）。
+#   传 include_missing = FALSE 可回到旧口径。
+.tcm_adme_missing_sql <- function() {
+  ob <- sprintf('"%s"', .tcm_col_db("OB"))
+  dl <- sprintf('"%s"', .tcm_col_db("DL"))
+  miss <- function(c) sprintf("(%1$s IS NULL OR UPPER(TRIM(%1$s)) IN ('', 'NA', 'NAN'))", c)
+  sprintf("%s OR %s", miss(ob), miss(dl))
+}
+
+# 结果里的 adme 标注列表达式（'ok' / 'no_adme'）
+.tcm_adme_flag_sql <- function() {
+  sprintf("CASE WHEN (%s) THEN 'no_adme' ELSE 'ok' END", .tcm_adme_missing_sql())
+}
+
+.tcm_adme_where <- function(OB.value, DL.value, include_missing = TRUE) {
+  base <- sprintf("CAST(\"%s\" AS DOUBLE) >= %s AND CAST(\"%s\" AS DOUBLE) >= %s",
+                  .tcm_col_db("OB"), format(OB.value, scientific = FALSE),
+                  .tcm_col_db("DL"), format(DL.value, scientific = FALSE))
+  if (isTRUE(include_missing)) {
+    sprintf("((%s) OR (%s))", base, .tcm_adme_missing_sql())
+  } else {
+    base
+  }
 }

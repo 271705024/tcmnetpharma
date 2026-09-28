@@ -7,7 +7,10 @@
 #' "Herb_name_pin_yin" or "Herb_cn_name"
 #' @param ... additional parameters
 #'
-#' @return data.frame
+#' @return data.frame. Columns: `herb`, `molecule_id`, `molecule`, `target`,
+#'   and `adme` -- the ADME label introduced by the 2026-09-28 "keep as much as
+#'   possible" rule (`'ok'` = passes OB/DL thresholds; `'no_adme'` = the source
+#'   has no OB/DL for this pair and it is now retained instead of dropped).
 #' @export
 #' @importFrom dplyr filter
 #' @importFrom dplyr distinct
@@ -34,15 +37,17 @@ herb_target <- function(herb,
   herb <- intersect(herb, hit)
   if (!length(herb)) {
     return(data.frame(herb = character(), molecule_id = character(),
-                      molecule = character(), target = character()))
+                      molecule = character(), target = character(),
+                      adme = character()))
   }
-  extra <- .tcm_adme_where(
-                   OB.value, DL.value)
-  fufang <- .tcm_filter(
+  # 口径「尽量全」（2026-09-28）：缺失 OB/DL 的行保留并以 adme 列标注。
+  extra <- .tcm_adme_where(OB.value, DL.value)
+  fufang <- .tcm_filter_ex(
     check_col, herb,
     c(herb = "Herb_name_pin_yin", molecule_id = "Molecule_name",
       molecule = "MOL_ID", target = "Target"),
-    extra_where = extra) %>%
+    extra_where = extra,
+    extra_select = c(adme = .tcm_adme_flag_sql())) %>%
     dplyr::distinct(.keep_all = TRUE) %>%
     tidyr::drop_na()
   return(fufang)

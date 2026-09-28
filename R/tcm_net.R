@@ -68,7 +68,41 @@ tcm_net <- function(network.data,
                     edge.width = c(0.2, 2),
                     graph.layout = "kk",
                     rem.dis.inter = FALSE) {
-  network.data<-as.data.frame(network.data)
+  network.data <- as.data.frame(network.data)
+
+  # ★ E5 修复（2026-09-28）——「三元组列」按名取，并按节点名赋 class
+  #
+  # 根因（GUI 实测定位，logs/operations-2026-09-28.md 第五轮）：
+  #   本函数下方用 `dplyr::select(herb, molecule, target)` **按列名**构图，
+  #   却用 `network.data[, 2]`/`[, 3]` **按列位置**给 `V(net)$class` 取值。
+  #   当入参含多余列（如 GUI 查询结果的 `molecule_id`）时两者错位：
+  #   `[, 2]` 取到 `molecule_id`，`molecule` 列从未参与计数，
+  #   `c(rep(...), rep(...), rep(...))` 的长度 ≠ 顶点数 →
+  #   igraph 报 `Length of new attribute value must be 1 or 888, ... not 887.`
+  #   （GUI 中四种查询结果全部触发；内置 network_data 恰好三列，故旧测试全绿 ——
+  #    典型的「测试没覆盖到真实输入形状」缺陷。）
+  # 方案：① 先按名取出三元组（缺列则明确报错，不静默按位置猜）；
+  #       ② class 按**节点名**逐个判定（长度恒等于顶点数），角色优先级 herb > molecule > target。
+  need_cols <- c("herb", "molecule", "target")
+  if (!all(need_cols %in% names(network.data))) {
+    stop(
+      "`network.data` \u5fc5\u987b\u5305\u542b\u5217\uff1a",
+      paste(need_cols, collapse = ", "),
+      "\uff1b\u5f53\u524d\u5217\u4e3a\uff1a", paste(names(network.data), collapse = ", ")
+    )
+  }
+  network.data <- network.data[, need_cols, drop = FALSE]
+
+  # 按节点名给 class（恒与顶点数等长；一个名字同时出现在多列时取最先匹配的角色）
+  node_class <- function(vnames, nd) {
+    out <- rep(NA_character_, length(vnames))
+    out[vnames %in% as.character(nd[[3]])] <- colnames(nd)[3]
+    out[vnames %in% as.character(nd[[2]])] <- colnames(nd)[2]
+    out[vnames %in% as.character(nd[[1]])] <- colnames(nd)[1]
+    out[is.na(out)] <- "other"
+    out
+  }
+
   links <- rbind(
     network.data %>%
       dplyr::select(herb, molecule) %>%
@@ -96,20 +130,7 @@ tcm_net <- function(network.data,
     # which are used to modify the nodes (nodes) and
     # connections (links) of the network graph respectively.
     igraph::V(net)$degree <- igraph::degree(net)
-    igraph::V(net)$class <- c(
-      rep(
-        colnames(network.data)[1],
-        length(intersect(network.data[, 1], nodes$node))
-      ),
-      rep(
-        colnames(network.data)[2],
-        length(intersect(network.data[, 2], nodes$node))
-      ),
-      rep(
-        colnames(network.data)[3],
-        length(intersect(network.data[, 3], nodes$node))
-      )
-    )
+    igraph::V(net)$class <- node_class(igraph::V(net)$name, network.data)
     igraph::V(net)$size <- igraph::degree(net)
     igraph::E(net)$score <- igraph::E(net)$weight
 
@@ -163,20 +184,7 @@ tcm_net <- function(network.data,
     # which are used to modify the nodes (nodes) and
     # connections (links) of the network graph respectively.
     igraph::V(net)$degree <- igraph::degree(net)
-    igraph::V(net)$class <- c(
-      rep(
-        colnames(network.data)[1],
-        length(intersect(network.data[, 1], nodes$node))
-      ),
-      rep(
-        colnames(network.data)[2],
-        length(intersect(network.data[, 2], nodes$node))
-      ),
-      rep(
-        colnames(network.data)[3],
-        length(intersect(network.data[, 3], nodes$node))
-      )
-    )
+    igraph::V(net)$class <- node_class(igraph::V(net)$name, network.data)
     igraph::V(net)$size <- igraph::degree(net)
     igraph::E(net)$score <- igraph::E(net)$weight
 
