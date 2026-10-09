@@ -15,10 +15,18 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 
 | 表 | 文件 | 数据版本 | 行数 | 说明 |
 |---|---|---|---|---|
-| standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_1.1.1_2026-09-28 | 16,269,134 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME；含 `cas` 列） |
-| tcm_network_compat | inst/extdata/tcm_network_compat.parquet | TCMNP_1.1.1_2026-09-28 | 16,202,124 | 10 列兼容表（喂现有函数；DuckDB 惰性查询；含 `CAS` 列；已按 10 列判重） |
-| raw_unmapped | inst/extdata/raw_unmapped.parquet | TCMNP_1.1.1_2026-09-28 | 4,988,060 | 未映射/多余数据 |
+| standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_1.2.0_2026-10-09 | 16,269,155 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME；含 `cas` 列） |
+| tcm_network_compat | inst/extdata/tcm_network_compat.parquet | TCMNP_1.2.0_2026-10-09 | 16,202,145 | 10 列兼容表（喂现有函数；DuckDB 惰性查询；含 `CAS` 列；已按 10 列判重） |
+| raw_unmapped | inst/extdata/raw_unmapped.parquet | TCMNP_1.2.0_2026-10-09 | 211,830 | 未映射/多余数据 |
 | herb_pm | data/herb_pm.rda | TCMNP_0.2.0_2026-08-22 | 6,860 | HERB 性味归经（6,892 去空后） |
+
+> **数据版本 1.2.0（2026-10-09）修复内容**：**成分结构标识换源** —— 原「PubChem CID→InChIKey」
+> 补映射误用 ChEMBL 的 `PUBCHEM_BIOASSAY`（其 `src_compound_id` 是 PubChem **SID 而非 CID**），
+> 导致 107 个 CID / 约 9,338 行的 InChIKey 与 CID 错配；现改用 PubChem 官方
+> `CID-InChI-Key.gz`（7.37 GB，2026-09-27，md5 校验通过）。效果：宽表 **4,776,230 行由
+> UNMAPPED→MAPPED**（`raw_unmapped` 4,988,060 → 211,830，未映射对降至 27,631）；
+> 去重撞车修复致 +21 行。另修正 QC 真值校验的宽匹配假通过（改精确匹配优先）。
+> 详见 `docs/p0-exec-report-2026-10-09.md`。
 
 > **数据版本 1.1.1（2026-09-28）修复内容**：分子名守卫（`mol_name`/`iupac_name` 的
 > `CID <数字>` 占位符与 CAS 号一律不再充当名称）；BATMAN predicted 引用的 1,090 个
