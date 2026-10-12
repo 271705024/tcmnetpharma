@@ -1,0 +1,70 @@
+# ============================================================================
+# TCMNP R 包仓库 — .gitattributes
+#
+# 目的：跨设备换行符与二进制判定一致。
+#   ★ 项目铁律（本仓库尤其关键）：**R 包源文件禁止 CRLF** ——
+#     CRLF 会导致 R 4.6.1 的 lazyload **静默崩溃**（安装看似成功、加载期才炸），
+#     历史上 `NAMESPACE` 曾因此出过事故。
+#
+# 与工作区仓库（D:/update new R）的 .gitattributes 保持同构；本文件 2026-10-12 补齐，
+# 在此之前的 34 个 CRLF 文件已一次性转为 LF（见 crlf-legacy-ledger.txt）。
+# ============================================================================
+
+# 默认：自动判定文本，存储与检出统一 LF
+* text=auto eol=lf
+
+# --- R 包核心文件（显式 LF；NAMESPACE/DESCRIPTION 最敏感）---------------------
+*.R              text eol=lf
+*.r              text eol=lf
+*.Rprofile       text eol=lf
+*.Rprofile.site  text eol=lf
+NAMESPACE        text eol=lf
+DESCRIPTION      text eol=lf
+*.Rd             text eol=lf
+*.Rmd            text eol=lf
+*.Rproj          text eol=lf
+*.c              text eol=lf
+*.h              text eol=lf
+*.cpp            text eol=lf
+
+# --- 脚本与文档 --------------------------------------------------------------
+*.sh     text eol=lf
+*.md     text eol=lf
+*.txt    text eol=lf
+*.json   text eol=lf
+*.yaml   text eol=lf
+*.yml    text eol=lf
+*.csv    text eol=lf
+*.tsv    text eol=lf
+*.html   text eol=lf
+*.css    text eol=lf
+*.js     text eol=lf
+*.toml   text eol=lf
+*.ini    text eol=lf
+
+# --- 二进制（禁止任何换行转换）----------------------------------------------
+*.parquet binary
+*.rds     binary
+*.rda     binary
+*.rdb     binary
+*.rdx     binary
+*.sqlite  binary
+*.db      binary
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.pdf     binary
+*.zip     binary
+*.gz      binary
+*.tgz     binary
+*.exe     binary
+*.dll     binary
+*.ttf     binary
+*.woff    binary
+*.woff2   binary
+
+# --- diff 显示优化 ----------------------------------------------------------
+*.md  diff=markdown
+*.svg text eol=lf
