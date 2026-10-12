@@ -42,6 +42,23 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 > 分子名经 PubChem 回填（889 CID）；`mapping_status` 列语义修复；`herb_cn_source` 溯源加守卫。
 > 详见 `docs/l3-data-defect-fix-report-2026-09-15.md`。
 
+## 结构标识策略（2026-10-12 补 · P0-5）
+
+本包以 **Standard InChIKey** 作为成分结构标识的**查找键（lookup key）**，
+但**不把它当作化学身份的唯一判据**。使用时请理解其边界：
+
+| 项 | 说明 |
+|---|---|
+| **来源** | PubChem 官方 `CID-InChI-Key.gz` 快照 —— **2026-09-27**，md5 `d39fd5843f2c70181c54f399bd2b4e86`（7.37 GB，逐字节校验）。**非本地重算** |
+| **语义** | Standard InChI 会**归一化互变异构体与电荷形式**；**不支持相对立体化学**；不识别有机金属顺反异构（如 cisplatin/transplatin）。同一物质的不同盐或互变异构体**可能同键、也可能异键** |
+| **四个已知不可判** | ① 互变异构归一（少数 1,5-酮-烯醇除外）；② 盐/游离碱取决于生成策略；③ 立体化学仅「绝对或无」；④ 跨库按 InChIKey join 会**继承各源标准化政策的分歧** |
+| **本包口径** | **不做 canonical tautomer**（与 ChEMBL 一致）；只接受标准 27 字符形态 `^[A-Z]{14}-[A-Z]{8}[SN]A-[A-Z]$`；跨源补映射**只补不覆盖**（HERB 优先，PubChem 官方仅补缺口） |
+| **映射溯源** | `mapping_status` 列记录来源；未映射者进 `raw_unmapped`，不静默丢弃 |
+| **参考** | `docs/db-lessons-and-curation-playbook-2026-10-09.md` §2.1；`docs/p0-exec-report-2026-10-09.md` |
+
+> ⚠️ **推论**：若需「严格化学身份」判定，请**回源比对结构（SMILES/InChI）**，
+> 不要仅凭 InChIKey 相等下结论；跨源合并时尤须注意盐形式与立体化学差异。
+
 ## 可再分发基因集（data/，P3.3，2026-09-05 生成）
 
 > 替代原 human/mu_kegg（KEGG）与 human/mu_gsea（MSigDB Hallmark）——两者下载均不可再分发，已从包内移除（kegg.filter 作为既往分析示例保留并注明来源）。
