@@ -19,7 +19,10 @@ herb_target(herb, OB.value = 30, DL.value = 0.18, type = "Herb_cn_name", ...)
 \item{...}{additional parameters}
 }
 \value{
-data.frame
+data.frame. Columns: \code{herb}, \code{molecule_id}, \code{molecule}, \code{target},
+and \code{adme} -- the ADME label introduced by the 2026-09-28 "keep as much as
+possible" rule (\code{'ok'} = passes OB/DL thresholds; \code{'no_adme'} = the source
+has no OB/DL for this pair and it is now retained instead of dropped).
 }
 \description{
 Screen targets based on ingredients from Chinese herbal medicine

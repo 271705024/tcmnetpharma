@@ -12,6 +12,7 @@ bar_plot(
   text.width = 35,
   text.bar = 4,
   title = NULL,
+  sort.by = c("count", "p.adjust"),
   ...
 )
 }
@@ -29,7 +30,12 @@ the number of categories to show}
 
 \item{text.bar}{The size of the text at the top of the bar graph}
 
-\item{title}{title
+\item{title}{title}
+
+\item{sort.by}{order the bars by "count" (default, largest first) or by
+"p.adjust" (most significant first). Use "p.adjust" when you want the most
+meaningful terms on top -- sorting by count tends to surface broad umbrella
+terms that are significant in any gene list.
 Kyoto Encyclopedia of Genes and Genomes, KEGG
 cellular component, CC
 molecular function, MF

@@ -16,7 +16,8 @@ target_herb(gene, OB.value = 30, DL.value = 0.18, ...)
 \item{...}{additional parameters}
 }
 \value{
-data.frame
+data.frame. Columns: \code{herb}, \code{molecule_id}, \code{molecule}, \code{target},
+\code{adme} (see \code{herb_target} for the 2026-09-28 "keep as much as possible" rule).
 }
 \description{
 Find Chinese medicines and their active compounds through the target
