@@ -60,7 +60,6 @@ chishaoyao,pinyin,BATMAN:chishaoyao,,BATMAN_SYNTH,False
 chuandianshidagonglao,pinyin,BATMAN:chuandianshidagonglao,,BATMAN_SYNTH,False
 chuanshanglongmigouteng,pinyin,BATMAN:chuanshanglongmigouteng,,BATMAN_SYNTH,False
 cisanjia,pinyin,BATMAN:cisanjia,,BATMAN_SYNTH,False
-citianqie,pinyin,BATMAN:citianqie,,BATMAN_SYNTH,False
 ciyeshidagonglao,pinyin,BATMAN:ciyeshidagonglao,,BATMAN_SYNTH,False
 cladosiphondecipiens,pinyin,BATMAN:cladosiphondecipiens,,BATMAN_SYNTH,False
 culiuguo,pinyin,BATMAN:culiuguo,醋柳果,BATMAN_SYNTH,False
@@ -70,7 +69,6 @@ dahuangdoujuan,pinyin,BATMAN:dahuangdoujuan,大黄豆卷,BATMAN_SYNTH,False
 dahuoxue,pinyin,BATMAN:dahuoxue,大活血,BATMAN_SYNTH,False
 dajii,pinyin,BATMAN:dajii,,BATMAN_SYNTH,False
 dajiii,pinyin,BATMAN:dajiii,,BATMAN_SYNTH,False
-dajinqiancao,pinyin,BATMAN:dajinqiancao,,BATMAN_SYNTH,False
 dalizi,pinyin,BATMAN:dalizi,大力子,BATMAN_SYNTH,False
 dami,pinyin,BATMAN:dami,大米,BATMAN_SYNTH,False
 danbangouyahua,pinyin,BATMAN:danbangouyahua,,BATMAN_SYNTH,False
@@ -81,7 +79,6 @@ dayehoupo,pinyin,BATMAN:dayehoupo,,BATMAN_SYNTH,False
 dayeshulan,pinyin,BATMAN:dayeshulan,,BATMAN_SYNTH,False
 dayeyunxiangcao,pinyin,BATMAN:dayeyunxiangcao,,BATMAN_SYNTH,False
 dazaojia,pinyin,BATMAN:dazaojia,大皂荚,BATMAN_SYNTH,False
-dazixuedan,pinyin,BATMAN:dazixuedan,,BATMAN_SYNTH,False
 dengzhanxixindengzhanhua,pinyin,BATMAN:dengzhanxixindengzhanhua,灯盏细辛（灯盏花）,BATMAN_SYNTH,False
 dianjixieteng,pinyin,BATMAN:dianjixieteng,滇鸡血藤,BATMAN_SYNTH,False
 diding,pinyin,BATMAN:diding,地丁,BATMAN_SYNTH,False
@@ -103,16 +100,13 @@ duotoufengluncai,pinyin,BATMAN:duotoufengluncai,多头风轮菜,BATMAN_SYNTH,Fal
 duoxingjinfaxian,pinyin,BATMAN:duoxingjinfaxian,,BATMAN_SYNTH,False
 emeijuanbai,pinyin,BATMAN:emeijuanbai,,BATMAN_SYNTH,False
 erxingjinhehuan,pinyin,BATMAN:erxingjinhehuan,,BATMAN_SYNTH,False
-fanma,pinyin,BATMAN:fanma,,BATMAN_SYNTH,False
 feihoumianbaoguo,pinyin,BATMAN:feihoumianbaoguo,,BATMAN_SYNTH,False
 feilubinluohansong,pinyin,BATMAN:feilubinluohansong,,BATMAN_SYNTH,False
 feilubinqianliguang,pinyin,BATMAN:feilubinqianliguang,,BATMAN_SYNTH,False
 feilubinroudoukou,pinyin,BATMAN:feilubinroudoukou,,BATMAN_SYNTH,False
-feilvbinqianjinba,pinyin,BATMAN:feilvbinqianjinba,,BATMAN_SYNTH,False
 fenhuadiyu,pinyin,BATMAN:fenhuadiyu,,BATMAN_SYNTH,False
 foercao,pinyin,BATMAN:foercao,佛耳草,BATMAN_SYNTH,False
 gangetenggen,pinyin,BATMAN:gangetenggen,甘葛藤根,BATMAN_SYNTH,False
-gaoguichunhuangju,pinyin,BATMAN:gaoguichunhuangju,,BATMAN_SYNTH,False
 gongbangui,pinyin,BATMAN:gongbangui,杠板归,BATMAN_SYNTH,False
 gouqigenpi,pinyin,BATMAN:gouqigenpi,,BATMAN_SYNTH,False
 gouzaihua,pinyin,BATMAN:gouzaihua,狗仔花,BATMAN_SYNTH,False
@@ -162,7 +156,6 @@ huangteng,pinyin,BATMAN:huangteng,黄藤,BATMAN_SYNTH,False
 huanjiesongluo,pinyin,BATMAN:huanjiesongluo,,BATMAN_SYNTH,False
 hubeiguaiou,pinyin,BATMAN:hubeiguaiou,,BATMAN_SYNTH,False
 hubeishanmaidong,pinyin,BATMAN:hubeishanmaidong,,BATMAN_SYNTH,False
-hubeishidagonglao,pinyin,BATMAN:hubeishidagonglao,,BATMAN_SYNTH,False
 hucicongmu,pinyin,BATMAN:hucicongmu,,BATMAN_SYNTH,False
 hulubazhongzifen,pinyin,BATMAN:hulubazhongzifen,胡芦巴种子粉,BATMAN_SYNTH,False
 hulubazhongziganjingao,pinyin,BATMAN:hulubazhongziganjingao,胡芦巴种子干浸膏,BATMAN_SYNTH,False
@@ -216,7 +209,6 @@ liangsifelyancao,pinyin,BATMAN:liangsifelyancao,,BATMAN_SYNTH,False
 liangyerong,pinyin,BATMAN:liangyerong,,BATMAN_SYNTH,False
 liangyeyandouteng,pinyin,BATMAN:liangyeyandouteng,,BATMAN_SYNTH,False
 lianhuajinqueer,pinyin,BATMAN:lianhuajinqueer,,BATMAN_SYNTH,False
-liaolanye,pinyin,BATMAN:liaolanye,,BATMAN_SYNTH,False
 lieyeyeyingsu,pinyin,BATMAN:lieyeyeyingsu,,BATMAN_SYNTH,False
 lingzhicao,pinyin,BATMAN:lingzhicao,灵芝草,BATMAN_SYNTH,False
 lingzhizishiti,pinyin,BATMAN:lingzhizishiti,灵芝子实体,BATMAN_SYNTH,False
@@ -272,12 +264,10 @@ qiguojiulixiang,pinyin,BATMAN:qiguojiulixiang,,BATMAN_SYNTH,False
 qiguoqianlixiang,pinyin,BATMAN:qiguoqianlixiang,,BATMAN_SYNTH,False
 qilinjie,pinyin,BATMAN:qilinjie,,BATMAN_SYNTH,False
 qincai,pinyin,BATMAN:qincai,芹菜,BATMAN_SYNTH,False
-qingtengxiang,pinyin,BATMAN:qingtengxiang,,BATMAN_SYNTH,False
 qinlingzhuzishen,pinyin,BATMAN:qinlingzhuzishen,,BATMAN_SYNTH,False
 qinzhuangaochunjiang,pinyin,BATMAN:qinzhuangaochunjiang,,BATMAN_SYNTH,False
 qiumugua,pinyin,BATMAN:qiumugua,,BATMAN_SYNTH,False
 qiushimeidengmu,pinyin,BATMAN:qiushimeidengmu,,BATMAN_SYNTH,False
-qiuyin,pinyin,BATMAN:qiuyin,,BATMAN_SYNTH,False
 qizhouyizhihao,pinyin,BATMAN:qizhouyizhihao,,BATMAN_SYNTH,False
 radixchuanxiong,pinyin,BATMAN:radixchuanxiong,,BATMAN_SYNTH,False
 ransejiyanteng,pinyin,BATMAN:ransejiyanteng,,BATMAN_SYNTH,False
@@ -290,10 +280,8 @@ ribenqianqucai,pinyin,BATMAN:ribenqianqucai,,BATMAN_SYNTH,False
 ribensumu,pinyin,BATMAN:ribensumu,,BATMAN_SYNTH,False
 ribenyemugua,pinyin,BATMAN:ribenyemugua,日本野木瓜,BATMAN_SYNTH,False
 ribenyemuguaguo,pinyin,BATMAN:ribenyemuguaguo,日本野木瓜果,BATMAN_SYNTH,False
-ruidianganlan,pinyin,BATMAN:ruidianganlan,,BATMAN_SYNTH,False
 ruizisu,pinyin,BATMAN:ruizisu,,BATMAN_SYNTH,False
 sanjuaicuique,pinyin,BATMAN:sanjuaicuique,,BATMAN_SYNTH,False
-sanmiandao,pinyin,BATMAN:sanmiandao,,BATMAN_SYNTH,False
 sanqiganjingao,pinyin,BATMAN:sanqiganjingao,三七干浸膏,BATMAN_SYNTH,False
 sanqigenjing,pinyin,BATMAN:sanqigenjing,三七根茎,BATMAN_SYNTH,False
 sanqigenjingfen,pinyin,BATMAN:sanqigenjingfen,三七根茎粉,BATMAN_SYNTH,False
@@ -314,8 +302,6 @@ shishidanggui,pinyin,BATMAN:shishidanggui,,BATMAN_SYNTH,False
 shizhijia,pinyin,BATMAN:shizhijia,,BATMAN_SYNTH,False
 shuanghua,pinyin,BATMAN:shuanghua,双花,BATMAN_SYNTH,False
 shuichaoyang,pinyin,BATMAN:shuichaoyang,,BATMAN_SYNTH,False
-shuihuman,pinyin,BATMAN:shuihuman,,BATMAN_SYNTH,False
-shuilianyetong,pinyin,BATMAN:shuilianyetong,,BATMAN_SYNTH,False
 shuixiamhua,pinyin,BATMAN:shuixiamhua,,BATMAN_SYNTH,False
 shuiyangmeigeni,pinyin,BATMAN:shuiyangmeigeni,,BATMAN_SYNTH,False
 shuiyangmeii,pinyin,BATMAN:shuiyangmeii,,BATMAN_SYNTH,False
@@ -444,13 +430,11 @@ zhishiyuzhike,pinyin,BATMAN:zhishiyuzhike,,BATMAN_SYNTH,False
 zhongbaezhangyefuzi,pinyin,BATMAN:zhongbaezhangyefuzi,,BATMAN_SYNTH,False
 zhongguocufeizhiye,pinyin,BATMAN:zhongguocufeizhiye,,BATMAN_SYNTH,False
 zhongguoyangchun,pinyin,BATMAN:zhongguoyangchun,,BATMAN_SYNTH,False
-zhonghuajishiteng,pinyin,BATMAN:zhonghuajishiteng,,BATMAN_SYNTH,False
 zhudanfen,pinyin,BATMAN:zhudanfen,猪胆粉,BATMAN_SYNTH,False
 zhugenqi,pinyin,BATMAN:zhugenqi,竹根七,BATMAN_SYNTH,False
 zhuifengqilanbuzheng,pinyin,BATMAN:zhuifengqilanbuzheng,追风七（蓝布正）,BATMAN_SYNTH,False
 zhuluan,pinyin,BATMAN:zhuluan,,BATMAN_SYNTH,False
 zhuoseciqiu,pinyin,BATMAN:zhuoseciqiu,,BATMAN_SYNTH,False
-zihuajingtian,pinyin,BATMAN:zihuajingtian,,BATMAN_SYNTH,False
 zimeishu,pinyin,BATMAN:zimeishu,,BATMAN_SYNTH,False
 ziweiyefen,pinyin,BATMAN:ziweiyefen,紫薇叶粉,BATMAN_SYNTH,False
 ziweiyeganjingao,pinyin,BATMAN:ziweiyeganjingao,紫薇叶干浸膏,BATMAN_SYNTH,False
@@ -634,6 +618,7 @@ anhuisongmu,pinyin,HERB000082,安徽松木,HERB,True
 anhuiyinlianhua,pinyin,HERB000083,安徽银莲花,HERB,True
 安徽银莲花,cn,HERB000083,安徽银莲花,HERB,True
 anlulongshelan,pinyin,HERB000085,乌羽玉,HERB_LATIN,False
+fanma,pinyin,HERB000085,乌羽玉,WHITELIST_MERGE,False
 wuyuyu,pinyin,HERB000085,乌羽玉,HERB,True
 乌羽玉,cn,HERB000085,乌羽玉,HERB,True
 anshijinsitao,pinyin,HERB000089,安氏金丝桃,HERB,True
@@ -2267,6 +2252,7 @@ jianxuefei,pinyin,HERB000934,见血飞,HERB,True
 cishi,pinyin,HERB000935,磁石,HERB,True
 heicishi,pinyin,HERB000935,磁石,HERB_LATIN,False
 磁石,cn,HERB000935,磁石,HERB,True
+citianqie,pinyin,HERB000936,野顛茄,WHITELIST_MERGE,False
 yedianqie,pinyin,HERB000936,野顛茄,HERB,True
 野顛茄,cn,HERB000936,野顛茄,HERB,True
 citong,pinyin,HERB000937,刺桐,HERB,True
@@ -2304,6 +2290,7 @@ congmu,pinyin,HERB000953,楤木,HERB,True
 楤木,cn,HERB000953,楤木,HERB,True
 congshi,pinyin,HERB000954,葱实,HERB,True
 jiucaizi,pinyin,HERB000954,葱实,HERB_LATIN,False
+jiuzi,pinyin,HERB000954,葱实,WHITELIST_MERGE,True
 葱实,cn,HERB000954,葱实,HERB,True
 congxu,pinyin,HERB000955,葱须,HERB,True
 葱须,cn,HERB000955,葱须,HERB,True
@@ -2325,7 +2312,6 @@ cucaolongdan,pinyin,HERB000963,粗糙龙胆,HERB,True
 cucaoshebianju,pinyin,HERB000964,粗糙蛇鞭菊,HERB,True
 粗糙蛇鞭菊,cn,HERB000964,粗糙蛇鞭菊,HERB,True
 cucaoshicheju,pinyin,HERB000965,粗糙矢车菊,HERB,True
-xiayecucaoshichejuub,pinyin,HERB000965,粗糙矢车菊,WHITELIST_MERGE,True
 粗糙矢车菊,cn,HERB000965,粗糙矢车菊,HERB,True
 cucixiaobo,pinyin,HERB000966,簇刺小檗,HERB,True
 簇刺小檗,cn,HERB000966,簇刺小檗,HERB,True
@@ -2544,6 +2530,7 @@ daji,pinyin,HERB001076,大蓟,HERB,True
 大蓟,cn,HERB001076,大蓟,HERB,True
 dajinniucao,pinyin,HERB001081,大金牛草,HERB,True
 大金牛草,cn,HERB001081,大金牛草,HERB,True
+dajinqiancao,pinyin,HERB001082,金钱草,WHITELIST_MERGE,False
 jinqiancao,pinyin,HERB001082,金钱草,HERB,True
 金钱草,cn,HERB001082,金钱草,HERB,True
 dalangdu,pinyin,HERB001083,大狼毒,HERB,True
@@ -2711,6 +2698,7 @@ dazijingucao,pinyin,HERB001167,大籽筋骨草,HERB,True
 大籽筋骨草,cn,HERB001167,大籽筋骨草,HERB,True
 dazimaimateng,pinyin,HERB001168,大子买麻藤,HERB,True
 大子买麻藤,cn,HERB001168,大子买麻藤,HERB,True
+dazixuedan,pinyin,HERB001169,罗锅底,WHITELIST_MERGE,False
 luoguodi,pinyin,HERB001169,罗锅底,HERB,True
 罗锅底,cn,HERB001169,罗锅底,HERB,True
 dazizhangyacai,pinyin,HERB001170,大籽獐牙菜,HERB,True
@@ -2881,6 +2869,7 @@ dijinii,pinyin,HERB001255,NA,HERB,True
 dikedong,pinyin,HERB001256,敌克冬,HERB,True
 敌克冬,cn,HERB001256,敌克冬,HERB,True
 dilong,pinyin,HERB001257,地龙,HERB,True
+qiuyin,pinyin,HERB001257,地龙,WHITELIST_MERGE,False
 地龙,cn,HERB001257,地龙,HERB,True
 diqian,pinyin,HERB001258,地钱,HERB,True
 地钱,cn,HERB001258,地钱,HERB,True
@@ -3019,6 +3008,7 @@ dongbeihutaomu,pinyin,HERB001324,东北胡桃木,HERB,True
 dongbeihuihao,pinyin,HERB001325,东北蛔蒿,HERB,True
 东北蛔蒿,cn,HERB001325,东北蛔蒿,HERB,True
 dongbeileigongteng,pinyin,HERB001326,东北雷公藤,HERB,True
+heiman,pinyin,HERB001326,东北雷公藤,WHITELIST_MERGE,True
 东北雷公藤,cn,HERB001326,东北雷公藤,HERB,True
 dongbeilongdan,pinyin,HERB001327,条叶龙胆,HERB_LATIN,False
 tiaoyelongdan,pinyin,HERB001327,条叶龙胆,HERB,True
@@ -3255,6 +3245,7 @@ duanxianxiaomicao,pinyin,HERB001446,短腺小米草,HERB,True
 短腺小米草,cn,HERB001446,短腺小米草,HERB,True
 duanxiaoshegencao,pinyin,HERB001447,短小蛇根草,HERB,True
 短小蛇根草,cn,HERB001447,短小蛇根草,HERB,True
+duanxieliu,pinyin,HERB001448,断血流,WHITELIST_MERGE,False
 duanxueliu,pinyin,HERB001448,断血流,HERB,True
 断血流,cn,HERB001448,断血流,HERB,True
 duanyehongdoushan,pinyin,HERB001449,短叶红豆杉,HERB,True
@@ -3765,7 +3756,6 @@ fengli,pinyin,HERB001707,凤梨,HERB,True
 凤梨,cn,HERB001707,凤梨,HERB,True
 fenglingcao,pinyin,HERB001708,风铃草,HERB,True
 风铃草,cn,HERB001708,风铃草,HERB,True
-duanxieliu,pinyin,HERB001709,风轮菜,HERB_LATIN,False
 fengluncai,pinyin,HERB001709,风轮菜,HERB,True
 风轮菜,cn,HERB001709,风轮菜,HERB,True
 fengmaoju,pinyin,HERB001710,风毛菊,HERB,True
@@ -4018,6 +4008,7 @@ gaofeiyancao,pinyin,HERB001832,高翠雀花,HERB_LATIN,False
 高翠雀花,cn,HERB001832,高翠雀花,HERB,True
 gaoguiboluomi,pinyin,HERB001833,高贵波罗蜜,HERB,True
 高贵波罗蜜,cn,HERB001833,高贵波罗蜜,HERB,True
+gaoguichunhuangju,pinyin,HERB001834,果香菊,WHITELIST_MERGE,False
 guoxiangju,pinyin,HERB001834,果香菊,HERB,True
 果香菊,cn,HERB001834,果香菊,HERB,True
 gaoguijiazicao,pinyin,HERB001835,高贵假紫草,HERB,True
@@ -4785,7 +4776,6 @@ heilaohugen,pinyin,HERB002225,黑老虎根,HERB,True
 黑老虎根,cn,HERB002225,黑老虎根,HERB,True
 heimayi,pinyin,HERB002227,黑蚂蚁,HERB,True
 黑蚂蚁,cn,HERB002227,黑蚂蚁,HERB,True
-heiman,pinyin,HERB002228,NA,HERB,True
 heimaoshihu,pinyin,HERB002229,黑毛石斛,HERB,True
 黑毛石斛,cn,HERB002229,黑毛石斛,HERB,True
 muer,pinyin,HERB002230,木耳,HERB,True
@@ -5010,6 +5000,7 @@ houpo,pinyin,HERB002342,厚朴,HERB,True
 houpu,pinyin,HERB002342,厚朴,HERB_LATIN,False
 厚朴,cn,HERB002342,厚朴,HERB,True
 houpohua,pinyin,HERB002343,厚朴花,HERB,True
+houpuhua,pinyin,HERB002343,厚朴花,WHITELIST_MERGE,False
 厚朴花,cn,HERB002343,厚朴花,HERB,True
 houshushangu,pinyin,HERB002344,NA,HERB,True
 houtoujun,pinyin,HERB002345,猴头菌,HERB,True
@@ -5038,6 +5029,7 @@ hubeimaidong,pinyin,HERB002357,湖北麦冬,HERB,True
 湖北麦冬,cn,HERB002357,湖北麦冬,HERB,True
 hubeishanzha,pinyin,HERB002358,湖北山楂,HERB,True
 湖北山楂,cn,HERB002358,湖北山楂,HERB,True
+hubeishidagonglao,pinyin,HERB002359,宽苞十大功劳,WHITELIST_MERGE,False
 kuanbaoshidagonglao,pinyin,HERB002359,宽苞十大功劳,HERB,True
 宽苞十大功劳,cn,HERB002359,宽苞十大功劳,HERB,True
 huci,pinyin,HERB002360,虎刺,HERB,True
@@ -5718,6 +5710,7 @@ xilenghongjingtian,pinyin,HERB002697,喜冷红景天,HERB,True
 jishiluhui,pinyin,HERB002698,即食芦荟,HERB,True
 即食芦荟,cn,HERB002698,即食芦荟,HERB,True
 jishiteng,pinyin,HERB002700,鸡屎藤,HERB,True
+zhonghuajishiteng,pinyin,HERB002700,鸡屎藤,WHITELIST_MERGE,False
 鸡屎藤,cn,HERB002700,鸡屎藤,HERB,True
 jishitengguo,pinyin,HERB002701,鸡屎藤果,HERB,True
 鸡屎藤果,cn,HERB002701,鸡屎藤果,HERB,True
@@ -6328,7 +6321,6 @@ jiuxiangchong,pinyin,HERB003013,九香虫,HERB,True
 九香虫,cn,HERB003013,九香虫,HERB,True
 jiuyanshi,pinyin,HERB003014,九眼石,HERB,True
 九眼石,cn,HERB003014,九眼石,HERB,True
-jiuzi,pinyin,HERB003015,韭菜子,HERB,True
 韭菜子,cn,HERB003015,韭菜子,HERB,True
 ju,pinyin,HERB003016,橘,HERB,True
 橘,cn,HERB003016,橘,HERB,True
@@ -7063,6 +7055,7 @@ chuiyerong,pinyin,HERB003393,垂叶榕,HERB,True
 liangyejixieteng,pinyin,HERB003394,亮叶鸡血藤,HERB,True
 亮叶鸡血藤,cn,HERB003394,亮叶鸡血藤,HERB,True
 liaodaqingye,pinyin,HERB003395,蓼大青叶,HERB,True
+liaolanye,pinyin,HERB003395,蓼大青叶,WHITELIST_MERGE,False
 蓼大青叶,cn,HERB003395,蓼大青叶,HERB,True
 liaodongcongmu,pinyin,HERB003396,辽东楤木,HERB,True
 辽东楤木,cn,HERB003396,辽东楤木,HERB,True
@@ -7436,8 +7429,8 @@ luohuasheng,pinyin,HERB003586,落花生,HERB,True
 luohuashengye,pinyin,HERB003587,落花生叶,HERB,True
 落花生叶,cn,HERB003587,落花生叶,HERB,True
 huashengyou,pinyin,HERB003588,花生油,HERB,True
+luohuashengyou,pinyin,HERB003588,花生油,WHITELIST_MERGE,False
 花生油,cn,HERB003588,花生油,HERB,True
-luohuashengyou,pinyin,HERB003589,落花生枝叶,HERB_LATIN,False
 luohuashengzhiye,pinyin,HERB003589,落花生枝叶,HERB,True
 落花生枝叶,cn,HERB003589,落花生枝叶,HERB,True
 luojishanyuanbai,pinyin,HERB003590,落基山圆柏,HERB,True
@@ -7727,6 +7720,7 @@ mantuoluoye,pinyin,HERB003736,曼陀罗叶,HERB,True
 曼陀罗叶,cn,HERB003736,曼陀罗叶,HERB,True
 mantuoluozi,pinyin,HERB003737,曼陀罗子,HERB,True
 曼陀罗子,cn,HERB003737,曼陀罗子,HERB,True
+feilvbinqianjinba,pinyin,HERB003738,蔓性千斤拔,WHITELIST_MERGE,False
 manxingqianjinba,pinyin,HERB003738,蔓性千斤拔,HERB,True
 蔓性千斤拔,cn,HERB003738,蔓性千斤拔,HERB,True
 manzhilongdan,pinyin,HERB003739,蔓枝龙胆,HERB,True
@@ -9306,6 +9300,7 @@ qingsheteng,pinyin,HERB004536,青蛇藤,HERB,True
 qingsuan,pinyin,HERB004537,青蒜,HERB,True
 青蒜,cn,HERB004537,青蒜,HERB,True
 mufangji,pinyin,HERB004538,木防己,HERB,True
+qingtengxiang,pinyin,HERB004538,木防己,WHITELIST_MERGE,False
 木防己,cn,HERB004538,木防己,HERB,True
 qingtiankui,pinyin,HERB004539,青天葵,HERB,True
 青天葵,cn,HERB004539,青天葵,HERB,True
@@ -9693,6 +9688,7 @@ ruanzhihuangchan,pinyin,HERB004730,软枝黄蝉,HERB,True
 ruideqianliguang,pinyin,HERB004731,瑞德千里光,HERB,True
 瑞德千里光,cn,HERB004731,瑞德千里光,HERB,True
 manjingganlan,pinyin,HERB004732,蔓菁甘蓝,HERB,True
+ruidianganlan,pinyin,HERB004732,蔓菁甘蓝,WHITELIST_MERGE,False
 wujingganlan,pinyin,HERB004732,蔓菁甘蓝,HERB_LATIN,False
 蔓菁甘蓝,cn,HERB004732,蔓菁甘蓝,HERB,True
 ruijiaojianmu,pinyin,HERB004733,锐角樫木,HERB,True
@@ -9793,6 +9789,7 @@ sanlieyeyege,pinyin,HERB004779,三裂叶野葛,HERB,True
 sanlieyezelan,pinyin,HERB004780,三裂叶泽兰,HERB,True
 三裂叶泽兰,cn,HERB004780,三裂叶泽兰,HERB,True
 ribenshengma,pinyin,HERB004781,小升麻,HERB_LATIN,False
+sanmiandao,pinyin,HERB004781,小升麻,WHITELIST_MERGE,False
 xiaoshengma,pinyin,HERB004781,小升麻,HERB,True
 小升麻,cn,HERB004781,小升麻,HERB,True
 sanpizhi,pinyin,HERB004782,NA,HERB,True
@@ -10559,6 +10556,7 @@ shuihonghuazi,pinyin,HERB005165,水红花子,HERB,True
 shuihulu,pinyin,HERB005166,水葫芦,HERB,True
 水葫芦,cn,HERB005166,水葫芦,HERB,True
 kulangshu,pinyin,HERB005167,苦郎树,HERB,True
+shuihuman,pinyin,HERB005167,苦郎树,WHITELIST_MERGE,False
 苦郎树,cn,HERB005167,苦郎树,HERB,True
 shuihuangyangmu,pinyin,HERB005168,水黄杨木,HERB,True
 水黄杨木,cn,HERB005168,水黄杨木,HERB,True
@@ -10576,6 +10574,7 @@ shuijinglan,pinyin,HERB005173,水晶兰,HERB,True
 shuikumai,pinyin,HERB005174,水苦荬,HERB,True
 水苦荬,cn,HERB005174,水苦荬,HERB,True
 lianyetong,pinyin,HERB005175,莲叶桐,HERB,True
+shuilianyetong,pinyin,HERB005175,莲叶桐,WHITELIST_MERGE,False
 莲叶桐,cn,HERB005175,莲叶桐,HERB,True
 shuiliao,pinyin,HERB005176,水蓼,HERB,True
 水蓼,cn,HERB005176,水蓼,HERB,True
@@ -12096,6 +12095,7 @@ xiayebaixian,pinyin,HERB005950,狭叶白鲜,HERB,True
 狭叶白鲜,cn,HERB005950,狭叶白鲜,HERB,True
 xiayechonglou,pinyin,HERB005951,狭叶重楼,HERB,True
 狭叶重楼,cn,HERB005951,狭叶重楼,HERB,True
+xiayecucaoshichejuub,pinyin,HERB005952,NA,HERB,True
 xiayedanggui,pinyin,HERB005953,狭叶当归,HERB,True
 狭叶当归,cn,HERB005953,狭叶当归,HERB,True
 xiayehongjingtian,pinyin,HERB005954,狭叶红景天,HERB,True
@@ -13100,7 +13100,6 @@ yeguoqie,pinyin,HERB006453,野果茄,HERB,True
 野果茄,cn,HERB006453,野果茄,HERB,True
 yehaijiao,pinyin,HERB006454,野海椒,HERB,True
 野海椒,cn,HERB006454,野海椒,HERB,True
-houpuhua,pinyin,HERB006455,夜合花,HERB_LATIN,False
 yehehua,pinyin,HERB006455,夜合花,HERB,True
 夜合花,cn,HERB006455,夜合花,HERB,True
 yehetaoren,pinyin,HERB006456,野核桃仁,HERB,True
@@ -14505,6 +14504,7 @@ zihuagaowutou,pinyin,HERB007177,紫花高乌头,HERB,True
 紫花高乌头,cn,HERB007177,紫花高乌头,HERB,True
 zihuaguanmaoruihua,pinyin,HERB007178,NA,HERB,True
 shihudie,pinyin,HERB007179,石蝴蝶,HERB,True
+zihuajingtian,pinyin,HERB007179,石蝴蝶,WHITELIST_MERGE,False
 石蝴蝶,cn,HERB007179,石蝴蝶,HERB,True
 zihuaqianhu,pinyin,HERB007180,紫花前胡,HERB,True
 紫花前胡,cn,HERB007180,紫花前胡,HERB,True
