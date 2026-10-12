@@ -79,6 +79,58 @@
   p
 }
 
+# ---------------------------------------------------------------------------
+# herb 实体层：把用户给的药名展开为**同一实体**下的全部检索键（P0-B / 2026-10-12）
+#
+# 背景：同一味药在源侧有多个拼法（`houpo` / `houpu`、`shenjincao` / `shenjingcao`），
+#   而查询走**精确匹配**（`IN (...)`）→ 用户查其中一个只能拿到一部分行
+#   （实测 厚朴：查 houpo 得 12,990 行、查 houpu 得 28,290 行，用户无从知道要查两个）。
+# 做法：输入 → 命中的 `herb` 键 →（herb_key_map）→ `herb_id` → 该实体全部键。
+# 默认**不启用**：`herb_target(resolve_herb = TRUE)` 才展开，保持既有语义向后兼容
+#   （铁律：不改变默认口径；新能力显式开启）。
+# ---------------------------------------------------------------------------
+.tcm_herb_keymap_path <- function() {
+  p <- system.file("extdata", "herb_key_map.parquet", package = "TCMNP")
+  if (!nzchar(p)) {                      # development mode (not installed)
+    p <- file.path("inst", "extdata", "herb_key_map.parquet")
+    if (!file.exists(p)) {
+      stop("herb_key_map.parquet not found (run 06_export.py to export the herb entity layer)")
+    }
+  }
+  p
+}
+
+#' @noRd
+.tcm_herb_resolve <- function(x, type = "Herb_cn_name") {
+  x <- as.character(x)
+  x <- x[!is.na(x) & nzchar(x)]
+  if (!length(x)) return(character())
+  p <- .tcm_herb_keymap_path()
+  is_cn <- identical(type, "Herb_cn_name")
+  check_col <- if (is_cn) "Herb_cn_name" else "Herb_name_pin_yin"
+  # ★ 返回的键必须与**查询列同类型**：调用方随后用同一 `type` 去 WHERE 过滤，
+  #   若混入另一类键，会既产生 "… is/are not in the datasets." 的误导噪音，
+  #   也把「键类型」与「查询列」的对应关系搞乱（2026-10-12 实测踩到）。
+  want <- if (is_cn) "cn" else "pinyin"
+  # ① 用户输入命中的行 → 取 pinyin 键（compat 的 herb 键列）
+  hit <- .tcm_filter(check_col, x, c(k = "Herb_name_pin_yin"))$k
+  hit <- unique(hit[!is.na(hit) & nzchar(hit)])
+  if (!length(hit)) return(character())
+  # ② 键 → herb_id
+  ids <- .tcm_query(sprintf(
+    "SELECT DISTINCT herb_id FROM read_parquet('%s') WHERE herb_key IN (%s)",
+    p, .sql_in(hit)))$herb_id
+  ids <- ids[!is.na(ids) & nzchar(ids)]
+  if (!length(ids)) return(hit)
+  # ③ herb_id → 该实体**同类型**的全部键
+  ks <- .tcm_query(sprintf(
+    "SELECT DISTINCT herb_key FROM read_parquet('%s')
+     WHERE herb_id IN (%s) AND key_type = '%s'",
+    p, .sql_in(ids), want))$herb_key
+  ks <- ks[!is.na(ks) & nzchar(ks)]
+  if (!length(ks)) hit else ks
+}
+
 .sql_in <- function(x) {
   x <- x[!is.na(x) & nzchar(as.character(x))]
   if (!length(x)) return("NULL")

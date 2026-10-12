@@ -4,7 +4,14 @@
 \alias{herb_target}
 \title{Screen targets based on ingredients from Chinese herbal medicine}
 \usage{
-herb_target(herb, OB.value = 30, DL.value = 0.18, type = "Herb_cn_name", ...)
+herb_target(
+  herb,
+  OB.value = 30,
+  DL.value = 0.18,
+  type = "Herb_cn_name",
+  resolve_herb = FALSE,
+  ...
+)
 }
 \arguments{
 \item{herb}{The name of the compound Chinese herbal medicine}
@@ -15,6 +22,12 @@ herb_target(herb, OB.value = 30, DL.value = 0.18, type = "Herb_cn_name", ...)
 
 \item{type}{Writing format of herb name:
 "Herb_name_pin_yin" or "Herb_cn_name"}
+
+\item{resolve_herb}{Logical (default \code{FALSE}). When \code{TRUE}, each input name is
+expanded to \strong{all retrieval keys of the same herb entity} (via the herb
+entity layer \code{herb_key_map.parquet}), so that source-side spelling variants
+(\code{houpo} / \code{houpu}, \code{shenjincao} / \code{shenjingcao}) are not silently missed.
+Default \code{FALSE} keeps the exact-match semantics unchanged (backward compatible).}
 
 \item{...}{additional parameters}
 }

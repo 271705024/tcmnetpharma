@@ -15,11 +15,30 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 
 | 表 | 文件 | 数据版本 | 行数 | 说明 |
 |---|---|---|---|---|
-| standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_1.2.0_2026-10-09 | 16,269,155 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME；含 `cas` 列） |
-| tcm_network_compat | inst/extdata/tcm_network_compat.parquet | TCMNP_1.2.0_2026-10-09 | 16,202,145 | 10 列兼容表（喂现有函数；DuckDB 惰性查询；含 `CAS` 列；已按 10 列判重） |
-| raw_unmapped | inst/extdata/raw_unmapped.parquet | TCMNP_1.2.0_2026-10-09 | 211,830 | 未映射/多余数据 |
+| standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_1.3.0_2026-10-12 | 16,269,155 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME；含 `cas`；**新增 `herb_entity_id` / `herb_entity_id_source`**） |
+| tcm_network_compat | inst/extdata/tcm_network_compat.parquet | TCMNP_1.3.0_2026-10-12 | 16,202,145 | 10 列兼容表（喂现有函数；DuckDB 惰性查询；含 `CAS` 列；已按 10 列判重） |
+| raw_unmapped | inst/extdata/raw_unmapped.parquet | TCMNP_1.3.0_2026-10-12 | 211,830 | 未映射/多余数据 |
+| herb_main | inst/extdata/herb_main.parquet | TCMNP_1.3.0_2026-10-12 | 7,351 | **herb 实体主表**（`herb_id` 唯一身份；HERB 6,892 + BATMAN 合成 459） |
+| herb_key_map | inst/extdata/herb_key_map.parquet | TCMNP_1.3.0_2026-10-12 | 14,670 | **键→实体映射**（多对一；`key_type`/`id_source`/`is_canonical`） |
+| herb_key_collapse | inst/extdata/herb_key_collapse.parquet | TCMNP_1.3.0_2026-10-12 | 7,506 | **塌缩留痕**（某键收了哪些原始源条目；321 键吞并 340 条） |
 | herb_pm | data/herb_pm.rda | TCMNP_0.2.0_2026-08-22 | 6,860 | HERB 性味归经（6,892 去空后） |
 
+> **数据版本 1.3.0（2026-10-12）变更内容**：**引入 herb 实体层**（P0-B）。
+> 背景：拼音键此前同时充当「检索入口」与「实体身份」，实测宽表 `Herb_id` 空 **1,459,435 行(8.97%)**，
+> 且 BATMAN 源 **321 个键吞并 340 条**条目却**零留痕**。
+> - `standard` **新增两列**：`herb_entity_id`（**实体身份**，始终有值）、`herb_entity_id_source`
+>   （`HERB`/`HERB_LATIN`/`HERB_CN`/`BATMAN_SYNTH`/`WHITELIST_MERGE`）。
+>   ⚠️ 命名说明：**不能叫 `herb_id`** —— 本表已有 `Herb_id`，而 DuckDB 列名匹配**不区分大小写**，
+>   两者构成「仅大小写不同」的碰撞（`"herb_id"` 会静默解析到 `Herb_id`）。该碰撞由
+>   `common.assert_no_col_case_collision` 在落盘前**硬拦下**（2026-10-12 实测：首次接线即被捕获）。
+>   ⚠️ **`Herb_id`（旧列）语义不变** —— 它是「HERB 源自身的 id」，对 BATMAN 专有药材为空；
+>   新列 `herb_entity_id` 才含跨源归一结果。**下游 join/去重请以 `herb_entity_id` 为准**。
+> - 新增三表 + `herb_alias.csv`（人可读键别名表）。
+> - 同名异键：83 组中 **56 组已自动归一**（拉丁名/中文名桥接），其余列入
+>   `data-raw/cleaning/herb_alias_whitelist.csv` **逐条授权**（脚本从不自动跨实体合并）；
+>   本轮已授权合并 3 组（拉丁名完全一致），另 24 组待人工判。
+> - 行数**不变**（实体层只改身份归属，不增删行）。详见 `docs/legacy-items-solution-design-2026-10-12.md` §1。
+>
 > **数据版本 1.2.0（2026-10-09）修复内容**：**成分结构标识换源** —— 原「PubChem CID→InChIKey」
 > 补映射误用 ChEMBL 的 `PUBCHEM_BIOASSAY`（其 `src_compound_id` 是 PubChem **SID 而非 CID**），
 > 导致 107 个 CID / 约 9,338 行的 InChIKey 与 CID 错配；现改用 PubChem 官方

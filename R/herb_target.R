@@ -5,6 +5,11 @@
 #' @param DL.value drug-likeness
 #' @param type Writing format of herb name:
 #' "Herb_name_pin_yin" or "Herb_cn_name"
+#' @param resolve_herb Logical (default `FALSE`). When `TRUE`, each input name is
+#'   expanded to **all retrieval keys of the same herb entity** (via the herb
+#'   entity layer `herb_key_map.parquet`), so that source-side spelling variants
+#'   (`houpo` / `houpu`, `shenjincao` / `shenjingcao`) are not silently missed.
+#'   Default `FALSE` keeps the exact-match semantics unchanged (backward compatible).
 #' @param ... additional parameters
 #'
 #' @return data.frame. Columns: `herb`, `molecule_id`, `molecule`, `target`,
@@ -24,9 +29,20 @@ herb_target <- function(herb,
                         OB.value = 30,
                         DL.value = 0.18,
                         type = "Herb_cn_name",
+                        resolve_herb = FALSE,
                         ...) {
   # 惰性查询（P3.2）：DuckDB 直读 compat parquet
   check_col <- if (type == "Herb_cn_name") "Herb_cn_name" else "Herb_name_pin_yin"
+  # herb 实体归一（P0-B，2026-10-12）：显式开启才展开，默认口径不变。
+  # 解决「同名异键漏检」——源侧同一味药有多种拼法，精确匹配只命中其中一个。
+  if (isTRUE(resolve_herb)) {
+    herb <- unique(.tcm_herb_resolve(herb, type = type))
+    if (!length(herb)) {
+      return(data.frame(herb = character(), molecule_id = character(),
+                        molecule = character(), target = character(),
+                        adme = character()))
+    }
+  }
   # 列名映射与 WHERE 构造均由 .tcm_distinct_where() 内部完成（契约统一，
   # 调用方不可能漏映射）。背景见 docs/data-management-spec-2026-08-24.md（3. 命名规则）。
   hit <- .tcm_distinct_where(check_col, herb)
