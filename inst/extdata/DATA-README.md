@@ -15,12 +15,14 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 
 | 表 | 文件 | 数据版本 | 行数 | 说明 |
 |---|---|---|---|---|
-| standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_1.3.0_2026-10-12 | 16,269,155 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME；含 `cas`；**新增 `herb_entity_id` / `herb_entity_id_source`**） |
+| standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_1.3.0_2026-10-12 | 16,269,155 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME；含 `cas`；**新增 `herb_entity_id`/`herb_entity_id_source` + 信任与溯源 6 列**） |
 | tcm_network_compat | inst/extdata/tcm_network_compat.parquet | TCMNP_1.3.0_2026-10-12 | 16,202,145 | 10 列兼容表（喂现有函数；DuckDB 惰性查询；含 `CAS` 列；已按 10 列判重） |
 | raw_unmapped | inst/extdata/raw_unmapped.parquet | TCMNP_1.3.0_2026-10-12 | 211,830 | 未映射/多余数据 |
 | herb_main | inst/extdata/herb_main.parquet | TCMNP_1.3.0_2026-10-12 | 7,351 | **herb 实体主表**（`herb_id` 唯一身份；HERB 6,892 + BATMAN 合成 459） |
 | herb_key_map | inst/extdata/herb_key_map.parquet | TCMNP_1.3.0_2026-10-12 | 14,670 | **键→实体映射**（多对一；`key_type`/`id_source`/`is_canonical`） |
 | herb_key_collapse | inst/extdata/herb_key_collapse.parquet | TCMNP_1.3.0_2026-10-12 | 7,506 | **塌缩留痕**（某键收了哪些原始源条目；321 键吞并 340 条） |
+| provenance_tables | inst/extdata/provenance_tables.parquet | TCMNP_1.3.0_2026-10-12 | 22 | **表级溯源**（表 × 源目录：文件数/字节/sha256 状态/加工步骤） |
+| provenance_rows | inst/extdata/provenance_rows.parquet | TCMNP_1.3.0_2026-10-12 | 814,924 | **行级溯源**（UNMAPPED 211,830 + 被修正 603,094） |
 | herb_pm | data/herb_pm.rda | TCMNP_0.2.0_2026-08-22 | 6,860 | HERB 性味归经（6,892 去空后） |
 
 > **数据版本 1.3.0（2026-10-12）变更内容**：**引入 herb 实体层**（P0-B）。
@@ -38,6 +40,21 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 >   `data-raw/cleaning/herb_alias_whitelist.csv` **逐条授权**（脚本从不自动跨实体合并）；
 >   本轮已授权合并 3 组（拉丁名完全一致），另 24 组待人工判。
 > - 行数**不变**（实体层只改身份归属，不增删行）。详见 `docs/legacy-items-solution-design-2026-10-12.md` §1。
+>
+> **数据版本 1.3.0（2026-10-12）· 信任与溯源 6 列（P1）**：`standard` 增至 **31 列**（**不进 `compat`**，守 10 列契约）。
+> | 列 | 含义 |
+> |---|---|
+> | `qc_level` | 4 级信任：`High` 432,401 / `Medium` 15,808,628 / `Low` 210,077 / `Untrusted` 59 |
+> | `qc_level_reason` | **逐行的判定理由**（免去使用者自己推断；也是"低 qc 不另做行级 provenance"的依据） |
+> | `cas_verified` | **全量 `FALSE`** —— 我们**没有**校验过 CAS（NLM 明示 PubChem 不校验 CAS）。把它写成显式事实，而不是让使用者默认"有值即可信" |
+> | `cas_source` | `source_field`（源侧字段给出）/ `none` |
+> | `latin_name_std` | 拉丁名标准化（实体层权威名 → 二名法清洗；**只做属+种，禁部分匹配**） |
+> | `latin_match_status` | `unverified`（有二名法但**未经 MPNS/Kew 交叉核验**）/ `missing` —— **不假装已验证**；MPNS 交叉核验待离线数据源 |
+>
+> **溯源两表**：`provenance_tables`（表级：源目录文件数/字节/sha256 状态/加工步骤；小源逐个 sha256，chembl/pubchem 等大源如实标 `not_hashed:size`，**不假装已校验**）；
+> `provenance_rows`（行级：UNMAPPED 211,830 —— `source` 列**直接取自源侧**；被 PubChem 名称回填修正 603,094 —— CID 名单来自回填表本身，可复算）。
+> **低 `qc_level` 不另做行级 provenance**：`qc_level_reason` 已逐行给出原因，再抄一份即同一事实两处声明（成本与收益不成比例）。
+> 另：`iupac_name` 补齐 **B1 同类守卫**（`CID <数字>` 占位符/CAS 形态一律置空；实测 28 行 / 1 个 CID）。
 >
 > **数据版本 1.2.0（2026-10-09）修复内容**：**成分结构标识换源** —— 原「PubChem CID→InChIKey」
 > 补映射误用 ChEMBL 的 `PUBCHEM_BIOASSAY`（其 `src_compound_id` 是 PubChem **SID 而非 CID**），
