@@ -17,6 +17,7 @@
 .tcm_query        <- get(".tcm_query",        envir = getNamespace("TCMNP"))
 .sql_in           <- get(".sql_in",           envir = getNamespace("TCMNP"))
 .tcm_herb_resolve <- get(".tcm_herb_resolve", envir = getNamespace("TCMNP"))
+.tcm_parquet_path <- get(".tcm_parquet_path", envir = getNamespace("TCMNP"))
 
 kmap_path <- function() {
   cands <- c(
@@ -97,4 +98,66 @@ test_that("herb_alias.csv: 键别名表与 herb_key_map 行数一致", {
   km <- .tcm_query(sprintf(
     "SELECT COUNT(*) AS n FROM read_parquet('%s')", need_km()))
   expect_equal(nrow(al), km$n)
+})
+
+# ===========================================================================
+# 分析模块接入（2026-10-14）：四个查询函数 + 富集口径
+# ===========================================================================
+
+test_that("四个查询函数都暴露 resolve_herb / with_trust，且默认关闭", {
+  for (fn in c("herb_target", "target_herb", "molecule_serch", "target_serch")) {
+    f <- get(fn, envir = getNamespace("TCMNP"))
+    expect_true("resolve_herb" %in% names(formals(f)), info = fn)
+    expect_true("with_trust" %in% names(formals(f)), info = fn)
+    expect_identical(eval(formals(f)$resolve_herb), FALSE, info = fn)
+    expect_identical(eval(formals(f)$with_trust), FALSE, info = fn)
+  }
+})
+
+test_that("默认口径返回列契约不变（开关关闭时不加列）", {
+  base <- molecule_serch(c("Hexyl acetate"))
+  expect_named(base, c("herb", "molecule_id", "molecule", "target"))
+  ent <- molecule_serch(c("Hexyl acetate"), resolve_herb = TRUE)
+  expect_true("herb_id" %in% names(ent))
+  # 按实体折叠后行数只减不增
+  expect_lte(nrow(ent), nrow(base))
+  # 实体归一后 herb 列必须是规范键（同一 herb_id 只对应一个 herb 值）
+  expect_equal(length(unique(ent$herb)), length(unique(ent$herb_id)))
+})
+
+test_that("with_trust 带回信任与溯源列，且取最差评级", {
+  tr <- molecule_serch(c("Hexyl acetate"), with_trust = TRUE)
+  expect_true(all(c("qc_level", "qc_level_reason", "cas_verified",
+                    "latin_name_std", "latin_match_status") %in% names(tr)))
+  expect_true(all(tr$qc_level %in% c("High", "Medium", "Low", "Untrusted", NA)))
+  expect_true(all(tr$cas_verified %in% c("False", "false", NA)))
+  expect_true(all(tr$latin_match_status %in% c("unverified", "missing", NA)))
+})
+
+test_that("compoundfinal / herb_pm 已接实体层（带 herb_id）", {
+  expect_true(all(c("herb_key", "herb_id") %in% names(compoundfinal)))
+  expect_false(any(is.na(herb_pm$herb_id) | !nzchar(herb_pm$herb_id)))
+  # 异拼问题：houpu 不在 herb_pm 的键空间，但两者 herb_id 相同
+  km <- .tcm_query(sprintf(
+    "SELECT herb_key, herb_id FROM read_parquet('%s') WHERE herb_key IN ('houpo','houpu')",
+    kmap_path()))
+  expect_equal(length(unique(km$herb_id)), 1L)
+  expect_true("houpo" %in% herb_pm$herb_key)
+  expect_false("houpu" %in% herb_pm$herb_key)   # 数据来源决定（HERB 无此拼法）
+})
+
+test_that("tcm_prescription 在实体空间做富集（N = 实体数，不是中文名数）", {
+  res <- tcm_prescription(disease_data)
+  expect_type(res, "list")
+  expect_length(res, 2)
+  expect_gt(nrow(res[[2]]), 0)
+  cn <- .tcm_query(sprintf(
+    "SELECT COUNT(DISTINCT Herb_cn_name) AS n FROM read_parquet('%s')",
+    .tcm_parquet_path("compat")))$n
+  ent <- .tcm_query(sprintf(
+    "SELECT COUNT(DISTINCT k.herb_id) AS n FROM
+       (SELECT DISTINCT Herb_name_pin_yin AS hk FROM read_parquet('%s')) c
+       JOIN read_parquet('%s') k ON k.herb_key = c.hk",
+    .tcm_parquet_path("compat"), kmap_path()))$n
+  expect_gt(ent, cn)          # 实体数恒 ≥ 中文名数（同一名可对应多实体）
 })

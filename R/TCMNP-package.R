@@ -40,6 +40,11 @@ if (getRversion() >= "2.15.1") {
     "molecule_id",
     "molecule",
     "target",
+    # P0-B/P1（2026-10-14）：实体层与信任列在 dplyr NSE 中引用
+    "herb_id",
+    "herb_key",
+    "qc_level",
+    "freq",
     "D",
     "Description",
     "GeneRatio",

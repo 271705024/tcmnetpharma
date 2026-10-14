@@ -4,10 +4,18 @@
 \alias{molecule_serch}
 \title{Screen molecules based on ingredients from Chinese herbal medicine}
 \usage{
-molecule_serch(molecule, ...)
+molecule_serch(molecule, resolve_herb = FALSE, with_trust = FALSE, ...)
 }
 \arguments{
 \item{molecule}{The name of the molecule filter}
+
+\item{resolve_herb}{Logical (default \code{FALSE}). When \code{TRUE}, results are mapped to
+the herb entity layer (extra \code{herb_id} column, canonical \code{herb} key, collapsed
+rows) — see \code{target_herb} for the full explanation.}
+
+\item{with_trust}{Logical (default \code{FALSE}). When \code{TRUE}, attaches the trust
+columns of the standard table (\code{qc_level}, \code{qc_level_reason}, \code{cas_verified},
+\code{latin_name_std}, \code{latin_match_status}); worst level wins on ambiguity.}
 
 \item{...}{additional parameters}
 }

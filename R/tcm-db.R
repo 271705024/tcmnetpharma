@@ -68,12 +68,14 @@
 # DuckDB physical name -> logical name (strip the collision suffix).
 .tcm_col_clean <- function(nm) sub("_[0-9]+$", "", nm)
 
-.tcm_parquet_path <- function() {
-  p <- system.file("extdata", "tcm_network_compat.parquet", package = "TCMNP")
+.tcm_parquet_path <- function(which = c("compat", "standard")) {
+  which <- match.arg(which)
+  fn <- if (which == "compat") "tcm_network_compat.parquet" else "standard_herb_mol_target.parquet"
+  p <- system.file("extdata", fn, package = "TCMNP")
   if (!nzchar(p)) {  # development mode (not installed): fall back to repo path
-    p <- file.path("inst", "extdata", "tcm_network_compat.parquet")
+    p <- file.path("inst", "extdata", fn)
     if (!file.exists(p)) {
-      stop("tcm_network_compat.parquet not found (run devtools::install() or check inst/extdata)")
+      stop(fn, " not found (run devtools::install() or check inst/extdata)")
     }
   }
   p
@@ -135,6 +137,121 @@
   x <- x[!is.na(x) & nzchar(as.character(x))]
   if (!length(x)) return("NULL")
   paste0("'", gsub("'", "''", as.character(x)), "'", collapse = ", ")
+}
+
+# ---------------------------------------------------------------------------
+# herb 实体层：查询结果接实体（加 herb_id + 规范键 + 折叠同实体重复行）
+#
+# 为什么需要（2026-10-12）：四个查询函数（herb_target / target_herb /
+#   molecule_serch / target_serch）此前一律以 `Herb_name_pin_yin`（拼音键）作为
+#   药材身份 → 同一味药的两种源侧拼法（houpo / houpu）会**各占一行**，
+#   用户看到"两味药"，按实体统计时被重复计数。
+# 口径：`resolve_herb = TRUE` 时才生效（默认 FALSE → 返回列契约完全不变，
+#   既有下游与测试不受影响）。
+# ---------------------------------------------------------------------------
+.tcm_keymap <- local({
+  cache <- NULL
+  function() {
+    if (is.null(cache)) {
+      cache <<- .tcm_query(sprintf(
+        "SELECT herb_key, herb_id, key_type, id_source FROM read_parquet('%s')",
+        .tcm_herb_keymap_path()))
+    }
+    cache
+  }
+})
+
+# herb_id → 规范**拼音**键（优先 id_source='HERB'，并列取字典序最小 → 确定性）
+.tcm_canonical_key <- local({
+  cache <- NULL
+  function() {
+    if (is.null(cache)) {
+      km <- .tcm_keymap()
+      km <- km[km$key_type == "pinyin", , drop = FALSE]
+      km <- km[order(km$herb_id, km$id_source != "HERB", km$herb_key), , drop = FALSE]
+      km <- km[!duplicated(km$herb_id), , drop = FALSE]
+      cache <<- stats::setNames(km$herb_key, km$herb_id)
+    }
+    cache
+  }
+})
+
+# herb_id → 规范**中文**名（herb_main.herb_cn；空则回退到 herb_id 本身）
+.tcm_canonical_cn <- local({
+  cache <- NULL
+  function() {
+    if (is.null(cache)) {
+      p <- system.file("extdata", "herb_main.parquet", package = "TCMNP")
+      if (!nzchar(p)) p <- file.path("inst", "extdata", "herb_main.parquet")
+      if (!file.exists(p)) stop("herb_main.parquet not found (run 06_export.py)")
+      mn <- .tcm_query(sprintf("SELECT herb_id, herb_cn FROM read_parquet('%s')", p))
+      cn <- ifelse(is.na(mn$herb_cn) | !nzchar(mn$herb_cn), mn$herb_id, mn$herb_cn)
+      cache <<- stats::setNames(cn, mn$herb_id)
+    }
+    cache
+  }
+})
+
+#' @noRd
+.tcm_attach_entity <- function(df) {
+  if (!nrow(df)) {
+    df$herb_id <- character(0)
+    return(df)
+  }
+  km <- .tcm_keymap()
+  id <- km$herb_id[match(df$herb, km$herb_key)]
+  ck <- .tcm_canonical_key()
+  canon <- unname(ck[id])
+  df$herb <- ifelse(is.na(canon), df$herb, canon)   # 规范键（同实体不再多行）
+  df$herb_id <- id
+  df[!duplicated(df), , drop = FALSE]               # 折叠 houpo/houpu 这类同内容重复行
+}
+
+# ---------------------------------------------------------------------------
+# 信任与溯源列通道（P1 的 qc_level 等只在 standard，compat 守 10 列契约）
+#
+# 为什么要开这个口（2026-10-12）：信任列若 R 侧完全取不到，等于"交付了但用不上"
+#   —— 属半成品。做法：按**已有的查询结果**回查 standard，取最差（最保守）评级。
+# 为什么取最差：compat 按 10 列判重，一行可能对应 standard 多行（如不同 Entrez）；
+#   此时报最差评级才不误导（宁可让用户谨慎）。
+# ---------------------------------------------------------------------------
+.TCM_TRUST_COLS <- c("qc_level", "qc_level_reason", "cas_verified",
+                     "latin_name_std", "latin_match_status")
+
+#' @noRd
+.tcm_attach_trust <- function(df) {
+  if (!nrow(df)) {
+    for (cc in .TCM_TRUST_COLS) df[[cc]] <- character(0)
+    return(df)
+  }
+  std <- .tcm_parquet_path("standard")
+  herbs <- unique(df$herb)
+  q <- sprintf(
+    "SELECT \"herb\" AS herb, \"mol_name\" AS mol, \"target_gene\" AS tgt,
+            \"qc_level\" AS qc_level, \"qc_level_reason\" AS qc_reason,
+            CAST(\"cas_verified\" AS VARCHAR) AS cas_verified,
+            \"latin_name_std\" AS latin_name_std,
+            \"latin_match_status\" AS latin_match_status,
+            CASE \"qc_level\" WHEN 'Untrusted' THEN 0 WHEN 'Low' THEN 1
+                              WHEN 'Medium' THEN 2 ELSE 3 END AS _rank
+     FROM read_parquet('%s') WHERE \"herb\" IN (%s)",
+    std, .sql_in(herbs))
+  tr <- .tcm_query(q)
+  if (!nrow(tr)) {
+    for (cc in .TCM_TRUST_COLS) df[[cc]] <- NA_character_
+    return(df)
+  }
+  # 取最差评级：按 (herb, mol, tgt) 排序后保留 rank 最小的一行
+  tr <- tr[order(tr$herb, tr$mol, tr$tgt, tr$`_rank`), , drop = FALSE]
+  tr <- tr[!duplicated(tr[, c("herb", "mol", "tgt")]), , drop = FALSE]
+  idx <- match(paste(df$herb, df$molecule_id, df$target, sep = "\r"),
+               paste(tr$herb, tr$mol, tr$tgt, sep = "\r"))
+  df$qc_level <- tr$qc_level[idx]
+  df$qc_level_reason <- tr$qc_reason[idx]
+  df$cas_verified <- tr$cas_verified[idx]
+  df$latin_name_std <- tr$latin_name_std[idx]
+  df$latin_match_status <- tr$latin_match_status[idx]
+  df
 }
 
 .tcm_query <- function(sql) {

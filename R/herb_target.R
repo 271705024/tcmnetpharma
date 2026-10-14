@@ -8,8 +8,16 @@
 #' @param resolve_herb Logical (default `FALSE`). When `TRUE`, each input name is
 #'   expanded to **all retrieval keys of the same herb entity** (via the herb
 #'   entity layer `herb_key_map.parquet`), so that source-side spelling variants
-#'   (`houpo` / `houpu`, `shenjincao` / `shenjingcao`) are not silently missed.
+#'   (`houpo` / `houpu`, `shenjincao` / `shenjingcao`) are not silently missed;
+#'   the result also gains a `herb_id` column, uses the entity's canonical `herb`
+#'   key and has duplicate rows of the same entity collapsed.
 #'   Default `FALSE` keeps the exact-match semantics unchanged (backward compatible).
+#' @param with_trust Logical (default `FALSE`). When `TRUE`, attaches the trust /
+#'   provenance columns of the standard table per row: `qc_level`,
+#'   `qc_level_reason`, `cas_verified`, `latin_name_std`, `latin_match_status`.
+#'   When one delivered row maps to several source rows the **worst** level is
+#'   reported (conservative). Rationale: trust information that users cannot
+#'   reach is effectively not delivered.
 #' @param ... additional parameters
 #'
 #' @return data.frame. Columns: `herb`, `molecule_id`, `molecule`, `target`,
@@ -30,6 +38,7 @@ herb_target <- function(herb,
                         DL.value = 0.18,
                         type = "Herb_cn_name",
                         resolve_herb = FALSE,
+                        with_trust = FALSE,
                         ...) {
   # 惰性查询（P3.2）：DuckDB 直读 compat parquet
   check_col <- if (type == "Herb_cn_name") "Herb_cn_name" else "Herb_name_pin_yin"
@@ -58,7 +67,7 @@ herb_target <- function(herb,
   }
   # 口径「尽量全」（2026-09-28）：缺失 OB/DL 的行保留并以 adme 列标注。
   extra <- .tcm_adme_where(OB.value, DL.value)
-  fufang <- .tcm_filter_ex(
+  out <- .tcm_filter_ex(
     check_col, herb,
     c(herb = "Herb_name_pin_yin", molecule_id = "Molecule_name",
       molecule = "MOL_ID", target = "Target"),
@@ -66,5 +75,8 @@ herb_target <- function(herb,
     extra_select = c(adme = .tcm_adme_flag_sql())) %>%
     dplyr::distinct(.keep_all = TRUE) %>%
     tidyr::drop_na()
-  return(fufang)
+  # 实体层 / 信任列（均**显式开启**；关闭时返回列契约与旧版完全一致）
+  if (isTRUE(resolve_herb)) out <- .tcm_attach_entity(out)
+  if (isTRUE(with_trust)) out <- .tcm_attach_trust(out)
+  return(out)
 }

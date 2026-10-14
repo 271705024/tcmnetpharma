@@ -43,6 +43,7 @@ Remotes:
     github::davidsjoberg/ggsankey
 Depends: R (>= 4.1)
 LazyData: true
+LazyDataCompression: xz
 Suggests: 
     clusterProfiler,
     DOSE,

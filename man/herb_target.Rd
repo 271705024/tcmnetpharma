@@ -10,6 +10,7 @@ herb_target(
   DL.value = 0.18,
   type = "Herb_cn_name",
   resolve_herb = FALSE,
+  with_trust = FALSE,
   ...
 )
 }
@@ -26,8 +27,17 @@ herb_target(
 \item{resolve_herb}{Logical (default \code{FALSE}). When \code{TRUE}, each input name is
 expanded to \strong{all retrieval keys of the same herb entity} (via the herb
 entity layer \code{herb_key_map.parquet}), so that source-side spelling variants
-(\code{houpo} / \code{houpu}, \code{shenjincao} / \code{shenjingcao}) are not silently missed.
+(\code{houpo} / \code{houpu}, \code{shenjincao} / \code{shenjingcao}) are not silently missed;
+the result also gains a \code{herb_id} column, uses the entity's canonical \code{herb}
+key and has duplicate rows of the same entity collapsed.
 Default \code{FALSE} keeps the exact-match semantics unchanged (backward compatible).}
+
+\item{with_trust}{Logical (default \code{FALSE}). When \code{TRUE}, attaches the trust /
+provenance columns of the standard table per row: \code{qc_level},
+\code{qc_level_reason}, \code{cas_verified}, \code{latin_name_std}, \code{latin_match_status}.
+When one delivered row maps to several source rows the \strong{worst} level is
+reported (conservative). Rationale: trust information that users cannot
+reach is effectively not delivered.}
 
 \item{...}{additional parameters}
 }

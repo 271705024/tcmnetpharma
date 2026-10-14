@@ -4,7 +4,14 @@
 \alias{target_herb}
 \title{Find Chinese medicines and their active compounds through the target}
 \usage{
-target_herb(gene, OB.value = 30, DL.value = 0.18, ...)
+target_herb(
+  gene,
+  OB.value = 30,
+  DL.value = 0.18,
+  resolve_herb = FALSE,
+  with_trust = FALSE,
+  ...
+)
 }
 \arguments{
 \item{gene}{a vector of gene name}
@@ -13,11 +20,25 @@ target_herb(gene, OB.value = 30, DL.value = 0.18, ...)
 
 \item{DL.value}{drug-likeness}
 
+\item{resolve_herb}{Logical (default \code{FALSE}). When \code{TRUE}, results are mapped to
+the herb entity layer: an extra \code{herb_id} column is added, the \code{herb} column is
+replaced by the entity's canonical pinyin key, and rows that become identical
+are collapsed. This stops one herb from appearing as several rows just because
+the source spells its pinyin differently (\code{houpo} / \code{houpu}).}
+
+\item{with_trust}{Logical (default \code{FALSE}). When \code{TRUE}, the trust/provenance
+columns of the standard table are attached per row (\code{qc_level},
+\code{qc_level_reason}, \code{cas_verified}, \code{latin_name_std}, \code{latin_match_status}).
+When one delivered row maps to several source rows the \strong{worst} level is
+reported (conservative). Requires the standard table (shipped in the bundle).}
+
 \item{...}{additional parameters}
 }
 \value{
 data.frame. Columns: \code{herb}, \code{molecule_id}, \code{molecule}, \code{target},
 \code{adme} (see \code{herb_target} for the 2026-09-28 "keep as much as possible" rule).
+With \code{resolve_herb = TRUE} an extra \code{herb_id} column; with \code{with_trust = TRUE}
+the five trust columns described above.
 }
 \description{
 Find Chinese medicines and their active compounds through the target

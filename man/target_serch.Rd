@@ -4,10 +4,18 @@
 \alias{target_serch}
 \title{Screen target based on ingredients from Chinese herbal medicine}
 \usage{
-target_serch(target, ...)
+target_serch(target, resolve_herb = FALSE, with_trust = FALSE, ...)
 }
 \arguments{
 \item{target}{The name of the target filter}
+
+\item{resolve_herb}{Logical (default \code{FALSE}). When \code{TRUE}, results are mapped to
+the herb entity layer (extra \code{herb_id} column, canonical \code{herb} key, collapsed
+rows) — see \code{target_herb} for the full explanation.}
+
+\item{with_trust}{Logical (default \code{FALSE}). When \code{TRUE}, attaches the trust
+columns of the standard table (\code{qc_level}, \code{qc_level_reason}, \code{cas_verified},
+\code{latin_name_std}, \code{latin_match_status}); worst level wins on ambiguity.}
 
 \item{...}{additional parameters}
 }
@@ -19,6 +27,6 @@ Screen target based on ingredients from Chinese herbal medicine
 }
 \examples{
 target <- c("PRSS3", "ADH1C")
-target_filter<- target_serch(target, type = "Herb_name_pin_yin")
+target_filter<- target_serch(target)
 head(target_filter)
 }

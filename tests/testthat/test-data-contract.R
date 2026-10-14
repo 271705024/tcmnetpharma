@@ -14,12 +14,16 @@ test_that("核心数据集存在且结构稳定", {
   #   （空格/连字符/大小写差异），导致 tcm_compound() 的 join 静默全 miss。
   #   方案：物化规范化键 herb_key 作为唯一连接列。
   #   回归锚点：logs/errors-xuanfuhua-e2e-2026-09-21.md §E3；data-raw/tools/export_herbpm.R
+  # 2026-10-14 更新：新增 herb_id（实体身份）——缘由与 compoundfinal 同：
+  #   只有拼音键时，查询结果里的**异拼**（houpu 之于 houpo）拿不到性味归经且**不报错**。
   expect_named(herb_pm, c("herb_key", "Herb_cn_name", "Herb_name_pinyin",
-                          "Property", "Flavor", "Meridian"))
+                          "Property", "Flavor", "Meridian", "herb_id"))
   expect_gt(nrow(herb_pm), 6000)
   # herb_key 必须非空且唯一（E3 修复的核心契约：可作连接键）
   expect_false(any(is.na(herb_pm$herb_key) | !nzchar(herb_pm$herb_key)))
   expect_false(any(duplicated(herb_pm$herb_key)))
+  # herb_id 全量覆盖（实体层接入的前提条件；缺了就不是"接入了"）
+  expect_false(any(is.na(herb_pm$herb_id) | !nzchar(herb_pm$herb_id)))
 
   # trrust —— tf_filter() 依赖列
   expect_true(all(c("TF", "Target") %in% colnames(trrust)))
@@ -28,6 +32,10 @@ test_that("核心数据集存在且结构稳定", {
   # compoundfinal —— tcm_prescription() 依赖（复方-草药背景集）
   expect_true(all(c("herb", "compound", "type") %in% colnames(compoundfinal)))
   expect_gt(nrow(compoundfinal), 1000)
+  # 2026-10-14：必须带 herb_key / herb_id —— 否则 tcm_prescription 的超几何检验
+  #   只能在"名字空间"里做，实测仅 15.8% 的复方药材能进入统计（见 06_export 注释）。
+  expect_true(all(c("herb_key", "herb_id") %in% colnames(compoundfinal)))
+  expect_gt(mean(nzchar(compoundfinal$herb_id)), 0.8)   # 行级解析率下限（实测 0.908）
 
   # disease_data —— 示例疾病基因集
   expect_equal(nrow(disease_data), 790)
@@ -60,7 +68,7 @@ test_that("核心数据集存在且结构稳定", {
 
 test_that("内部数据 tcm_network 惰性查询契约（P3.2，compat parquet 经 DuckDB）", {
   meta <- TCMNP:::.tcm_meta()
-  # 行数 = 16,347,058（S3-S4 合并产出）
+  # 行数 = 16,269,155（S3-S4 合并 + Layer A 融合后落盘值；dedup 后；> 1.5e7 阈值满足）
   expect_gt(meta$rows, 1.5e7)
   # 9 列契约（与 sysdata 时代一致的列集）
   want <- c("Herb_cn_name", "herb_pinyin_raw", "Herb_name_pin_yin",
@@ -77,4 +85,55 @@ test_that("内部数据 tcm_network 惰性查询契约（P3.2，compat parquet �
   # DISTINCT 草药数（背景集规模，应显著大于旧版 499）
   hb <- TCMNP:::.tcm_distinct("Herb_cn_name")
   expect_gt(length(hb), 1000)
+})
+
+test_that("Layer A 一次源疾病本体映射表存在且结构稳定 (2026-10-14 并入)", {
+  # 与上方 tcm_network 惰性查询契约同款定位：已安装走 system.file，未安装走 inst/extdata
+  p <- tryCatch(
+    system.file("extdata", "layer_a_disease_ontology_map.parquet", package = "TCMNP"),
+    error = function(e) ""
+  )
+  if (is.null(p) || !nzchar(p)) {
+    p <- file.path("inst", "extdata", "layer_a_disease_ontology_map.parquet")
+  }
+  testthat::skip_if_not(file.exists(p),
+                        "layer_a_disease_ontology_map.parquet 不可用（开发期未构建）")
+  # duckdb 在 Imports 中，读取比 arrow 在 C-locale 下更稳（避免 string 列读数异常）
+  con <- DBI::dbConnect(duckdb::duckdb())
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  tbl <- DBI::dbGetQuery(con, sprintf("SELECT * FROM read_parquet('%s')", p))
+  # 实测 7,157 行；阈值留缓冲
+  expect_gt(nrow(tbl), 1000)
+  # 本体 ID 列（铁律 28：关键列必须显式守护，不能「没检查项 = 通过」）
+  expect_true(all(c("mesh_id", "umls_id") %in% colnames(tbl)))
+  # 排除字面占位符（NA/NAN/NONE）后仍有真实本体 ID（否则该表无实际价值）
+  has_id <- function(x) {
+    s <- as.character(x)
+    nzchar(s) & !(toupper(trimws(s)) %in% c("NA", "NAN", "NONE", "NULL", ""))
+  }
+  n_id <- sum(has_id(tbl$mesh_id) | has_id(tbl$umls_id))
+  # 实测 7,157 行均含真实本体 ID
+  expect_gt(n_id, 1000)
+})
+
+# ===========================================================================
+# 宽表 / 兼容表 schema 契约（P0-B + P1 接入，2026-10-14）
+# ===========================================================================
+test_that("compat 恒 10 列，standard 已接实体层与信任/溯源列", {
+  # compat = 10 列是**硬契约**（D-compat=A）：5 个查询函数与 GUI 都按它写，
+  #   新增列会影响 `expect_named` 断言与下游构造 → 必须显式改，不能悄悄长。
+  cc <- TCMNP:::.tcm_query(sprintf("SELECT * FROM read_parquet('%s') LIMIT 0",
+                                    TCMNP:::.tcm_parquet_path("compat")))
+  expect_equal(ncol(cc), 10L)
+
+  sc <- TCMNP:::.tcm_query(sprintf("SELECT * FROM read_parquet('%s') LIMIT 0",
+                                    TCMNP:::.tcm_parquet_path("standard")))
+  expect_true(all(c("herb_entity_id", "herb_entity_id_source",
+                    "qc_level", "qc_level_reason", "cas_verified", "cas_source",
+                    "latin_name_std", "latin_match_status") %in% names(sc)))
+  # ⚠️ 不得存在「仅以大小写区分」的列名：DuckDB 列名匹配不区分大小写，
+  #    查"不带后缀的名字"会**静默命中另一列**（2026-10-12 实测：herb_id vs Herb_id
+  #    被 common.assert_no_col_case_collision 在落盘前拦下）。此处再加一道。
+  expect_false(any(duplicated(tolower(names(sc)))))
+  expect_false(any(duplicated(tolower(names(cc)))))
 })

@@ -5,7 +5,7 @@
 \alias{compoundfinal}
 \title{compoundfinal}
 \format{
-An object of class \code{data.frame} with 441904 rows and 5 columns.
+An object of class \code{data.frame} with 441860 rows and 7 columns.
 }
 \usage{
 compoundfinal

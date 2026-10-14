@@ -15,7 +15,7 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 
 | 表 | 文件 | 数据版本 | 行数 | 说明 |
 |---|---|---|---|---|
-| standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_1.3.0_2026-10-12 | 16,269,155 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME；含 `cas`；**新增 `herb_entity_id`/`herb_entity_id_source` + 信任与溯源 6 列**） |
+| standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_1.3.0_2026-10-12 | 16,269,155 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME；含 `cas`；**新增 `herb_entity_id`/`herb_entity_id_source` + 信任与溯源 6 列**；**Layer A 融合 +2 列 `layer_a_latin`/`layer_a_hit_id`（SymMap 拉丁名交叉引用 53.3% / HIT 实验标记 30.7%）→ 共 33 列**） |
 | tcm_network_compat | inst/extdata/tcm_network_compat.parquet | TCMNP_1.3.0_2026-10-12 | 16,202,145 | 10 列兼容表（喂现有函数；DuckDB 惰性查询；含 `CAS` 列；已按 10 列判重） |
 | raw_unmapped | inst/extdata/raw_unmapped.parquet | TCMNP_1.3.0_2026-10-12 | 211,830 | 未映射/多余数据 |
 | herb_main | inst/extdata/herb_main.parquet | TCMNP_1.3.0_2026-10-12 | 7,351 | **herb 实体主表**（`herb_id` 唯一身份；HERB 6,892 + BATMAN 合成 459） |
@@ -23,6 +23,7 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 | herb_key_collapse | inst/extdata/herb_key_collapse.parquet | TCMNP_1.3.0_2026-10-12 | 7,506 | **塌缩留痕**（某键收了哪些原始源条目；321 键吞并 340 条） |
 | provenance_tables | inst/extdata/provenance_tables.parquet | TCMNP_1.3.0_2026-10-12 | 22 | **表级溯源**（表 × 源目录：文件数/字节/sha256 状态/加工步骤） |
 | provenance_rows | inst/extdata/provenance_rows.parquet | TCMNP_1.3.0_2026-10-12 | 814,924 | **行级溯源**（UNMAPPED 211,830 + 被修正 603,094） |
+| layer_a_disease_ontology_map | inst/extdata/layer_a_disease_ontology_map.parquet | TCMNP_1.3.0_2026-10-12 | 7,157 | **疾病本体映射参考表**（SymMap SMDE × OpenTargets；MeSH/UMLS 本体 ID；2026-10-14 并入） |
 | herb_pm | data/herb_pm.rda | TCMNP_0.2.0_2026-08-22 | 6,860 | HERB 性味归经（6,892 去空后） |
 
 > **数据版本 1.3.0（2026-10-12）变更内容**：**引入 herb 实体层**（P0-B）。
@@ -63,6 +64,8 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 > UNMAPPED→MAPPED**（`raw_unmapped` 4,988,060 → 211,830，未映射对降至 27,631）；
 > 去重撞车修复致 +21 行。另修正 QC 真值校验的宽匹配假通过（改精确匹配优先）。
 > 详见 `docs/p0-exec-report-2026-10-09.md`。
+
+> **数据版本 1.3.0（2026-10-12）· Layer A 融合补强（2026-10-14，版本号维持 1.3.0）**：`standard` **新增 2 列**（31 → **33 列**）——`layer_a_latin`（SymMap 草药拉丁名交叉引用，8,665,636 行非空 ≈53.3%）、`layer_a_hit_id`（SymMap SMTT 靶点 HIT 实验标记，4,990,660 行非空 ≈30.7%，值如 `T1237`）；两列**仅进 standard，不进 10 列 compat**（守契约）。新增独立参考表 `layer_a_disease_ontology_map`（7,157 行，SymMap SMDE × OpenTargets 疾病本体 MeSH/UMLS 映射），供下游疾病维度消费。Layer A 一次源（OpenTargets 25.06 + SymMap V2.0）经 `02d_layer_a_align` 跨库对齐后并入，与现有 HERB/BATMAN 枢纽 ID 语义一致（herb 92.7% / target 88.9%）——详见 `docs/data-source-registry-2026-10-12.md` §6 与 `docs/data-source-independence-roadmap-2026-10-12.md` §5。
 
 > **数据版本 1.1.1（2026-09-28）修复内容**：分子名守卫（`mol_name`/`iupac_name` 的
 > `CID <数字>` 占位符与 CAS 号一律不再充当名称）；BATMAN predicted 引用的 1,090 个
