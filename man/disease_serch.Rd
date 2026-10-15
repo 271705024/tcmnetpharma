@@ -35,7 +35,7 @@ consumption entry point of the \strong{Layer A disease layer} (\code{disease_mai
 14,434 SymMap SMDE disease entries aligned against OpenTargets disease ontology).
 }
 \details{
-\strong{Ontology IDs may be multi-valued.} A single Disease can carry several
+\strong{Ontology IDs may be multi-valued.} A single disease can carry several
 MeSH / UMLS IDs; they are stored in one field separated by \verb{;}
 (e.g. \code{"C0342770;C2936826"}). Matching is therefore done on \strong{ID boundaries},
 so \code{disease_serch("C2936826", type = "umls_id")} still finds the row above.
@@ -47,15 +47,14 @@ so \code{disease_serch("C2936826", type = "umls_id")} still finds the row above.
 OpenTargets ontology ID. Rows with \code{matched = FALSE} are \strong{kept on purpose} —
 they exist in SymMap but the ontology alignment failed; they are \emph{not}
 silently dropped.
-}
-\note{
-There is currently \strong{no disease -> target / ingredient relation} in
-this package: Layer A only contributed herb / target cross-references to the
-standard table plus this disease ontology map. Diseases are therefore
-resolvable to ontology IDs, but not yet to targets.
+
+To go from a disease to its associated \strong{targets}, see \code{\link[=disease_target]{disease_target()}}.
 }
 \examples{
 disease_serch("Cataract 13 With Adult I Phenotype")
 disease_serch(c("C3805373", "C1845055"), type = "umls_id")
 disease_serch("thalassemia", type = "disease_name", match = "contains")
+}
+\seealso{
+\code{\link[=disease_target]{disease_target()}}
 }

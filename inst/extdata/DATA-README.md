@@ -25,6 +25,7 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 | provenance_rows | inst/extdata/provenance_rows.parquet | TCMNP_1.3.0_2026-10-12 | 814,924 | **行级溯源**（UNMAPPED 211,830 + 被修正 603,094） |
 | layer_a_disease_ontology_map | inst/extdata/layer_a_disease_ontology_map.parquet | TCMNP_1.3.0_2026-10-12 | 7,157 | **疾病本体映射参考表**（SymMap SMDE × OpenTargets；MeSH/UMLS 本体 ID；2026-10-14 并入） |
 | disease_main | inst/extdata/disease_main.parquet | TCMNP_1.3.0_2026-10-12 | 14,434 | **疾病主表**（SymMap SMDE 全量；`disease_id`/`disease_name`/`mesh_id`/`umls_id` + 3 个对齐标志；供 `disease_serch()`；2026-10-15 新增） |
+| disease_target | inst/extdata/disease_target.parquet | TCMNP_1.3.0_2026-10-12 | 3,134,397 | **疾病→靶点关联**（OpenTargets 25.06 `association_overall_direct`；经 MeSH/UMLS 桥接 SymMap 疾病；含 `score`/`evidence_count`/`n_ot_disease`；供 `disease_target()`；2026-10-15 新增） |
 | herb_pm | data/herb_pm.rda | TCMNP_0.2.0_2026-08-22 | 6,860 | HERB 性味归经（6,892 去空后） |
 
 > **数据版本 1.3.0（2026-10-12）变更内容**：**引入 herb 实体层**（P0-B）。

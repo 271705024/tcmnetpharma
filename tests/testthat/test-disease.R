@@ -127,3 +127,84 @@ test_that("disease_main 与 layer_a_disease_ontology_map 两表自洽", {
   expect_equal(cmp$only_dm, 0L)
   expect_equal(cmp$only_om, 0L)
 })
+
+# ===========================================================================
+# 疾病 → 靶点关联（2026-10-15，boss「纳入」）
+# ===========================================================================
+dt_path <- function() {
+  p <- system.file("extdata", "disease_target.parquet", package = "TCMNP")
+  if (!nzchar(p)) p <- file.path("inst", "extdata", "disease_target.parquet")
+  if (!file.exists(p)) {
+    stop("disease_target.parquet 未导出（先跑 data-raw/cleaning/02e_disease_target.py）")
+  }
+  p
+}
+
+test_that("disease_target 返回固定列契约，且能查到已知关联", {
+  r <- disease_target("Thalassemia")
+  expect_named(r, c("disease_id", "disease_name", "ot_disease_id", "target_symbol",
+                    "target_entrez", "target_id", "target_ensembl", "score",
+                    "evidence_count", "n_ot_disease"))
+  expect_gt(nrow(r), 0)
+  # 内容锚点（领域事实，非偶然）：地中海贫血与 HBB 的关联必然存在且分数不高不了
+  expect_true("HBB" %in% r$target_symbol)
+  expect_gt(max(r$score[r$target_symbol %in% "HBB"], na.rm = TRUE), 0.1)
+  # 分数是 OpenTargets 的口径：0–1
+  expect_true(all(r$score >= 0 & r$score <= 1))
+  expect_true(all(r$n_ot_disease >= 1))
+})
+
+test_that("min_score 单调：阈值越高行数不增；过高时明确提示且返回空表", {
+  a <- disease_target("Thalassemia")
+  b <- disease_target("Thalassemia", min_score = 0.5)
+  expect_lte(nrow(b), nrow(a))
+  expect_true(all(b$score >= 0.5))
+  c <- disease_target("Thalassemia", min_score = 0.99)
+  expect_equal(nrow(c), 0L)
+  expect_named(c, names(a))          # 空表列契约一致
+})
+
+test_that("按本体 ID 查（与 disease_serch 同一套匹配语义）", {
+  r <- disease_target("C1845055", type = "umls_id")
+  expect_gt(nrow(r), 0L)
+  # 前缀不得误命中（边界匹配，同 disease_serch）
+  expect_equal(nrow(disease_target("C184505", type = "umls_id")), 0L)
+  # 非法 ID 显式拒绝
+  expect_equal(nrow(disease_target("C184%", type = "umls_id")), 0L)
+  # 未命中疾病
+  r2 <- disease_target("NoSuchDiseaseXYZ")
+  expect_equal(nrow(r2), 0L)
+})
+
+test_that("disease_target 表契约：行数、引用完整性、去重键唯一", {
+  p <- dt_path()
+  agg <- .tcm_query(sprintf("
+    SELECT count(*) AS n,
+           count(DISTINCT disease_id) AS n_disease,
+           sum(CASE WHEN target_entrez IS NOT NULL AND target_entrez <> '' THEN 1 ELSE 0 END) AS n_ez,
+           sum(CASE WHEN score < 0 OR score > 1 THEN 1 ELSE 0 END) AS bad_score,
+           min(score) AS min_s, max(score) AS max_s
+    FROM read_parquet('%s')", p))
+  # 行数与 DATA-README 版本表一致（06_export 的 verify_data_readme 会双向校验）
+  # 2026-10-15：3,134,586 → **3,134,397**，因为修掉了 target_dict.Ensembl_id 多义
+  #   导致的 LEFT JOIN 放大（189 组 / 378 行 → 唯一）。
+  expect_equal(agg$n, 3134397L)
+  expect_gt(agg$n_disease, 0L)
+  expect_gt(agg$n_ez, 0L)
+  expect_equal(agg$bad_score, 0L)              # score 必须落在 OpenTargets 的 0–1 区间
+  expect_lte(agg$max_s, 1.0)
+
+  # 去重键 (disease_id, target_ensembl) 唯一（否则同一疾病-靶点会重复下发）
+  dup <- .tcm_query(sprintf("
+    SELECT count(*) AS n FROM (
+      SELECT disease_id, target_ensembl, count(*) AS c FROM read_parquet('%s')
+      GROUP BY 1, 2 HAVING c > 1)", p))
+  expect_equal(dup$n, 0L)
+
+  # 引用完整性：疾病-靶点的疾病必须都在疾病主表里（两表不得漂移）
+  orphan <- .tcm_query(sprintf("
+    SELECT count(*) AS n FROM (
+      SELECT DISTINCT disease_id FROM read_parquet('%s')
+      EXCEPT SELECT disease_id FROM read_parquet('%s'))", p, disease_main_path()))
+  expect_equal(orphan$n, 0L)
+})

@@ -68,12 +68,13 @@
 # DuckDB physical name -> logical name (strip the collision suffix).
 .tcm_col_clean <- function(nm) sub("_[0-9]+$", "", nm)
 
-.tcm_parquet_path <- function(which = c("compat", "standard", "disease")) {
+.tcm_parquet_path <- function(which = c("compat", "standard", "disease", "disease_target")) {
   which <- match.arg(which)
   fn <- switch(which,
-    compat   = "tcm_network_compat.parquet",
-    standard = "standard_herb_mol_target.parquet",
-    disease  = "disease_main.parquet"
+    compat         = "tcm_network_compat.parquet",
+    standard       = "standard_herb_mol_target.parquet",
+    disease        = "disease_main.parquet",
+    disease_target = "disease_target.parquet"
   )
   p <- system.file("extdata", fn, package = "TCMNP")
   if (!nzchar(p)) {  # development mode (not installed): fall back to repo path
@@ -83,6 +84,58 @@
     }
   }
   p
+}
+
+# ---------------------------------------------------------------------------
+# 疾病层：检索条件构造 + 输入清洗（**唯一实现**，供 disease_serch / disease_target 共用）
+#
+# 为什么抽出来：两个函数必须用**同一套**匹配语义，否则「按同一个疾病名，
+#   一个函数查得到、另一个查不到」—— 这种不一致极难排查（MEMORY 铁律 54）。
+#
+# 匹配语义：
+#   · 名称：默认**精确**（`exact`），只有显式 `contains` 才子串放宽（名匹配精确优先）；
+#   · ID（mesh/umls/disease_id）：走**边界**匹配 —— 本体 ID 字段可能是多值
+#     （`;` 分隔，如 `C0342770;C2936826`），必须匹配「整段」而不是子串，
+#     否则 `C034277` 会命中 `C0342770`（典型假通过）；
+#   · ID 类输入只接受 `[A-Za-z0-9]+`，含正则元字符的值**显式拒绝**并提示，
+#     而不是静默变成一次宽松匹配。
+#
+# ⚠️ DuckDB 细节：必须**逐值**生成一条完整表达式再 OR。把 `.sql_in(x)` 展开出的
+#   `'a', 'b'` 直接塞进单条 `regexp_matches(col, '(^|;)' || v || '(;|$)')` 会被逗号
+#   切成第三个参数 → 报 `Unrecognized Regex option 1`（2026-10-15 实测踩到）。
+#
+# 返回 list(where = <SQL 条件或 NULL>, x = <清洗后的输入>)
+#' @noRd
+.tcm_disease_where <- function(x, type = "disease_name", match = "exact") {
+  type <- match.arg(type, c("disease_name", "mesh_id", "umls_id", "disease_id"))
+  match <- match.arg(match, c("exact", "contains"))
+  x <- as.character(x)
+  x <- x[!is.na(x) & nzchar(trimws(x))]
+  x <- unique(trimws(x))
+  if (type != "disease_name") {
+    bad <- x[!grepl("^[A-Za-z0-9]+$", x)]
+    if (length(bad)) {
+      print(paste0(bad, " is/are not valid IDs for type = ", type, "."))
+      x <- setdiff(x, bad)
+    }
+  }
+  if (!length(x)) return(list(where = NULL, x = character()))
+
+  where <- if (type == "disease_name") {
+    if (identical(match, "exact")) {
+      sprintf("lower(trim(disease_name)) IN (%s)", .sql_in(tolower(x)))
+    } else {
+      paste0("(", paste(sprintf("contains(lower(disease_name), %s)",
+                                .sql_in(tolower(x))), collapse = " OR "), ")")
+    }
+  } else {
+    conds <- vapply(x, function(v) {
+      sprintf("regexp_matches(lower(%s), '(^|;)' || %s || '(;|$)')",
+              type, .sql_in(tolower(v)))
+    }, character(1), USE.NAMES = FALSE)
+    paste0("(", paste(conds, collapse = " OR "), ")")
+  }
+  list(where = where, x = x)
 }
 
 # ---------------------------------------------------------------------------
