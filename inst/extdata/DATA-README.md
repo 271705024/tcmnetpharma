@@ -24,6 +24,7 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 | provenance_tables | inst/extdata/provenance_tables.parquet | TCMNP_1.3.0_2026-10-12 | 22 | **表级溯源**（表 × 源目录：文件数/字节/sha256 状态/加工步骤） |
 | provenance_rows | inst/extdata/provenance_rows.parquet | TCMNP_1.3.0_2026-10-12 | 814,924 | **行级溯源**（UNMAPPED 211,830 + 被修正 603,094） |
 | layer_a_disease_ontology_map | inst/extdata/layer_a_disease_ontology_map.parquet | TCMNP_1.3.0_2026-10-12 | 7,157 | **疾病本体映射参考表**（SymMap SMDE × OpenTargets；MeSH/UMLS 本体 ID；2026-10-14 并入） |
+| disease_main | inst/extdata/disease_main.parquet | TCMNP_1.3.0_2026-10-12 | 14,434 | **疾病主表**（SymMap SMDE 全量；`disease_id`/`disease_name`/`mesh_id`/`umls_id` + 3 个对齐标志；供 `disease_serch()`；2026-10-15 新增） |
 | herb_pm | data/herb_pm.rda | TCMNP_0.2.0_2026-08-22 | 6,860 | HERB 性味归经（6,892 去空后） |
 
 > **数据版本 1.3.0（2026-10-12）变更内容**：**引入 herb 实体层**（P0-B）。
@@ -74,13 +75,25 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 >   把两者当同一列用是错的。
 > - 两列均为 **left join 交叉引用**：未命中即 NA（**合法**，不是缺数据），
 >   不改变行数；键→值保证**函数性**（同一 herb 键只对应一个值）。
-> - **已知缺陷（QC F 层如实登记为 FAIL，尚未修）**：① 字段**内嵌换行** 8 值 / 94,535 行（1.09%）
->   —— 导出 CSV 会**串行**（parquet 无此问题）；② 含**非 ASCII** 5 值 / 93,717 行（1.08%）
->   —— 源侧错字与全角混用，如 `Ⅴladimiriae Radix`（罗马数字 `Ⅴ` 应为 `V`）、
->   `Chuanxiong Rhizoma,…,；Rhizoma Chuanxiong`（全角分号）。
->   期间**不建议**直接用该列做字符串匹配或拼 SQL；修法见 `docs/analysis-module-wiring-2026-10-14.md` 后续条目。
+> - **缺陷已修（2026-10-15）**：原 `layer_a_latin` 存在 ① 字段**内嵌换行**（8 值 / 94,535 行）
+>   —— 导出 CSV 会**串行**；② 含**非 ASCII**（5 值 / 93,717 行，源侧错字与全角混用，如
+>   `Ⅴladimiriae Radix` 的罗马数字 `Ⅴ`、`Chuanxiong Rhizoma,…,；Rhizoma Chuanxiong` 的全角分号 `；`）。
+>   现已在 `03_merge` 的产出点做**无损归一**（换行→空格、全角→半角、罗马数字→拉丁字母、连续空格压一，
+>   共修正 237,396 行）：**内嵌换行 0 / 非 ASCII 0**，`Ⅴladimiriae Radix` → `Vladimiriae Radix`。
+>   QC **F 层**已由 FAIL 转 **PASS**。⚠️ 归一**不拆分**并列多值（药典同物异名，拆开会造成假拆分）。
 > - **一字段多值**：75.66% 的取值为 2~4 个法定拉丁名**并列**（逗号/分号分隔）—— 属源数据语义结构，
 >   不是错误；按单值处理会漏掉其余别名。
+
+> **疾病维度查询（2026-10-15 新增）**：`disease_serch(disease, type = c("disease_name","mesh_id","umls_id","disease_id"), match = c("exact","contains"))`
+> 是 `disease_main`（14,434 行 = SymMap SMDE 全量）的消费入口，返回
+> `disease_id` / `disease_name` / `mesh_id` / `umls_id` / `matched`。
+> - **多值本体 ID**：同一疾病可带多个 MeSH/UMLS ID，存在一个字段里以 `;` 分隔
+>   （已**去重 + 排序**，如 `C0342770;C2936826`）→ 成员查询走**边界匹配**，
+>   查 `C2936826` 能命中、查 `C034277`（真前缀）**不会**误命中。
+> - **MeSH 有两种合法前缀**：`C…`（Supplementary Concept）与 `D…`（Descriptor），两种都在数据里。
+> - **`matched = FALSE` 的 7,277 行保留在表内**（不做静默丢弃）—— 它们存在于 SymMap 但本体对齐未成功。
+> - ⚠️ **边界说明**：当前**没有疾病 → 靶点 / 成分**的关联（Layer A 这批 SymMap 文件只有疾病**本体**条目，
+>   `02d` 只做本体对齐）→ 疾病可解析到本体 ID，但还不能连到靶点。需要的话属新增数据接入。
 
 > **数据版本 1.1.1（2026-09-28）修复内容**：分子名守卫（`mol_name`/`iupac_name` 的
 > `CID <数字>` 占位符与 CAS 号一律不再充当名称）；BATMAN predicted 引用的 1,090 个

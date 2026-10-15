@@ -68,9 +68,13 @@
 # DuckDB physical name -> logical name (strip the collision suffix).
 .tcm_col_clean <- function(nm) sub("_[0-9]+$", "", nm)
 
-.tcm_parquet_path <- function(which = c("compat", "standard")) {
+.tcm_parquet_path <- function(which = c("compat", "standard", "disease")) {
   which <- match.arg(which)
-  fn <- if (which == "compat") "tcm_network_compat.parquet" else "standard_herb_mol_target.parquet"
+  fn <- switch(which,
+    compat   = "tcm_network_compat.parquet",
+    standard = "standard_herb_mol_target.parquet",
+    disease  = "disease_main.parquet"
+  )
   p <- system.file("extdata", fn, package = "TCMNP")
   if (!nzchar(p)) {  # development mode (not installed): fall back to repo path
     p <- file.path("inst", "extdata", fn)

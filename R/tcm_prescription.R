@@ -21,6 +21,13 @@
 #' herbs <- tcm_prescription(disease_data)[[1]]
 #' compound <- tcm_prescription(disease_data)[[2]]
 
+# ⚠️ 此处**不得**插入任何代码 —— roxygen 注释块必须**紧邻**它所描述的对象，
+#   中间夹一段 `utils::globalVariables("herb_id")` 会让 roxygen 报
+#   「Block must have a @name」并**删除 man/tcm_prescription.Rd**
+#   （2026-10-15 实测：roxygenise 因此删文档，R CMD check 随之失败）。
+#   该变量已在 `R/TCMNP-package.R` 的包级 `globalVariables(...)` 里统一声明
+#   （同一事实只在一处声明，MEMORY 铁律 54）→ 文件级重复声明既冗余又破坏解析。
+
 tcm_prescription <- function(data,
                              compound.source = "tcmp",
                              OB.value = 30,
