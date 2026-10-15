@@ -130,10 +130,60 @@ test_that("compat 恒 10 列，standard 已接实体层与信任/溯源列", {
                                     TCMNP:::.tcm_parquet_path("standard")))
   expect_true(all(c("herb_entity_id", "herb_entity_id_source",
                     "qc_level", "qc_level_reason", "cas_verified", "cas_source",
-                    "latin_name_std", "latin_match_status") %in% names(sc)))
+                    "latin_name_std", "latin_match_status",
+                    # Layer A 一次源交叉引用（2026-10-15 纳入）
+                    "layer_a_latin", "layer_a_hit_id") %in% names(sc)))
   # ⚠️ 不得存在「仅以大小写区分」的列名：DuckDB 列名匹配不区分大小写，
   #    查"不带后缀的名字"会**静默命中另一列**（2026-10-12 实测：herb_id vs Herb_id
   #    被 common.assert_no_col_case_collision 在落盘前拦下）。此处再加一道。
   expect_false(any(duplicated(tolower(names(sc)))))
   expect_false(any(duplicated(tolower(names(cc)))))
+})
+
+# ===========================================================================
+# Layer A 两列契约（2026-10-15 纳入）
+# ===========================================================================
+test_that("standard 的 Layer A 两列：覆盖 > 0、hit 形态合规、键→值函数性", {
+  sp <- TCMNP:::.tcm_parquet_path("standard")
+  agg <- TCMNP:::.tcm_query(sprintf("
+    SELECT count(*) AS n,
+      sum(CASE WHEN layer_a_latin  IS NOT NULL AND trim(layer_a_latin)  <> '' THEN 1 ELSE 0 END) AS n_lat,
+      sum(CASE WHEN layer_a_hit_id IS NOT NULL AND trim(layer_a_hit_id) <> '' THEN 1 ELSE 0 END) AS n_hit
+    FROM read_parquet('%s')", sp))
+  # left join 语义：未命中为 NA **合法** → 只要求「不是整列空」
+  #   （防「列在但全空」这种看起来正常的失败模式，铁律 28）
+  expect_gt(agg$n_lat, 0)
+  expect_gt(agg$n_hit, 0)
+
+  # hit_id 形态：SymMap 靶点实验标记（T + 数字，实测值如 T1237）
+  bad <- TCMNP:::.tcm_query(sprintf("
+    SELECT count(*) AS n FROM read_parquet('%s')
+    WHERE layer_a_hit_id IS NOT NULL AND trim(layer_a_hit_id) <> ''
+      AND NOT regexp_matches(trim(layer_a_hit_id), '^T[0-9]+$')", sp))
+  expect_equal(bad$n, 0L)
+
+  # 键→latin 函数性：left join `.map` 的前提（否则同一键取值随机）
+  multi <- TCMNP:::.tcm_query(sprintf("
+    SELECT count(*) AS n FROM (
+      SELECT herb, count(DISTINCT layer_a_latin) AS c FROM read_parquet('%s')
+      WHERE layer_a_latin IS NOT NULL GROUP BY 1 HAVING c > 1)", sp))
+  expect_equal(multi$n, 0L)
+
+  # ⚠️ 语义区分（防误用）：`layer_a_latin` 是**拉丁药材名**（`Radix Et Rhizoma …`），
+  #    与 `latin_name_std`（实体层植物学二名法）**不是同一回事**。
+  #    断言二者取值几乎不重合（实测 11.7%）—— 若有人把两列搞混、互相赋值，这条会红。
+  pair <- TCMNP:::.tcm_query(sprintf("
+    SELECT
+      sum(CASE WHEN layer_a_latin IS NOT NULL AND latin_name_std IS NOT NULL THEN 1 ELSE 0 END) AS both_nn,
+      sum(CASE WHEN layer_a_latin IS NOT NULL AND latin_name_std IS NOT NULL
+               AND lower(trim(layer_a_latin)) = lower(trim(latin_name_std)) THEN 1 ELSE 0 END) AS same
+    FROM read_parquet('%s')", sp))
+  expect_gt(pair$both_nn, 0)                 # 两列确有同时有值的行
+  expect_lt(pair$same / pair$both_nn, 0.9)   # 但取值不重合 → 语义确实不同（阈值宽松只防事故）
+
+  # ⚠️ **归一化**（无内嵌换行 / 纯 ASCII）**不在本文件断言** —— 由 `data-raw/cleaning/05_qc.py`
+  #    的 **F 层**守（同一事实只在一处声明，铁律 54）。当前实测有真实缺陷
+  #    （内嵌换行 8 值 / 94,535 行；非 ASCII 5 值 / 93,717 行，如 `Ⅴladimiriae Radix`、
+  #    `Chuanxiong Rhizoma,…；Rhizoma Chuanxiong`），F 层已如实 FAIL ⛔。
+  #    数据侧归一后，此处再收紧为硬断言。
 })

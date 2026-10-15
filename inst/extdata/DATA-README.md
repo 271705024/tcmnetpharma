@@ -67,6 +67,21 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 
 > **数据版本 1.3.0（2026-10-12）· Layer A 融合补强（2026-10-14，版本号维持 1.3.0）**：`standard` **新增 2 列**（31 → **33 列**）——`layer_a_latin`（SymMap 草药拉丁名交叉引用，8,665,636 行非空 ≈53.3%）、`layer_a_hit_id`（SymMap SMTT 靶点 HIT 实验标记，4,990,660 行非空 ≈30.7%，值如 `T1237`）；两列**仅进 standard，不进 10 列 compat**（守契约）。新增独立参考表 `layer_a_disease_ontology_map`（7,157 行，SymMap SMDE × OpenTargets 疾病本体 MeSH/UMLS 映射），供下游疾病维度消费。Layer A 一次源（OpenTargets 25.06 + SymMap V2.0）经 `02d_layer_a_align` 跨库对齐后并入，与现有 HERB/BATMAN 枢纽 ID 语义一致（herb 92.7% / target 88.9%）——详见 `docs/data-source-registry-2026-10-12.md` §6 与 `docs/data-source-independence-roadmap-2026-10-12.md` §5。
 
+> **⚠️ Layer A 两列的使用警戒（2026-10-15 纳入 QC F 层时补齐）**：
+> - **`layer_a_latin` 是「拉丁药材名」（pharmaceutical Latin drug name），不是植物学学名（二名法）。**
+>   取值形如 `Radix Et Rhizoma Notopterygii`（药用部位 + 属名），**不是** `Notopterygium incisum`。
+>   它与 `latin_name_std`（实体层权威**学名**，如 `pheretima`）**语义不同、不可互换、不可互相校验**；
+>   把两者当同一列用是错的。
+> - 两列均为 **left join 交叉引用**：未命中即 NA（**合法**，不是缺数据），
+>   不改变行数；键→值保证**函数性**（同一 herb 键只对应一个值）。
+> - **已知缺陷（QC F 层如实登记为 FAIL，尚未修）**：① 字段**内嵌换行** 8 值 / 94,535 行（1.09%）
+>   —— 导出 CSV 会**串行**（parquet 无此问题）；② 含**非 ASCII** 5 值 / 93,717 行（1.08%）
+>   —— 源侧错字与全角混用，如 `Ⅴladimiriae Radix`（罗马数字 `Ⅴ` 应为 `V`）、
+>   `Chuanxiong Rhizoma,…,；Rhizoma Chuanxiong`（全角分号）。
+>   期间**不建议**直接用该列做字符串匹配或拼 SQL；修法见 `docs/analysis-module-wiring-2026-10-14.md` 后续条目。
+> - **一字段多值**：75.66% 的取值为 2~4 个法定拉丁名**并列**（逗号/分号分隔）—— 属源数据语义结构，
+>   不是错误；按单值处理会漏掉其余别名。
+
 > **数据版本 1.1.1（2026-09-28）修复内容**：分子名守卫（`mol_name`/`iupac_name` 的
 > `CID <数字>` 占位符与 CAS 号一律不再充当名称）；BATMAN predicted 引用的 1,090 个
 > Entrez 经 `org.Hs.eg.db` 补全为 HGNC 符号（靶点空值清零）；compat 表按 10 列判重
