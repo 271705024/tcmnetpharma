@@ -15,28 +15,35 @@
 #' @importFrom dplyr distinct
 #' @importFrom dplyr select
 #' @importFrom tidyr drop_na
+#' @importFrom dplyr mutate
+#' @importFrom tidyr replace_na
 #' @examples
 #' target <- c("PRSS3", "ADH1C")
 #' target_filter<- target_serch(target)
 #' head(target_filter)
 target_serch <- function(target, resolve_herb = FALSE, with_trust = FALSE, ...) {
   # 惰性查询（P3.2）：DuckDB 直读 compat parquet
+  # 大小写不敏感（2026-10-16）：.tcm_distinct_where 已 lower() 两侧，hit 含规范值；
+  # .tcm_ci_match 把用户输入归一到规范大小写再喂给 .tcm_filter。
   hit <- .tcm_distinct_where("Target", target)
-  target_deficiency <- setdiff(target, hit)
-  if (length(target_deficiency)) {
-    print(paste0(target_deficiency, " is/are not in the datasets."))
+  ci <- .tcm_ci_match(target, hit)
+  if (length(ci$unmatched)) {
+    print(paste0(ci$unmatched, " is/are not in the datasets."))
   }
-  target <- intersect(target, hit)
+  target <- ci$canonical
   if (!length(target)) {
     return(data.frame(herb = character(), molecule_id = character(),
                       molecule = character(), target = character()))
   }
   out <- .tcm_filter(
     "Target", target,
-    c(herb = "Herb_name_pin_yin", molecule_id = "Molecule_name",
-      molecule = "MOL_ID", target = "Target")) %>%
+    c(herb = "Herb_name_pin_yin", molecule_id = "MOL_ID",
+      molecule = "Molecule_name", target = "Target")) %>%
     dplyr::distinct(.keep_all = TRUE) %>%
     tidyr::drop_na()
+  # 统一缺失 MOL ID 表示（2026-10-16）：多值字段中的 "NA"/"NA|" 残留收敛为纯 MOL 编号串
+  # （见 .tcm_clean_mol_id：只保留真实编号、以 ';' 重连，空值归为 ""）。
+  out <- dplyr::mutate(out, molecule_id = .tcm_clean_mol_id(.data$molecule_id))
   if (isTRUE(resolve_herb)) out <- .tcm_attach_entity(out)
   if (isTRUE(with_trust)) out <- .tcm_attach_trust(out)
   return(out)

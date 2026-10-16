@@ -325,8 +325,11 @@
     sprintf("%s AS \"%s\"", .tcm_col_db(col_aliases[[nm]]), nm)
   }, character(1))
   sel <- paste(sel_parts, collapse = ", ")
-  q <- sprintf("SELECT %s FROM read_parquet('%s') WHERE \"%s\" IN (%s)",
-               sel, p, .tcm_col_db(col), .sql_in(vals))
+  # 大小写不敏感匹配（2026-10-16）：DuckDB 的 IN 字面匹配区分大小写，
+  # 导致 molecule_serch("quercetin") 因库内为 "Quercetin" 而返回 0 行。
+  # 两侧同包 lower()：中文无大小写（恒等，不影响），英文覆盖大小写变体。
+  q <- sprintf("SELECT %s FROM read_parquet('%s') WHERE lower(\"%s\") IN (%s)",
+               sel, p, .tcm_col_db(col), .sql_in(tolower(vals)))
   if (!is.null(extra_where)) q <- paste0(q, " AND ", extra_where)
   .tcm_query(q)
 }
@@ -344,8 +347,9 @@
     }, character(1)))
   }
   sel <- paste(sel_parts, collapse = ", ")
-  q <- sprintf("SELECT %s FROM read_parquet('%s') WHERE \"%s\" IN (%s)",
-               sel, p, .tcm_col_db(col), .sql_in(vals))
+  # 大小写不敏感匹配（2026-10-16）：同 .tcm_filter，两侧 lower() 覆盖大小写变体。
+  q <- sprintf("SELECT %s FROM read_parquet('%s') WHERE lower(\"%s\") IN (%s)",
+               sel, p, .tcm_col_db(col), .sql_in(tolower(vals)))
   if (!is.null(extra_where)) q <- paste0(q, " AND ", extra_where)
   .tcm_query(q)
 }
@@ -360,7 +364,9 @@
   cdb <- .tcm_col_db(col)
   where <- sprintf("\"%s\" IS NOT NULL AND \"%s\" <> ''", cdb, cdb)
   if (!is.null(vals)) {
-    where <- sprintf("%s AND \"%s\" IN (%s)", where, cdb, .sql_in(vals))
+    # 大小写不敏感（2026-10-16）：lower 两侧，让用户小写输入也能命中规范值；
+    # 返回的 v 仍是数据集里的原始（规范）大小写。
+    where <- sprintf("%s AND lower(\"%s\") IN (%s)", where, cdb, .sql_in(tolower(vals)))
   }
   # ORDER BY 不可省：DuckDB 对 parquet 是并行扫描，无 ORDER BY 时
   # `SELECT DISTINCT` 的行序**每次运行都可能不同**。上游一旦用 head(n) 取子集
@@ -373,6 +379,33 @@
 
 # DISTINCT values of a column (non-empty)
 .tcm_distinct <- function(col) .tcm_distinct_where(col)
+
+# 大小写不敏感地把用户输入 vals 归一到数据集里的规范（原始大小写）取值。
+# 用于查询函数：用户可能输入 quercetin，而库内存的是 Quercetin。
+# 返回 list(canonical = 规范值向量, unmatched = 未匹配的输入向量)。
+.tcm_ci_match <- function(vals, hay) {
+  vlower <- tolower(vals)
+  hlower <- tolower(hay)
+  idx <- match(vlower, hlower)          # NA 表示未匹配
+  matched <- !is.na(idx)
+  list(
+    canonical = hay[idx[matched]],
+    unmatched = vals[!matched]
+  )
+}
+
+# 清洗多值 MOL ID 字段（铁律 28/54：单一真相源）。
+# 源 parquet 的 MOL_ID 是 ';' / '|' 分隔的多值串，未映射成分处混入字面量 "NA"
+# 或上游拼接残留 "NA|" 前缀（可出现在开头或中间）。只保留真实编号（非空且非 "NA"），
+# 以 ';' 重连；纯 "NA"/空串收敛为 ""（保留行，符合「尽量全」口径）。
+.tcm_clean_mol_id <- function(x) {
+  vapply(x, function(s) {
+    if (is.na(s) || s == "") return("")
+    toks <- strsplit(s, "[;|]")[[1]]
+    toks <- toks[toks != "" & toks != "NA"]
+    paste(toks, collapse = ";")
+  }, character(1))
+}
 
 # Basic table info (tests/audit; column names cleaned back to logical names)
 .tcm_meta <- function() {

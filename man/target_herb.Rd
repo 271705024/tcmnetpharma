@@ -35,7 +35,7 @@ reported (conservative). Requires the standard table (shipped in the bundle).}
 \item{...}{additional parameters}
 }
 \value{
-data.frame. Columns: \code{herb}, \code{molecule_id}, \code{molecule}, \code{target},
+data.frame. Columns: \code{herb}, \code{molecule_id} (MOL ID), \code{molecule} (molecule name), \code{target},
 \code{adme} (see \code{herb_target} for the 2026-09-28 "keep as much as possible" rule).
 With \code{resolve_herb = TRUE} an extra \code{herb_id} column; with \code{with_trust = TRUE}
 the five trust columns described above.

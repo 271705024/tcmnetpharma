@@ -9,7 +9,7 @@ alluvial_dot(
   alluvial.text.size = 3,
   alluvial.x.axis.text.position = 1,
   alluvial.x.axis.text.size = 12,
-  molecule.lable = "molecule_id",
+  molecule.lable = "molecule",
   dot.color = "RdBu",
   dot.position = 6,
   dot.lable = "Description",

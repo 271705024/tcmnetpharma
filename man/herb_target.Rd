@@ -42,7 +42,7 @@ reach is effectively not delivered.}
 \item{...}{additional parameters}
 }
 \value{
-data.frame. Columns: \code{herb}, \code{molecule_id}, \code{molecule}, \code{target},
+data.frame. Columns: \code{herb}, \code{molecule_id} (MOL ID), \code{molecule} (molecule name), \code{target},
 and \code{adme} -- the ADME label introduced by the 2026-09-28 "keep as much as
 possible" rule (\code{'ok'} = passes OB/DL thresholds; \code{'no_adme'} = the source
 has no OB/DL for this pair and it is now retained instead of dropped).

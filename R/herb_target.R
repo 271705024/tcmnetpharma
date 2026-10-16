@@ -20,7 +20,7 @@
 #'   reach is effectively not delivered.
 #' @param ... additional parameters
 #'
-#' @return data.frame. Columns: `herb`, `molecule_id`, `molecule`, `target`,
+#' @return data.frame. Columns: `herb`, `molecule_id` (MOL ID), `molecule` (molecule name), `target`,
 #'   and `adme` -- the ADME label introduced by the 2026-09-28 "keep as much as
 #'   possible" rule (`'ok'` = passes OB/DL thresholds; `'no_adme'` = the source
 #'   has no OB/DL for this pair and it is now retained instead of dropped).
@@ -29,6 +29,8 @@
 #' @importFrom dplyr distinct
 #' @importFrom dplyr select
 #' @importFrom tidyr drop_na
+#' @importFrom dplyr mutate
+#' @importFrom tidyr replace_na
 #' @examples
 #' herbs <- c("ma huang", "ku xing ren")
 #' fufang <- herb_target(herbs, type = "Herb_name_pin_yin")
@@ -54,12 +56,14 @@ herb_target <- function(herb,
   }
   # 列名映射与 WHERE 构造均由 .tcm_distinct_where() 内部完成（契约统一，
   # 调用方不可能漏映射）。背景见 docs/data-management-spec-2026-08-24.md（3. 命名规则）。
+  # 大小写不敏感（2026-10-16）：.tcm_distinct_where 已 lower() 两侧，hit 含规范值；
+  # .tcm_ci_match 把用户输入归一到规范大小写再喂给 .tcm_filter。
   hit <- .tcm_distinct_where(check_col, herb)
-  herb_deficiency <- setdiff(herb, hit)
-  if (length(herb_deficiency)) {
-    print(paste0(herb_deficiency, " is/are not in the datasets."))
+  ci <- .tcm_ci_match(herb, hit)
+  if (length(ci$unmatched)) {
+    print(paste0(ci$unmatched, " is/are not in the datasets."))
   }
-  herb <- intersect(herb, hit)
+  herb <- ci$canonical
   if (!length(herb)) {
     return(data.frame(herb = character(), molecule_id = character(),
                       molecule = character(), target = character(),
@@ -69,12 +73,15 @@ herb_target <- function(herb,
   extra <- .tcm_adme_where(OB.value, DL.value)
   out <- .tcm_filter_ex(
     check_col, herb,
-    c(herb = "Herb_name_pin_yin", molecule_id = "Molecule_name",
-      molecule = "MOL_ID", target = "Target"),
+    c(herb = "Herb_name_pin_yin", molecule_id = "MOL_ID",
+      molecule = "Molecule_name", target = "Target"),
     extra_where = extra,
     extra_select = c(adme = .tcm_adme_flag_sql())) %>%
     dplyr::distinct(.keep_all = TRUE) %>%
     tidyr::drop_na()
+  # 统一缺失 MOL ID 表示（2026-10-16）：多值字段中的 "NA"/"NA|" 残留收敛为纯 MOL 编号串
+  # （见 .tcm_clean_mol_id：只保留真实编号、以 ';' 重连，空值归为 ""）。
+  out <- dplyr::mutate(out, molecule_id = .tcm_clean_mol_id(.data$molecule_id))
   # 实体层 / 信任列（均**显式开启**；关闭时返回列契约与旧版完全一致）
   if (isTRUE(resolve_herb)) out <- .tcm_attach_entity(out)
   if (isTRUE(with_trust)) out <- .tcm_attach_trust(out)
