@@ -1,5 +1,20 @@
 # NEWS
 
+## TCMNP 0.2.0（数据修订 2026-10-14，数据版本 TCMNP_1.3.0_2026-10-12）
+
+### Layer A 一次源融合（去依赖重建）
+- 一次性独立源 **Open Targets 25.06（CC0, EBI FTP）** 与 **SymMap V2.0** 全量接入；关系层 herb-mol-target 由 HERB 2.0 / BATMAN 2.0（已冻结、开放许可）兜底，形成「半一次依赖」骨架（合规底线：DrugBank / TTD / 药典不进对外分发产物）
+- `standard_herb_mol_target` 宽表新增 2 列一次源交叉引用：`layer_a_latin`（SymMap 草药拉丁名，53.3% 行命中）、`layer_a_hit_id`（SymMap/HIT 实验验证靶点标记，30.7% 行命中）
+- 新增独立参考表 `layer_a_disease_ontology_map.parquet`（7,157 行，MeSH/UMLS 本体 ID），供下游疾病-靶点/适应症模块消费
+- 全流程产物指纹接入 `run_pipeline` 状态持久化（`pipeline_state.json`）；06_export 导出纳入该表并经 `verify_data_readme()` 守护
+- 详见 `docs/data-source-registry-2026-10-12.md`、`docs/data-source-independence-roadmap-2026-10-12.md`
+
+### 疾病维度（2026-10-15）
+- 新增导出函数 **`disease_serch()`**：按疾病名 / MeSH / UMLS / SymMap 疾病 ID 查疾病本体（读 `disease_main.parquet`，14,434 行；多值本体 ID 走**边界匹配**，默认**精确**）
+- 新增导出函数 **`disease_target()`**：由疾病查到**关联靶点**（读 `disease_target.parquet`，3,134,397 行 = OpenTargets 25.06 `association_overall_direct` 经 MeSH/UMLS 桥接 SymMap 疾病）；保留 OpenTargets 原始 `score`（0–1）与 `evidence_count`，`min_score` 默认 0 **不设隐式阈值**
+- 新增数据表 `disease_main.parquet` / `disease_target.parquet`；`layer_a_latin` 拉丁名**无损归一化**（内嵌换行→空格、全角→半角、罗马数字 `Ⅴ`→`V`；共修正 237,396 行）
+- 详见 `docs/analysis-module-wiring-2026-10-14.md` §7–§9
+
 ## TCMNP 0.2.0（数据修订 2026-09-28）
 
 ### 数据质量修复（B1/B2/B3/B5）
