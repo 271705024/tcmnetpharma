@@ -214,6 +214,60 @@
 #'
 "mu_go"
 
+#' human_wikipathways
+#'
+#' Human WikiPathways pathway gene sets (2026-10-10 monthly release) in long
+#' \code{term}/\code{gene} format for offline enrichment with clusterProfiler
+#' \code{enricher}/\code{GSEA} (pass the \code{genes} element as
+#' \code{TERM2GENE}). The companion \code{meta} element maps each \code{term}
+#' (WikiPathways WP id) to its pathway \code{name} for result annotation.
+#'
+#' @format A list of two data frames:
+#' \describe{
+#'   \item{genes}{long \code{term} (WP id) / \code{gene} (official human gene
+#'     symbol) pairs, 41891 rows.}
+#'   \item{meta}{unique \code{term} / \code{name} mapping, 991 rows.}
+#' }
+#' @details Built 2026-10-17 from the WikiPathways GMT release
+#'   \url{https://data.wikipathways.org/20261010/gmt/wikipathways-20261010-gmt-Homo_sapiens.gmt};
+#'   Entrez IDs mapped to symbols via org.Hs.eg.db. WikiPathways content is
+#'   released under CC0 (public domain) since 2018, so it is freely
+#'   redistributable and safe for the offline exe distribution. This gene set
+#'   replaces KEGG pathway enrichment, whose derived data are not redistributable.
+#'   Build script: \code{data-raw/build_wikipathways.R}.
+#' @examples
+#' head(human_wikipathways$genes)
+#' head(human_wikipathways$meta)
+#'
+"human_wikipathways"
+
+#' mu_wikipathways
+#'
+#' Mouse WikiPathways pathway gene sets (2026-10-10 monthly release) in long
+#' \code{term}/\code{gene} format for offline enrichment with clusterProfiler
+#' \code{enricher}/\code{GSEA} (pass the \code{genes} element as
+#' \code{TERM2GENE}). The companion \code{meta} element maps each \code{term}
+#' (WikiPathways WP id) to its pathway \code{name} for result annotation.
+#'
+#' @format A list of two data frames:
+#' \describe{
+#'   \item{genes}{long \code{term} (WP id) / \code{gene} (official mouse gene
+#'     symbol) pairs, 11178 rows.}
+#'   \item{meta}{unique \code{term} / \code{name} mapping, 214 rows.}
+#' }
+#' @details Built 2026-10-17 from the WikiPathways GMT release
+#'   \url{https://data.wikipathways.org/20261010/gmt/wikipathways-20261010-gmt-Mus_musculus.gmt};
+#'   Entrez IDs mapped to symbols via org.Mm.eg.db. WikiPathways content is
+#'   released under CC0 (public domain) since 2018, so it is freely
+#'   redistributable and safe for the offline exe distribution. This gene set
+#'   replaces KEGG pathway enrichment, whose derived data are not redistributable.
+#'   Build script: \code{data-raw/build_wikipathways.R}.
+#' @examples
+#' head(mu_wikipathways$genes)
+#' head(mu_wikipathways$meta)
+#'
+"mu_wikipathways"
+
 
 #' compound_data
 #'

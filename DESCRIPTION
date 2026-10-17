@@ -38,16 +38,17 @@ Imports:
     ggvenn,
     tidygraph,
     methods,
-    VennDetail
+    VennDetail,
+    clusterProfiler,
+    DOSE,
+    org.Hs.eg.db,
+    org.Mm.eg.db
 Remotes: 
     github::davidsjoberg/ggsankey
 Depends: R (>= 4.1)
 LazyData: true
 LazyDataCompression: xz
 Suggests: 
-    clusterProfiler,
-    DOSE,
-    org.Hs.eg.db,
     testthat (>= 3.0.0),
     utils
 Config/testthat/edition: 3

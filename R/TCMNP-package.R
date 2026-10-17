@@ -137,6 +137,11 @@ if (getRversion() >= "2.15.1") {
     "M",
     "k",
     "exp_count",
-    "Oddratio"
+    "Oddratio",
+    # G6 富集基因集（LazyData 直接引用，非 NSE 但需声明以避免 NOTE）
+    "human_reactome",
+    "mu_reactome",
+    "human_wikipathways",
+    "mu_wikipathways"
   )), silent = TRUE)
 }
