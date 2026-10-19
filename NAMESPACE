@@ -19,6 +19,8 @@ export(go_dotplot)
 export(go_lollipop)
 export(herb_target)
 export(lollipop_plot)
+export(module_barplot)
+export(module_netplot)
 export(molecule_serch)
 export(pathway_ccplot)
 export(pathway_cirplot)
@@ -27,9 +29,11 @@ export(target_herb)
 export(target_serch)
 export(tcm_alluvial)
 export(tcm_alluvial_dot)
+export(tcm_centrality)
 export(tcm_comp)
 export(tcm_compound)
 export(tcm_enrich)
+export(tcm_modules)
 export(tcm_net)
 export(tcm_pre_plot)
 export(tcm_prescription)
@@ -188,7 +192,19 @@ importFrom(grid,
 importFrom(igraph,
   E,
   V,
-  graph_from_data_frame
+  betweenness,
+  closeness,
+  cluster_infomap,
+  cluster_louvain,
+  cluster_walktrap,
+  coreness,
+  degree,
+  ecount,
+  graph_from_data_frame,
+  induced_subgraph,
+  membership,
+  neighbors,
+  vcount
 )
 importFrom(magrittr,"%>%")
 importFrom(methods,new)

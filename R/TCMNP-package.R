@@ -74,6 +74,7 @@ if (getRversion() >= "2.15.1") {
     "RichFactor",
     "rowname",
     "size",
+    "module",
     "tcm_network",
     "type",
     "x",
