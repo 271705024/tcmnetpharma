@@ -130,6 +130,8 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 ## 可再分发基因集（data/，P3.3，2026-09-05 生成）
 
 > 替代原 human/mu_kegg（KEGG）与 human/mu_gsea（MSigDB Hallmark）——两者下载均不可再分发，已从包内移除（kegg.filter 作为既往分析示例保留并注明来源）。
+> 2026-10-17 起补入 **WikiPathways（CC0）** 作为通路维度的可分发方案：WikiPathways + Reactome 覆盖通路富集，
+> KEGG 改为**联网增强项**（不内置），理由与条款见下方说明与 `docs/licensing-kegg-go-2026-10-19.md`。
 
 | 数据集 | 内容 | term 键 | 行数/通路数 | 来源与许可 |
 |---|---|---|---|---|
@@ -137,10 +139,24 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 | mu_go | 同上（小鼠） | GO:xxxxxxx | 271,809 行 / 13,625 term | org.Mm.eg.db 3.23.0 SQLite 注释（直读，未装 R 包）+ GO.db；CC BY 4.0 |
 | human_reactome | Reactome 通路 all-level | R-HSA-xxxxx | 139,327 行 / 2,534 通路 | reactome.org NCBI2Reactome_All_Levels（2026-09-05）；Reactome CC BY 4.0 |
 | mu_reactome | 同上（小鼠） | R-MMU-xxxxx | 88,600 行 / 1,802 通路 | 同上（Mus musculus） |
+| human_wikipathways | WikiPathways 通路基因集（`$genes` + `$meta` 两表） | WPxxxx | 41,891 行 / 991 通路 | data.wikipathways.org 20261010 GMT；WikiPathways **CC0（公有领域）** |
+| mu_wikipathways | 同上（小鼠） | WPxxxx | 11,178 行 / 214 通路 | 同上（Mus musculus） |
 
 - 用途：离线 ORA/GSEA 的 TERM2GENE（clusterProfiler::enricher/GSEA）；term→名称/本体映射见 `data-raw/gene-sets/output/*_map.csv`
-- 复现：`data-raw/gene-sets/scripts/{build_go_genesets.R, build_mu_go_sqlite.R, parse_reactome.py, build_reactome_symbol.R}`
-- 决策记录：GO/Reactome 键用稳定 ID（GO 名跨本体重名 1.2 万+、Reactome 名同种内重名 ~85%）；Reactome 用官方 all-level（等价 ReactomePA 默认口径，用户拍板 2026-09-05）；KEGG REST API 在线可选接口为后续待评估项
+- 复现：`data-raw/gene-sets/scripts/{build_go_genesets.R, build_mu_go_sqlite.R, build_reactome_symbol.R, build_wikipathways.R}`（WikiPathways 脚本须在包根 `TCMNP-main/` 下运行，见脚本头注释）
+- 决策记录：GO/Reactome 键用稳定 ID（GO 名跨本体重名 1.2 万+、Reactome 名同种内重名 ~85%）；Reactome 用官方 all-level（等价 ReactomePA 默认口径，用户拍板 2026-09-05）
+
+> **关于通路富集：默认用 WikiPathways，KEGG 需联网**（2026-10-17 决策）
+>
+> - **默认**：WikiPathways（人 991 / 鼠 214 条通路）+ Reactome + GO，全部**随包离线**——
+>   装上即可跑、不必注册、不用联网；数据版本锁定（WikiPathways `20261010`）→ 结果可复现。
+> - **KEGG 不在安装包里**（不是技术限制，是许可要求）：KEGG 数据版权归 Kanehisa Laboratories，
+>   **学术自用免费，但随软件再分发需另行授权**（Service Provider / 商业许可）。
+>   为让你拿到「装上就能用、不必操心合规」的版本，本包不携带 KEGG 数据。
+> - **想用 KEGG**：联网时在 R 里运行 `clusterProfiler::enrichKEGG()`（学术用户免费，取到最新版），
+>   返回的 `enrichResult` 可直接交给本包的可视化函数（`bar_plot` / `dot_plot` / `pathway_cirplot` 等），
+>   与离线结果可混用做对照；离线分析（WikiPathways / Reactome / GO）不受影响。
+> - 条款依据与出处：`docs/licensing-kegg-go-2026-10-19.md`
 
 ## 来源与许可
 
@@ -152,6 +168,10 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 | ETCM2 | 2.0（2026-08-22 下载） | 注册使用（引用 Zhang et al. 2023） | 复方/成分补充 |
 | TTD | 2026 v9.0（2026-08-22 下载） | 公开下载（引用 Zhang et al. 2026） | 靶点-疾病关联 |
 | ChEMBL | 37（2026-05，2026-08-22 下载） | CC BY-SA 3.0 | 交叉验证 + ID 补充映射 |
+| WikiPathways | 20261010（GMT） | **CC0（公有领域）** | 通路富集（随包离线） |
+| Reactome | 2026-09-05（NCBI2Reactome） | CC BY 4.0 | 通路富集（随包离线） |
+| GO | org.Hs/Mm.eg.db 3.23.x + GO.db | CC BY 4.0 | 功能富集（随包离线） |
+| **KEGG** | —— | 专有（Kanehisa Labs）；**不随包分发** | **仅联网使用**（`clusterProfiler::enrichKEGG`），见上方说明 |
 
 ## 清洗参数（S0-S6）
 

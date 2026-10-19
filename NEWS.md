@@ -15,6 +15,13 @@
 - 新增数据表 `disease_main.parquet` / `disease_target.parquet`；`layer_a_latin` 拉丁名**无损归一化**（内嵌换行→空格、全角→半角、罗马数字 `Ⅴ`→`V`；共修正 237,396 行）
 - 详见 `docs/analysis-module-wiring-2026-10-14.md` §7–§9
 
+### 通路富集：WikiPathways（CC0）替代 KEGG，KEGG 改为联网增强（2026-10-17）
+- 新增离线基因集 **`human_wikipathways` / `mu_wikipathways`**（人 991 / 鼠 214 条通路，来源 data.wikipathways.org `20261010`，**CC0 公有领域**，可随软件分发）
+- 新增 **`tcm_enrich()`**：GO / Reactome / WikiPathways 端到端富集，默认三者全跑，**全部离线可用**
+- **KEGG 不再随包分发**（学术自用免费，但随软件再分发需另行授权，见 `docs/licensing-kegg-go-2026-10-19.md`）；
+  需要时联网运行 `clusterProfiler::enrichKEGG()`，返回的 `enrichResult` 可直接交给本包的可视化函数
+- 说明见 `inst/extdata/DATA-README.md` §可再分发基因集（含「关于通路富集」一节）
+
 ## TCMNP 0.2.0（数据修订 2026-09-28）
 
 ### 数据质量修复（B1/B2/B3/B5）
