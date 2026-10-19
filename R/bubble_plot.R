@@ -34,17 +34,11 @@
 #' @examples
 #' \dontrun{
 #' data(xfbdf)
-#' library(clusterProfiler)
-#' eg <- bitr(unique(xfbdf$target),
-#'   fromType = "SYMBOL",
-#'   toType = "ENTREZID",
-#'   OrgDb = "org.Hs.eg.db"
-#' )
-#' KK <- enrichKEGG(
-#'   gene = eg$ENTREZID,
-#'   organism = "hsa",
-#'   pvalueCutoff = 0.05
-#' )
+#' # 富集结果：全部离线，无需 OrgDb 包
+#' res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human")
+#' KK <- res$wikipathways  # 通路维度（KEGG 的离线替代）
+#' # 可选：KEGG 需联网，且 KEGG 数据不随包分发（见 inst/extdata/DATA-README.md）
+#' # KK <- clusterProfiler::enrichKEGG(entrez, organism = "hsa")
 #' bubble_plot(KK)
 #' }
 bubble_plot <- function(data,

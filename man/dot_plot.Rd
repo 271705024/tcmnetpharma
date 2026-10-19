@@ -38,28 +38,14 @@ Bubble graphs showed the results of GO and KEGG analysis
 \examples{
 \dontrun{
 data(xfbdf, package = "TCMNP")
-library(clusterProfiler)
-library(org.Hs.eg.db)
-library(DOSE)
-eg <- bitr(unique(xfbdf$target),
-  fromType = "SYMBOL",
-  toType = "ENTREZID",
-  OrgDb = "org.Hs.eg.db"
-)
-KK <- enrichKEGG(
-  gene = eg$ENTREZID,
-  organism = "hsa",
-  pvalueCutoff = 0.05
-)
-KK <- setReadable(KK, "org.Hs.eg.db", keyType = "ENTREZID")
-BP <- enrichGO(
-  gene = eg$ENTREZID,
-  "org.Hs.eg.db",
-  ont = "BP",
-  pvalueCutoff = 0.05,
-  readable = TRUE
-)
-dot_plot(KK, title = "KEGG")
+# 富集结果：全部离线，无需 OrgDb 包
+res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
+                  pvalueCutoff = 0.05, qvalueCutoff = 1)
+BP <- res$go            # 等价 enrichGO(ont = "ALL")
+KK <- res$wikipathways  # 通路维度（KEGG 的离线替代）
+# 可选：KEGG 需联网，数据不随包分发（见 inst/extdata/DATA-README.md）
+# KK <- clusterProfiler::enrichKEGG(entrez, organism = "hsa")
+dot_plot(KK, title = "WikiPathways")
 dot_plot(BP, title = "biological process")
 }
 }

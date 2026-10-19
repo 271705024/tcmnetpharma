@@ -38,24 +38,11 @@ Lollipop chart showed the results of GO results
 }
 \examples{
 \dontrun{
-library(clusterProfiler)
-library(org.Hs.eg.db)
-library(DOSE)
+# 富集结果：GO 离线即可，无需 OrgDb 包（等价 enrichGO(ont = "all")）
 data(xfbdf, package = "TCMNP")
-eg <- bitr(unique(xfbdf$target),
-  fromType = "SYMBOL",
-  toType = "ENTREZID",
-  OrgDb = "org.Hs.eg.db"
-)
-go.diff <- enrichGO(
-  gene = eg$ENTREZID,
-  org.Hs.eg.db,
-  pAdjustMethod = "BH",
-  pvalueCutoff = 0.01,
-  qvalueCutoff = 0.05,
-  ont = "all",
-  readable = T
-)
+res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
+                  pvalueCutoff = 0.01, qvalueCutoff = 0.05)
+go.diff <- res$go
 go_lollipop(go.diff)
 }
 }

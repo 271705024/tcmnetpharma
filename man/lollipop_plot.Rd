@@ -39,25 +39,14 @@ Lollipop chart display of KEGG/GO results
 \examples{
 \dontrun{
 data(xfbdf)
-library(org.Hs.eg.db)
-library(clusterProfiler)
-eg <- bitr(unique(xfbdf$target),
-  fromType = "SYMBOL",
-  toType = "ENTREZID",
-  OrgDb = "org.Hs.eg.db"
-)
-KK <- enrichKEGG(
-  gene = eg$ENTREZID,
-  organism = "hsa",
-  pvalueCutoff = 0.05
-)
-MF<- enrichGO(
-  gene = eg$ENTREZID,
-  "org.Hs.eg.db",
-  ont = "MF",
-  pvalueCutoff = 0.05,
-  readable = TRUE
-)
+# 富集结果：全部离线，无需 OrgDb 包
+res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
+                  pvalueCutoff = 0.05, qvalueCutoff = 1)
+go <- res$go
+MF <- go@result[go@result$ONTOLOGY == "MF", ]  # 只取分子功能
+KK <- res$wikipathways                         # 通路维度（KEGG 的离线替代）
+# 可选：KEGG 需联网，数据不随包分发（见 inst/extdata/DATA-README.md）
+# KK <- clusterProfiler::enrichKEGG(entrez, organism = "hsa")
 lollipop_plot(MF, title = "Molecular Function", color = "Spectral")
 lollipop_plot(KK)
 }

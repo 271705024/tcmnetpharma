@@ -33,22 +33,14 @@
 #'
 #' @examples
 #' \dontrun{
-#' library(clusterProfiler)
-#' library(org.Hs.eg.db)
-#' library(DOSE)
 #' library(tidyverse)
-#' data(xfbdf)
-#' eg <- bitr(unique(xfbdf$target),
-#'   fromType = "SYMBOL",
-#'   toType = "ENTREZID",
-#'   OrgDb = "org.Hs.eg.db"
-#' )
-#' KK <- enrichKEGG(
-#'   gene = eg$ENTREZID,
-#'   organism = "hsa",
-#'   pvalueCutoff = 0.05
-#' )
-#' KK <- setReadable(KK, "org.Hs.eg.db", keyType = "ENTREZID") %>%
+#' data(xfbdf, package = "TCMNP")
+#' # 富集结果：全部离线，无需 OrgDb 包
+#' res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
+#'                   pvalueCutoff = 0.05, qvalueCutoff = 1)
+#' # 可选：KEGG 需联网，且 KEGG 数据不随包分发（见 inst/extdata/DATA-README.md）
+#' # KK <- clusterProfiler::enrichKEGG(entrez, organism = "hsa")
+#' KK <- res$wikipathways %>%
 #'   mutate(richFactor = Count / as.numeric(sub("/\\d+", "", BgRatio)))
 #' path <- separate_rows(KK@result, geneID, sep = "/")
 #' data_sankey <- left_join(xfbdf, path,

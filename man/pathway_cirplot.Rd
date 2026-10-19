@@ -47,21 +47,13 @@ enriched by KEGG or GO in the form of a chord diagram
 \examples{
 \dontrun{
 data(xfbdf, package = "TCMNP")
-library(org.Hs.eg.db)
-library(clusterProfiler)
-library(DOSE)
 library(tidyverse)
-eg <- bitr(unique(xfbdf$target),
-  fromType = "SYMBOL",
-  toType = "ENTREZID",
-  OrgDb = "org.Hs.eg.db"
-)
-KK <- enrichKEGG(
-  gene = eg$ENTREZID,
-  organism = "hsa",
-  pvalueCutoff = 0.05
-)
-KK <- setReadable(KK, "org.Hs.eg.db", keyType = "ENTREZID")
+# 富集结果：全部离线，无需 OrgDb 包
+res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
+                  pvalueCutoff = 0.05, qvalueCutoff = 1)
+KK <- res$wikipathways  # 通路维度（KEGG 的离线替代）
+# 可选：KEGG 需联网，且 KEGG 数据不随包分发（见 inst/extdata/DATA-README.md）
+# KK <- clusterProfiler::enrichKEGG(entrez, organism = "hsa")
 pathway_cirplot(KK)
 }
 }

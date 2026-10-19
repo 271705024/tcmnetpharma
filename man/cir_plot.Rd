@@ -62,20 +62,12 @@ Chord diagram display of KEGG or GO results
 }
 \examples{
 \dontrun{
-library(clusterProfiler)
-library(org.Hs.eg.db)
-library(DOSE)
-eg <- bitr(unique(xfbdf$target),
-  fromType = "SYMBOL",
-  toType = "ENTREZID",
-  OrgDb = "org.Hs.eg.db"
-)
-KK <- enrichKEGG(
-  gene = eg$ENTREZID,
-  organism = "hsa",
-  pvalueCutoff = 0.05
-)
-KK <- setReadable(KK, "org.Hs.eg.db", keyType = "ENTREZID")
+# 富集结果：全部离线，无需 OrgDb 包
+data(xfbdf, package = "TCMNP")
+res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human")
+KK <- res$wikipathways  # 通路维度（KEGG 的离线替代）
+# 可选：KEGG 需联网，数据不随包分发（见 inst/extdata/DATA-README.md）
+# KK <- clusterProfiler::enrichKEGG(entrez, organism = "hsa")
 cir_plot(KK)
 }
 }
