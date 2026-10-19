@@ -71,7 +71,39 @@ tcm_intersect_target <- function(herb, disease,
                                  OB.value = 30, DL.value = 0.18,
                                  min_score = 0,
                                  resolve_herb = FALSE) {
-  match <- match.arg(match)
+  # 类型归一（与 tcm_enrich 同源）：GUI 的 JSON→R 可能把字符串/数组转成 list，
+  # 而下游 `type == "Herb_cn_name"` 这类比较对 list 会直接报错（错误信息还
+  # 完全看不出是类型问题）。包层宽容，让集成方不必各自记得 unlist。
+  chr1 <- function(x, default) {
+    y <- as.character(unlist(x, use.names = FALSE))
+    y <- y[nzchar(y)]
+    if (length(y)) y[[1]] else default
+  }
+  type <- chr1(type, "Herb_cn_name")
+  disease_type <- chr1(disease_type, "disease_name")
+  # ⚠️ match.arg 必须显式给 choices：省略时它靠 `substitute(arg)` 去读形参默认值，
+  #    传**表达式**（如 match.arg(chr1(x))）会让它拿调用对象当索引，
+  #    报 "no such index at level 1"（2026-10-19 实测踩到）。
+  match <- match.arg(chr1(match, "exact"), c("exact", "contains"))
+  # herb / disease 也归一：GUI 的 JSON 数组 -> list 会让下游
+  # `.tcm_distinct_where()` 报 "no such index at level 1"（同样是类型问题，
+  # 错误信息却完全看不出根因）。
+  herb <- trimws(as.character(unlist(herb, use.names = FALSE)))
+  herb <- herb[nzchar(herb)]
+  disease <- trimws(as.character(unlist(disease, use.names = FALSE)))
+  disease <- disease[nzchar(disease)]
+  if (!length(herb))
+    stop("`herb` is empty.", call. = FALSE)
+  if (!length(disease))
+    stop("`disease` is empty.", call. = FALSE)
+  num1 <- function(x, default) {
+    y <- suppressWarnings(as.numeric(unlist(x, use.names = FALSE)))
+    y <- y[!is.na(y)]
+    if (length(y)) y[[1]] else default
+  }
+  min_score <- num1(min_score, 0)
+  OB.value <- num1(OB.value, 30)
+  DL.value <- num1(DL.value, 0.18)
 
   empty <- function() {
     data.frame(

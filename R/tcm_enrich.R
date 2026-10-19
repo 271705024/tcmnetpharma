@@ -72,12 +72,19 @@ tcm_enrich <- function(gene, keytype = "SYMBOL", species = "human",
     stop("tcm_enrich() requires 'DOSE'. Install it with:\n",
          "  BiocManager::install('DOSE')", call. = FALSE)
 
-  gene <- unique(stats::na.omit(as.character(gene)))
+  gene <- unique(stats::na.omit(as.character(unlist(gene, use.names = FALSE))))
   if (!length(gene))
     stop("`gene` is empty after removing NA/duplicates.", call. = FALSE)
 
-  species <- match.arg(species, c("human", "mouse"))
-  ont <- match.arg(ont, c("GO", "Reactome", "WikiPathways"), several.ok = TRUE)
+  # 宽容集成：GUI 侧（如 RDesk 的 JSON→R）可能把数组/字符串转成 R `list`，
+  # 而 `match.arg()` 遇到 list 会抛 "'arg' must be NULL or a character vector"
+  # —— 该消息对使用者毫无意义，且极易被误判成"程序卡死"（2026-10-19 实测：
+  # GUI 送 1,115 个基因，在加载完 clusterProfiler/DOSE 后 2.75 秒即失败）。
+  # 故先归一再校验；非法取值仍由 match.arg 报可读的错误。
+  species <- match.arg(as.character(unlist(species, use.names = FALSE)),
+                       c("human", "mouse"))
+  ont <- match.arg(as.character(unlist(ont, use.names = FALSE)),
+                   c("GO", "Reactome", "WikiPathways"), several.ok = TRUE)
   organism <- if (identical(species, "human")) "Homo sapiens" else "Mus musculus"
 
   # 两种物种的离线 GO 注释（含祖先传播 + IEA；见 build_go_offline_annot.R）
