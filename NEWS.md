@@ -22,6 +22,20 @@
   需要时联网运行 `clusterProfiler::enrichKEGG()`，返回的 `enrichResult` 可直接交给本包的可视化函数
 - 说明见 `inst/extdata/DATA-README.md` §可再分发基因集（含「关于通路富集」一节）
 
+### 药物 × 疾病 交集靶点 + 富集阶段进度（2026-10-19）
+- 新增导出函数 **`tcm_intersect_target()`**：网络药理学主线第一步 —— 取「药物靶点」与「疾病靶点」的**交集**。
+  两侧都已是 gene SYMBOL 口径（药侧 `target` / 病侧 `target_symbol`），**不需要额外映射表**。
+  返回每个交集靶点的药侧支撑分子数（`n_molecule`）与病侧最强证据（`disease_score` / `evidence_count` / `n_ot_disease`）；
+  聚合取 **max** 而非 sum（sum 会把「多个疾病各一条弱证据」抬成强证据），来源数另用 `n_ot_disease` 如实记录；
+  **0 结果也返回同结构 0 行**，下游无需特判 `NULL`。
+  - 实测：麻黄 × Asthma → **1,115 个交集靶点**（`ADORA1` 居首，score 0.728），约 3 秒
+  - ⚠️ 疾病靶点来自 Open Targets（人类），故交集为人类 gene symbol；小鼠数据不适用
+- **`tcm_enrich()` 新增可选 `progress` 回调**（`function(pct, message)`）：在 GO / Reactome / WikiPathways
+  各阶段回报 25 → 50 → 60 → 78 → 82 → 95 → 100。包本身**不依赖 GUI**（默认 `NULL`），
+  回调抛错不影响主流程。
+  - 背景：富集耗时几乎全是**固定开销**（实测 8 / 30 / 100 / 200 个基因均为 20–24 秒，
+    主要花在加载 `clusterProfiler`/`DOSE` + 基因集），没有阶段反馈时用户无法区分「在算」与「卡死」
+
 ## TCMNP 0.2.0（数据修订 2026-09-28）
 
 ### 数据质量修复（B1/B2/B3/B5）

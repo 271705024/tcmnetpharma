@@ -14,6 +14,7 @@ tcm_enrich(
   pAdjustMethod = "BH",
   minGSSize = 3,
   maxGSSize = 500,
+  progress = NULL,
   ...
 )
 }
@@ -36,6 +37,11 @@ needed).}
 \item{pAdjustMethod}{character passed to \code{pAdjustMethod}.}
 
 \item{minGSSize, maxGSSize}{gene-set size bounds.}
+
+\item{progress}{optional callback \code{function(pct, message)} used by GUI
+front-ends to show stage progress. Called at roughly 25 / 50 / 60 / 78 /
+82 / 95 / 100 percent. The package itself never depends on a GUI: default
+\code{NULL} means no reporting. Errors thrown by the callback are ignored.}
 
 \item{...}{extra arguments forwarded to the underlying \code{enrich*} calls.}
 }

@@ -40,6 +40,10 @@
 #' @param qvalueCutoff numeric cutoff passed through.
 #' @param pAdjustMethod character passed to \code{pAdjustMethod}.
 #' @param minGSSize,maxGSSize gene-set size bounds.
+#' @param progress optional callback \code{function(pct, message)} used by GUI
+#'   front-ends to show stage progress. Called at roughly 25 / 50 / 60 / 78 /
+#'   82 / 95 / 100 percent. The package itself never depends on a GUI: default
+#'   \code{NULL} means no reporting. Errors thrown by the callback are ignored.
 #' @param ... extra arguments forwarded to the underlying \code{enrich*} calls.
 #' @return A named list of \code{enrichResult} objects (only non-empty results
 #'   are kept; the name is the ontology, e.g. \code{go}, \code{reactome},
@@ -58,6 +62,7 @@ tcm_enrich <- function(gene, keytype = "SYMBOL", species = "human",
                        pvalueCutoff = 0.05, qvalueCutoff = 0.05,
                        pAdjustMethod = "BH",
                        minGSSize = 3, maxGSSize = 500,
+                       progress = NULL,
                        ...) {
   # ---- dependency guards ----
   if (!requireNamespace("clusterProfiler", quietly = TRUE))
@@ -81,15 +86,31 @@ tcm_enrich <- function(gene, keytype = "SYMBOL", species = "human",
   # ---- 输入统一成 SYMBOL（GO 注释与三套基因集都以 symbol 为键）----
   sym <- .tcm_to_symbol(gene, keytype, ann_go)
 
+  # ---- 进度回调（可选）----
+  # 为什么放在包里而不是只放 GUI：富集的耗时**几乎全是固定开销**
+  # （加载 clusterProfiler/DOSE + 基因集），实测 8/30/100/200 基因均为 ~20 s，
+  # 所以「跑得久」不是数据量问题，用户只能干等 → GUI 必须有阶段反馈。
+  # 包本身不依赖 GUI（回调默认 NULL），由 GUI 把 async_progress 传进来。
+  # ⚠️ 不要改成「每个来源各调一次 tcm_enrich」来报进度 —— 那会把固定开销
+  #    乘以来源数（20 s → 60 s），是拿性能换进度条。
+  report <- function(pct, msg) {
+    if (is.function(progress)) {
+      tryCatch(progress(pct, msg), error = function(e) NULL)
+    }
+    invisible(NULL)
+  }
+
   out <- list()
 
   # ---- GO：分本体 enricher（各自 universe）→ 合并，复刻 enrichGO(ont="ALL") ----
   if ("GO" %in% ont) {
+    report(25, "\u6b63\u5728\u8dd1 GO \u5bcc\u96c6\uff08BP / CC / MF\uff09\u2026")
     go <- .tcm_run_go(ann_go, sym, organism,
                       pAdjustMethod = pAdjustMethod,
                       pvalueCutoff = pvalueCutoff, qvalueCutoff = qvalueCutoff,
                       minGSSize = minGSSize, maxGSSize = maxGSSize, ...)
     if (!is.null(go)) out$go <- go
+    report(50, "GO \u5bcc\u96c6\u5b8c\u6210")
   }
 
   # ---- helper: offline enricher on a bundled gene-set list ----
@@ -124,21 +145,26 @@ tcm_enrich <- function(gene, keytype = "SYMBOL", species = "human",
 
   # ---- Reactome (offline gene sets shipped with TCMNP) ----
   if ("Reactome" %in% ont) {
+    report(60, "\u6b63\u5728\u8dd1 Reactome \u5bcc\u96c6\u2026")
     gs <- if (identical(species, "human")) human_reactome else mu_reactome
     react <- .run_offline(list(genes = gs), sym, "Reactome")
     if (!is.null(react)) out$reactome <- react
+    report(78, "Reactome \u5bcc\u96c6\u5b8c\u6210")
   }
 
   # ---- WikiPathways (offline, CC0 / public domain) ----
   if ("WikiPathways" %in% ont) {
+    report(82, "\u6b63\u5728\u8dd1 WikiPathways \u5bcc\u96c6\u2026")
     wp <- if (identical(species, "human")) human_wikipathways else mu_wikipathways
     wpres <- .run_offline(wp, sym, "WikiPathways")
     if (!is.null(wpres)) out$wikipathways <- wpres
+    report(95, "WikiPathways \u5bcc\u96c6\u5b8c\u6210")
   }
 
   if (!length(out))
     stop("No enrichment terms significant at pvalueCutoff = ", pvalueCutoff,
          ". Try loosening the cutoff or check the input gene list.", call. = FALSE)
+  report(100, "\u5bcc\u96c6\u5b8c\u6210")
   out
 }
 
