@@ -23,9 +23,10 @@ test_that("T1 tcm_centrality 列契约 + 按 betweenness 降序", {
 test_that("T2 tcm_centrality class 过滤（仅 target）", {
   cen_t <- tcm_centrality(network_data, class = "target", top_n = 10)
   expect_true(all(cen_t$class == "target"))
-  expect_le(nrow(cen_t), 10)
-  # 无效 class 必须明确报错
-  expect_error(tcm_centrality(network_data, class = "bad"), "class")
+  expect_lte(nrow(cen_t), 10)
+  # 无效 class 必须明确报错（同 T4：match.arg 的实际消息是
+  # "'arg' should be one of ..."，不含参数名 "class"）
+  expect_error(tcm_centrality(network_data, class = "bad"), "should be one of")
 })
 
 test_that("T3 tcm_modules 结构契约 + MCODE 评分 ∈ [0,1]", {
@@ -56,8 +57,9 @@ test_that("T4 三种社区发现算法均产出模块", {
     expect_true(all(c("node", "class", "module", "degree", "betweenness",
       "closeness", "coreness", "mcode_score") %in% names(res$nodes)))
   }
-  # 无效算法必须明确报错
-  expect_error(tcm_modules(network_data, algorithm = "bad"), "algorithm")
+  # 无效算法必须明确报错（⚠️ 断言用实际消息片段：match.arg 的报错是
+  # "'arg' should be one of ..." —— 不含 "algorithm" 字样，用 "algorithm" 会匹配失败）
+  expect_error(tcm_modules(network_data, algorithm = "bad"), "should be one of")
 })
 
 test_that("T5 空输入不崩（返回带列名的空 data.frame）", {

@@ -40,9 +40,7 @@ Imports:
     methods,
     VennDetail,
     clusterProfiler,
-    DOSE,
-    org.Hs.eg.db,
-    org.Mm.eg.db
+    DOSE
 Remotes: 
     github::davidsjoberg/ggsankey
 Depends: R (>= 4.1)

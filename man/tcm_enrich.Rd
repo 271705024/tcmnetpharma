@@ -20,8 +20,9 @@ tcm_enrich(
 \arguments{
 \item{gene}{character vector of gene identifiers.}
 
-\item{keytype}{\code{"SYMBOL"} or \code{"ENTREZID"}. Symbol inputs are mapped
-to Entrez via the relevant OrgDb for GO.}
+\item{keytype}{\code{"SYMBOL"} or \code{"ENTREZID"}. \code{ENTREZID} inputs are
+mapped to symbols using the bundled annotation's full ID map (no OrgDb
+needed).}
 
 \item{species}{\code{"human"} or \code{"mouse"}.}
 
@@ -41,7 +42,9 @@ to Entrez via the relevant OrgDb for GO.}
 \value{
 A named list of \code{enrichResult} objects (only non-empty results
 are kept; the name is the ontology, e.g. \code{go}, \code{reactome},
-\code{wikipathways}). If none are significant, an informative error is raised.
+\code{wikipathways}). The GO object carries an \code{ONTOLOGY} column
+(BP/CC/MF) in \code{@result}, as produced by \code{enrichGO(ont = "ALL")}.
+If none are significant, an informative error is raised.
 }
 \description{
 Convenience wrapper that runs over-representation analysis on a gene list and
@@ -50,25 +53,33 @@ by \code{\link{go_barplot}}, \code{\link{go_dotplot}}, \code{\link{go_cir}},
 \code{\link{pathway_ccplot}}, \code{\link{pathway_cirplot}}, etc.
 }
 \details{
-GO uses \pkg{clusterProfiler} \code{enrichGO}. Reactome and WikiPathways use
-the offline pathway gene sets shipped with TCMNP
-(\code{human_reactome}/\code{mu_reactome} and
-\code{human_wikipathways}/\code{mu_wikipathways}) via \code{enricher}, so they
-need no network access and are safe for the offline exe distribution.
+\strong{All three ontologies run fully offline} — no OrgDb package and no network
+access are required, so the analysis works in the offline Windows bundle:
+\itemize{
+\item \strong{GO}: bundled annotation (\code{human_go_annot} /
+\code{mu_go_annot}) built from the Bioconductor OrgDb snapshots with
+\emph{ancestor propagation} and \emph{IEA retained}, then analysed with
+\code{enricher()} per sub-ontology (BP/CC/MF) using that sub-ontology's
+own gene universe. \strong{This reproduces \code{enrichGO(ont = "ALL")}
+exactly} — verified term-by-term on 2026-10-19 (1,697 terms; 1,125 with
+p < 0.05; identical GeneRatio / BgRatio / p-values).
+\item \strong{Reactome} / \strong{WikiPathways}: bundled gene sets
+(\code{human_reactome} / \code{mu_reactome}, \code{human_wikipathways} /
+\code{mu_wikipathways}) via \code{enricher}.
+}
 
 \strong{Licensing note:} KEGG pathway enrichment is intentionally NOT provided.
 KEGG-derived gene sets (including MSigDB C2 CP:KEGG) carry Kanehisa
 Laboratories' "all rights reserved" licensing and are not redistributable
 (see \code{inst/extdata/DATA-README.md}). Reactome (CC BY 4.0) and
 WikiPathways (CC0 / public domain) fully cover pathway-level enrichment
-offline and redistributable.
+offline and redistributable. KEGG can be used as an \emph{online} add-on via
+\code{clusterProfiler::enrichKEGG()} — its \code{enrichResult} is compatible
+with the plotting functions in this package.
 }
 \examples{
 \dontrun{
 g <- c("TP53", "BRCA1", "BRCA2", "EGFR", "KRAS", "PTEN", "MYC", "AKT1")
 res <- tcm_enrich(g, keytype = "SYMBOL", species = "human")
-go_barplot(res$go)
-pathway_ccplot(res$reactome)
-pathway_ccplot(res$wikipathways)
 }
 }

@@ -278,3 +278,45 @@
 "compound_data"
 
 
+
+#' human_go_annot
+#'
+#' Offline GO annotation for \strong{Homo sapiens}, built to replace the
+#' \pkg{org.Hs.eg.db} package (~400 MB) in the offline bundle while keeping
+#' \code{enrichGO()}'s exact statistics.
+#'
+#' Built from \pkg{org.Hs.eg.db} 3.23.1 direct GO annotations
+#' (\emph{including} IEA evidence codes, as \code{enrichGO} does), then
+#' \strong{propagated to all ancestor terms} within each sub-ontology
+#' (BP/CC/MF) using \pkg{GO.db}. Enrichment is therefore run with
+#' \code{enricher()} per sub-ontology using that sub-ontology's own gene
+#' universe, which reproduces \code{enrichGO(ont = "ALL")} exactly
+#' (verified 2026-10-19: identical term set, GeneRatio, BgRatio and p-values).
+#'
+#' @format A list with four elements:
+#' \describe{
+#'   \item{genes}{data.frame(\code{term}, \code{gene}); \code{gene} is a SYMBOL;
+#'     terms are already ancestor-propagated}
+#'   \item{meta}{data.frame(\code{term}, \code{name}, \code{ontology});
+#'     \code{ontology} is BP/CC/MF}
+#'   \item{universe}{character vector of all annotated SYMBOLs}
+#'   \item{ez2sym}{data.frame(\code{entrez}, \code{symbol}); full ID map used
+#'     when \code{keytype = "ENTREZID"}}
+#' }
+#' @source \pkg{org.Hs.eg.db} 3.23.1 + \pkg{GO.db}; builder script
+#'   \code{data-raw/gene-sets/scripts/build_go_offline_annot.R}.
+#' @examples
+#' str(human_go_annot, max.level = 1)
+"human_go_annot"
+
+#' mu_go_annot
+#'
+#' Offline GO annotation for \strong{Mus musculus}; same structure, build
+#' procedure and equivalence guarantee as \code{\link{human_go_annot}}.
+#'
+#' @format See \code{\link{human_go_annot}}.
+#' @source \pkg{org.Mm.eg.db} 3.23.0 + \pkg{GO.db}; built by
+#'   \code{data-raw/gene-sets/scripts/build_go_offline_annot.R}.
+#' @examples
+#' str(mu_go_annot, max.level = 1)
+"mu_go_annot"

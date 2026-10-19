@@ -143,6 +143,9 @@ if (getRversion() >= "2.15.1") {
     "human_reactome",
     "mu_reactome",
     "human_wikipathways",
-    "mu_wikipathways"
+    "mu_wikipathways",
+    # 2026-10-19：离线 GO 注释（祖先传播 + 含 IEA），替代 org.Hs/Mm.eg.db
+    "human_go_annot",
+    "mu_go_annot"
   )), silent = TRUE)
 }
