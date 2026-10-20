@@ -106,13 +106,16 @@ tcm_intersect_target <- function(herb, disease,
   DL.value <- num1(DL.value, 0.18)
 
   empty <- function() {
-    data.frame(
+    d <- data.frame(
       target_symbol = character(0), herb = character(0),
       n_molecule = integer(0), disease_score = numeric(0),
       evidence_count = numeric(0), n_ot_disease = integer(0),
       target_entrez = character(0), target_ensembl = character(0),
       stringsAsFactors = FALSE
     )
+    attr(d, "herb_targets") <- character(0)
+    attr(d, "disease_targets") <- character(0)
+    d
   }
 
   ht <- herb_target(herb, OB.value = OB.value, DL.value = DL.value,
@@ -180,7 +183,14 @@ tcm_intersect_target <- function(herb, disease,
   out <- out[order(-out$disease_score, -out$n_molecule, out$target_symbol), ,
              drop = FALSE]
   rownames(out) <- NULL
-  out[, c("target_symbol", "herb", "n_molecule", "disease_score",
-          "evidence_count", "n_ot_disease", "target_entrez",
-          "target_ensembl")]
+  out <- out[, c("target_symbol", "herb", "n_molecule", "disease_score",
+                 "evidence_count", "n_ot_disease", "target_entrez",
+                 "target_ensembl")]
+
+  # ---- 附带两侧全集（供韦恩图；零额外查询，因为它们在函数内已经算好了）----
+  # 用 attribute 而不是改返回结构：调用方按 data.frame 用，不受影响；
+  # 需要「药物靶点 ∩ 疾病靶点」这张韦恩图时读这两个属性即可。
+  attr(out, "herb_targets") <- sort(unique(as.character(ht$target)))
+  attr(out, "disease_targets") <- sort(unique(as.character(dt$target_symbol)))
+  out
 }
