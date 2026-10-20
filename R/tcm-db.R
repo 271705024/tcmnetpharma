@@ -68,13 +68,16 @@
 # DuckDB physical name -> logical name (strip the collision suffix).
 .tcm_col_clean <- function(nm) sub("_[0-9]+$", "", nm)
 
-.tcm_parquet_path <- function(which = c("compat", "standard", "disease", "disease_target")) {
+.tcm_parquet_path <- function(which = c("compat", "standard", "disease", "disease_target",
+                                        "string_ppi")) {
   which <- match.arg(which)
   fn <- switch(which,
     compat         = "tcm_network_compat.parquet",
     standard       = "standard_herb_mol_target.parquet",
     disease        = "disease_main.parquet",
-    disease_target = "disease_target.parquet"
+    disease_target = "disease_target.parquet",
+    # STRING v12.0 人类 PPI（combined_score >= 700），见 docs/data-license-string-2026-10-20.md
+    string_ppi     = "string_ppi_human.parquet"
   )
   p <- system.file("extdata", fn, package = "TCMNP")
   if (!nzchar(p)) {  # development mode (not installed): fall back to repo path

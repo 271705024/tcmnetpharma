@@ -22,6 +22,21 @@
   需要时联网运行 `clusterProfiler::enrichKEGG()`，返回的 `enrichResult` 可直接交给本包的可视化函数
 - 说明见 `inst/extdata/DATA-README.md` §可再分发基因集（含「关于通路富集」一节）
 
+### STRING PPI 接入：`tcm_ppi()`（2026-10-20）
+- 新增导出函数 **`tcm_ppi(targets, min_score = 700)`**：把**靶点列表**（交集 / 查询结果）
+  转成 **PPI 边表**（`node1` / `node2` / `combined_score`），产物可直接喂 `ppi_plot()`。
+  存在的理由：PPI 需要**配对**，而靶点列表只说"有哪些基因" —— 这是两种不同的数据形状。
+- 新增数据表 **`inst/extdata/string_ppi_human.parquet`**：STRING v12.0 人类
+  **physical subnetwork**（有实验依据的物理互作），`combined_score >= 700`（high confidence），
+  蛋白 ID 已映射为 HGNC symbol。
+  - 为什么用 physical 而非 full network：full 含共表达 / 文本挖掘等**预测关联**（79 MB），
+    physical 只有 8.5 MB 且语义更准 —— 讲"蛋白互作"就该用物理证据。
+- GUI：交集页新增「生成 PPI 子网」按钮；产物入数据集总线（shape = `ppi`），
+  绘图页可直接选「PPI 蛋白互作网络」。
+- **许可**：STRING 数据为 **CC BY 4.0**，分发需署名。本包分发的是**经筛选与符号映射的
+  派生子集**（非原始文件）。完整声明与引用见 `docs/data-license-string-2026-10-20.md`，
+  GUI「关于」页亦有说明。
+
 ### 药物 × 疾病 交集靶点 + 富集阶段进度（2026-10-19）
 - 新增导出函数 **`tcm_intersect_target()`**：网络药理学主线第一步 —— 取「药物靶点」与「疾病靶点」的**交集**。
   两侧都已是 gene SYMBOL 口径（药侧 `target` / 病侧 `target_symbol`），**不需要额外映射表**。
