@@ -7,6 +7,17 @@
 #' @param with_trust Logical (default `FALSE`). When `TRUE`, attaches the trust
 #'   columns of the standard table (`qc_level`, `qc_level_reason`, `cas_verified`,
 #'   `latin_name_std`, `latin_match_status`); worst level wins on ambiguity.
+#' @param resolve_alias Logical (default `TRUE`). When `TRUE` (recommended), a name
+#'   that is **not** found verbatim in the dataset is resolved through the molecule
+#'   entity alias table (`mol_entity_alias.parquet`): the alias maps to a
+#'   connectivity-layer entity key (InChIKey first 14 characters), and the query is
+#'   then widened to **all** stereoisomers of that entity.
+#'
+#'   Rationale: BATMAN and HERB may encode the same molecule with different
+#'   stereoisomeric InChIKeys (identical first 14 characters, different stereochemistry).
+#'   Without this step, e.g. `"Britannilactone"` (a HERB name) returns 0 rows even
+#'   though the molecule is present in the dataset under its BATMAN InChIKey.
+#'   Set `FALSE` to restrict matching to verbatim names.
 #' @param ... additional parameters
 #'
 #' @return data.frame
@@ -21,16 +32,34 @@
 #' molecule <- c("Hexyl acetate", "quercetin 3-o-rhamnopyranosyl")
 #' molecule_filter<- molecule_serch(molecule)
 #' head(molecule_filter)
-molecule_serch <- function(molecule, resolve_herb = FALSE, with_trust = FALSE, ...) {
+molecule_serch <- function(molecule, resolve_herb = FALSE, with_trust = FALSE,
+                           resolve_alias = TRUE, ...) {
   # 惰性查询（P3.2）：DuckDB 直读 compat parquet，仅拉取 IN 子集
   # 大小写不敏感（2026-10-16）：.tcm_distinct_where 已 lower() 两侧，hit 含规范值；
   # .tcm_ci_match 把用户输入归一到规范大小写再喂给 .tcm_filter。
   hit <- .tcm_distinct_where("Molecule_name", molecule)
   ci <- .tcm_ci_match(molecule, hit)
+
+  # ★ R3 修复（2026-10-21）：名字级假阴性兜底。
+  #   未命中的输入走分子实体别名表 → entity_key → 该实体在 standard 下的
+  #   全部 mol_name（= 同分子异立体一并纳入）。
+  #   ⚠️ 只在「原有路径完全查不到」时启用：原路径能查到的名字**不**被改写，
+  #      避免改变既有返回集合（向后兼容）。
+  alias_extra <- character(0)
+  if (isTRUE(resolve_alias) && length(ci$unmatched)) {
+    al <- .tcm_mol_alias_lookup(ci$unmatched)
+    if (length(al$names)) {
+      alias_extra <- setdiff(al$names, hit)
+      # 别名表命中 → 该输入不再是「查不到」；记下来，最后统一报
+      if (length(al$matched)) {
+        ci$unmatched <- setdiff(ci$unmatched, al$matched)
+      }
+    }
+  }
   if (length(ci$unmatched)) {
     print(paste0(ci$unmatched, " is/are not in the datasets."))
   }
-  molecule <- ci$canonical
+  molecule <- c(ci$canonical, alias_extra)
   if (!length(molecule)) {
     return(data.frame(herb = character(), molecule_id = character(),
                       molecule = character(), target = character()))

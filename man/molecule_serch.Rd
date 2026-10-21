@@ -4,7 +4,13 @@
 \alias{molecule_serch}
 \title{Screen molecules based on ingredients from Chinese herbal medicine}
 \usage{
-molecule_serch(molecule, resolve_herb = FALSE, with_trust = FALSE, ...)
+molecule_serch(
+  molecule,
+  resolve_herb = FALSE,
+  with_trust = FALSE,
+  resolve_alias = TRUE,
+  ...
+)
 }
 \arguments{
 \item{molecule}{The name of the molecule filter}
@@ -16,6 +22,18 @@ rows) — see \code{target_herb} for the full explanation.}
 \item{with_trust}{Logical (default \code{FALSE}). When \code{TRUE}, attaches the trust
 columns of the standard table (\code{qc_level}, \code{qc_level_reason}, \code{cas_verified},
 \code{latin_name_std}, \code{latin_match_status}); worst level wins on ambiguity.}
+
+\item{resolve_alias}{Logical (default \code{TRUE}). When \code{TRUE} (recommended), a name
+that is \strong{not} found verbatim in the dataset is resolved through the molecule
+entity alias table (\code{mol_entity_alias.parquet}): the alias maps to a
+connectivity-layer entity key (InChIKey first 14 characters), and the query is
+then widened to \strong{all} stereoisomers of that entity.
+
+Rationale: BATMAN and HERB may encode the same molecule with different
+stereoisomeric InChIKeys (identical first 14 characters, different stereochemistry).
+Without this step, e.g. \code{"Britannilactone"} (a HERB name) returns 0 rows even
+though the molecule is present in the dataset under its BATMAN InChIKey.
+Set \code{FALSE} to restrict matching to verbatim names.}
 
 \item{...}{additional parameters}
 }

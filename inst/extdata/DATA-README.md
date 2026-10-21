@@ -15,14 +15,14 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 
 | 表 | 文件 | 数据版本 | 行数 | 说明 |
 |---|---|---|---|---|
-| standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_1.3.0_2026-10-21 | 16,269,155 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME；含 `cas`；**新增 `herb_entity_id`/`herb_entity_id_source` + 信任与溯源 6 列**；**Layer A 融合 +2 列 `layer_a_latin`/`layer_a_hit_id`（SymMap 拉丁名交叉引用 53.3% / HIT 实验标记 30.7%）→ 共 33 列**） |
-| tcm_network_compat | inst/extdata/tcm_network_compat.parquet | TCMNP_1.3.0_2026-10-21 | 16,202,145 | 10 列兼容表（喂现有函数；DuckDB 惰性查询；含 `CAS` 列；已按 10 列判重） |
-| raw_unmapped | inst/extdata/raw_unmapped.parquet | TCMNP_1.3.0_2026-10-21 | 211,830 | 未映射/多余数据 |
+| standard_herb_mol_target | inst/extdata/standard_herb_mol_target.parquet | TCMNP_1.3.0_2026-10-21 | 16,269,134 | 标准宽表（herb-mol-target + 来源 + 置信度 + ADME；含 `cas`；**新增 `herb_entity_id`/`herb_entity_id_source` + 信任与溯源 6 列**；**Layer A 融合 +2 列 `layer_a_latin`/`layer_a_hit_id`（SymMap 拉丁名交叉引用 53.3% / HIT 实验标记 30.7%）→ 共 33 列**） |
+| tcm_network_compat | inst/extdata/tcm_network_compat.parquet | TCMNP_1.3.0_2026-10-21 | 16,202,124 | 10 列兼容表（喂现有函数；DuckDB 惰性查询；含 `CAS` 列；已按 10 列判重） |
+| raw_unmapped | inst/extdata/raw_unmapped.parquet | TCMNP_1.3.0_2026-10-21 | 191,629 | 未映射/多余数据 |
 | herb_main | inst/extdata/herb_main.parquet | TCMNP_1.3.0_2026-10-21 | 7,351 | **herb 实体主表**（`herb_id` 唯一身份；HERB 6,892 + BATMAN 合成 459） |
 | herb_key_map | inst/extdata/herb_key_map.parquet | TCMNP_1.3.0_2026-10-21 | 14,670 | **键→实体映射**（多对一；`key_type`/`id_source`/`is_canonical`） |
 | herb_key_collapse | inst/extdata/herb_key_collapse.parquet | TCMNP_1.3.0_2026-10-21 | 7,506 | **塌缩留痕**（某键收了哪些原始源条目；321 键吞并 340 条） |
 | provenance_tables | inst/extdata/provenance_tables.parquet | TCMNP_1.3.0_2026-10-21 | 22 | **表级溯源**（表 × 源目录：文件数/字节/sha256 状态/加工步骤） |
-| provenance_rows | inst/extdata/provenance_rows.parquet | TCMNP_1.3.0_2026-10-21 | 814,924 | **行级溯源**（UNMAPPED 211,830 + 被修正 603,094） |
+| provenance_rows | inst/extdata/provenance_rows.parquet | TCMNP_1.3.0_2026-10-21 | 794,702 | **行级溯源**（UNMAPPED 191,629 + 被修正 603,073） |
 | layer_a_disease_ontology_map | inst/extdata/layer_a_disease_ontology_map.parquet | TCMNP_1.3.0_2026-10-21 | 7,157 | **疾病本体映射参考表**（SymMap SMDE × OpenTargets；MeSH/UMLS 本体 ID；2026-10-14 并入） |
 | disease_main | inst/extdata/disease_main.parquet | TCMNP_1.3.0_2026-10-21 | 14,434 | **疾病主表**（SymMap SMDE 全量；`disease_id`/`disease_name`/`mesh_id`/`umls_id` + 3 个对齐标志；供 `disease_serch()`；2026-10-15 新增） |
 | disease_target | inst/extdata/disease_target.parquet | TCMNP_1.3.0_2026-10-21 | 3,134,397 | **疾病→靶点关联**（OpenTargets 25.06 `association_overall_direct`；经 MeSH/UMLS 桥接 SymMap 疾病；含 `score`/`evidence_count`/`n_ot_disease`；供 `disease_target()`；2026-10-15 新增） |
@@ -30,6 +30,8 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 | etcm2_mol_adme | inst/extdata/etcm2_mol_adme.parquet | TCMNP_1.3.0_2026-10-21 | 38,298 | **ETCM2 成分 ADME 参考表**（QED/FDAMDD/MW；成分名精确匹配 mol_dict（40.0%）得 InChIKey，同名多 InChIKey 标 ambiguous 不硬配；2026-10-21 新增） |
 | etcm2_herb_target | inst/extdata/etcm2_herb_target.parquet | TCMNP_1.3.0_2026-10-21 | 2,836 | **ETCM2 药材→靶点二元组**（Gene Symbol/UniProt + CamelCase 拼音归一 herb_key；靶点命中 target_dict 97.5%；2026-10-21 新增） |
 | etcm2_disease_gene | inst/extdata/etcm2_disease_gene.parquet | TCMNP_1.3.0_2026-10-21 | 24,106 | **ETCM2 疾病→基因二元组**（Global/Anatomical 分类 + Disease-related Genes；基因命中 target_dict 99.9%；2026-10-21 新增） |
+| tcm_target_moa | inst/extdata/tcm_target_moa.parquet | TCMNP_1.3.0_2026-10-21 | 7,561 | **药物→靶点作用机制（MOA）**（ChEMBL 37 `drug_mechanism` 全量；action_type 35 种（INHIBITOR/AGONIST/ANTAGONIST…）+ 研发阶段 max_phase + InChIKey/gene；gene 挂 target_dict 75.6%、人源 6,065；**开放许可替代 TTD MOA**；2026-10-21 新增） |
+| mol_entity_alias | inst/extdata/mol_entity_alias.parquet | TCMNP_1.3.0_2026-10-21 | 39,388 | **分子实体别名表**（`entity_key` = InChIKey 前 14 位连接性层；`alias_name`/`alias_type`（std_name 33,337 + herb_norm 6,051）+ `n_inkey`/`n_cid`/`n_rows`/`has_herb_named`；覆盖 29,374 个实体；**供 `molecule_serch()` 解析同分子异立体的跨库别名**；2026-10-21 新增） |
 | herb_pm | data/herb_pm.rda | TCMNP_0.2.0_2026-08-22 | 6,860 | HERB 性味归经（6,892 去空后） |
 
 > **数据版本 1.3.0（2026-10-12）变更内容**：**引入 herb 实体层**（P0-B）。

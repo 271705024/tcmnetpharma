@@ -2,6 +2,19 @@
 
 ## TCMNP 0.2.0（数据修订 2026-10-21，数据版本 TCMNP_1.3.0_2026-10-21）
 
+### CID 桥接假阴性修复（2026-10-21）
+详见 `docs/xuanfuhua-uc-precheck/CID桥接假阴性_缺陷归属分析.md` 及其补记、R3 决策文档。
+
+- **R1｜InChIKey 规范化桥接**：`02d_layer_a_align.py` 的 `build_mol_bridge()` 增加 InChIKey 分支（新增 `match_by_inkey` / `layer_a_inkey` 列），不再仅靠裸 CID 等值匹配
+- **R2｜补映射表扩充**：`cid_inkey.parquet` 34,570 → **41,100** 行（目标集由 35,031 扩为 **43,170** 多源并集）；BATMAN 全集 35,336 CID 缺口 766 → **555**
+- **R2-b｜known 边补映射（报告未发现）**：`03_merge.py` 对 known 边按官方 CID→InChIKey 补齐 → known 边 InChIKey 13,137 → **16,801**；`UNMAPPED_batman_known` 21,269 → **1,068**（救回 20,201 行）；`raw_unmapped` 211,830 → **191,629**
+- **R3｜分子实体别名通道**（新增 `mol_entity_alias.parquet`，**39,388** 行）：BATMAN 与 HERB 对同一分子使用不同立体形式 InChIKey（前 14 位连接性层相同）→ 此前按名查不到。新增 `molecule_serch(..., resolve_alias = TRUE)`（**默认开启**）：未逐字命中的名字经别名表解析为连接性层 `entity_key`，查询扩展至该实体的**全部**立体异构体
+  - 效果：`molecule_serch("Britannilactone")` 0 → **67** 行；`molecule_serch("Inulicin")` 0 → **51** 行
+  - **向后兼容**：仅在原有路径**完全查不到**时启用；原路径可查的名字不被改写（`quercetin` 仍为 106,020 行）
+  - **数据侧零改动**：`standard` / `tcm_network_compat` 行数与列契约**完全不变**（16,269,134 / 16,202,124）
+  - ⚠️ 曾评估「把 HERB 规范名回填进 `mol_name`」方案并**实测否决**：会覆盖 7,912,535 行既有名称、compat 塌缩 94,705 行、可检索实体反降 2,420
+- **方法学教训**：跨库分子桥接一律走 **InChIKey**（或前 14 位连接性层 + 相似度），**禁止裸 CID 等值匹配**
+
 ### ETCM2 未消费数据接入（2026-10-21）
 - **ETCM2 4 张已解析未消费表接入**（`02e_etcm2_align.py` 非破坏性对齐；粒度为二元组，**不进 standard 三元组**，行数守恒 16,269,155 不变）：
   - `etcm2_herb_property.parquet`（2,079）药材性味归经；herb_dict 补空缺 Properties 378 / Meridians 367 / **新增 Flavor 列 1,511**（旧非空值 0 覆盖）；命中 92.2%
