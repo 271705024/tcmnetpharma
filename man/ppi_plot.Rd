@@ -15,7 +15,8 @@ ppi_plot(
   edge.width = c(0.2, 2),
   rem.dis.inter = FALSE,
   graph.layout = "kk",
-  style = c("default", "journal", "cytoscape", "presentation")
+  style = c("default", "journal", "cytoscape", "presentation", "hub30", "module",
+    "minimal")
 )
 }
 \arguments{

@@ -63,7 +63,8 @@ ppi_plot <- function(data,
                      edge.width = c(0.2, 2),
                      rem.dis.inter = FALSE,
                      graph.layout = "kk",
-                     style = c("default", "journal", "cytoscape", "presentation")) {
+                     style = c("default", "journal", "cytoscape", "presentation",
+                            "hub30", "module", "minimal")) {
   style <- match.arg(style)
  # data processing
   if (is.data.frame(data)) {
@@ -198,7 +199,20 @@ ppi_plot <- function(data,
                      label_size = 3.4, stroke = 0.6, legend = "degree"),
     presentation = list(layout = "fr", niter = 4000L, size_range = c(3, 13),
                         edge_alpha = 0.65, edge_width = c(0.4, 2.2), n_label = 20L,
-                        label_size = 4.6, stroke = 0.8, legend = "all")
+                        label_size = 4.6, stroke = 0.8, legend = "all"),
+    # 只留 30 个核心节点且全部带标签 —— 期刊 Graphical Abstract / 摘要图用
+    hub30 = list(layout = "fr", niter = 3000L, size_range = c(3, 13),
+                 edge_alpha = 0.6, edge_width = c(0.35, 1.4), n_label = 30L,
+                 label_size = 4.2, stroke = 0.7, legend = "none", max_nodes = 30L),
+    # 按社区（walktrap）着色 —— 看模块结构，而不是看单个基因
+    module = list(layout = "fr", niter = 4000L, size_range = c(2, 10),
+                  edge_alpha = 0.45, edge_width = c(0.25, 1.0), n_label = 10L,
+                  label_size = 3.3, stroke = 0.6, legend = "none",
+                  by_module = TRUE),
+    # 极简：只有点和线，无标签无图例 —— 大图缩略 / 补充材料
+    minimal = list(layout = "fr", niter = 3000L, size_range = c(1.5, 6),
+                   edge_alpha = 0.35, edge_width = c(0.2, 0.8), n_label = 0L,
+                   label_size = 3, stroke = 0.3, legend = "none")
   )
   # ---- 节点容量（视觉必需，不是可选）----
   # 793 节点 / 2594 边的 PPI 子网在 9 英寸静态画布上，无论哪种布局都会挤成一团
@@ -206,7 +220,7 @@ ppi_plot <- function(data,
   # Cytoscape 出图好看的前提就是**先按度数过滤**再布局 —— 这里同样处理：
   # 按度数保留核心 max_nodes 个节点及其内部边。叶子节点（度 1-2）对网络结构
   # 没有信息量，删掉不影响解读。
-  max_nodes <- 150L
+  max_nodes <- if (!is.null(pres$max_nodes)) as.integer(pres$max_nodes) else 150L
   # ⚠️ 不要 as.integer()：那会丢掉向量里的**节点名**，names() 变 NULL，
   # induced_subgraph(vids = NULL) 会得到空图（2026-10-21 实测踩过：0 条边）。
   deg_all <- igraph::degree(net)
@@ -216,6 +230,12 @@ ppi_plot <- function(data,
     message(sprintf(
       "ppi_plot(style = \"%s\"): \u7F51\u7EDC %d \u4E2A\u8282\u70B9\u8D85\u8FC7\u663E\u793A\u4E0A\u9650\uFF0C\u5DF2\u6309\u5EA6\u6570\u4FDD\u7559\u524D %d \u4E2A\u6838\u5FC3\u8282\u70B9\uFF08%d \u6761\u8FB9\uFF09\u3002",
       style, length(deg_all), max_nodes, igraph::ecount(net)))
+  }
+
+  # module 预设：walktrap 社区检测后按模块着色（看模块结构而不是单个基因）
+  if (isTRUE(pres$by_module)) {
+    cl <- igraph::cluster_walktrap(net)
+    igraph::V(net)$module <- factor(igraph::membership(cl))
   }
 
   # 若用户显式选了布局且不是默认 kk，尊重用户；否则用模板布局
@@ -233,26 +253,37 @@ ppi_plot <- function(data,
   n_lab <- min(pres$n_label, length(deg))
   thr <- sort(as.integer(deg), decreasing = TRUE)[n_lab]
 
+  fill_aes <- if (isTRUE(pres$by_module)) {
+    ggplot2::aes(fill = module, size = size)
+  } else {
+    ggplot2::aes(fill = degree, size = size)
+  }
+  fill_scale <- if (isTRUE(pres$by_module)) {
+    ggplot2::scale_fill_brewer(palette = "Set2", name = "module")
+  } else {
+    ggplot2::scale_fill_gradientn(
+      colours = rev(RColorBrewer::brewer.pal(8, node.color)), name = "degree"
+    )
+  }
+
   p <- ggraph::ggraph(lay_obj) +
     ggraph::geom_edge_link(
       ggplot2::aes(edge_width = score),
       colour = "grey70", alpha = pres$edge_alpha, show.legend = FALSE
     ) +
     ggraph::geom_node_point(
-      ggplot2::aes(fill = degree, size = size),
+      fill_aes,
       shape = 21, colour = "white", stroke = pres$stroke, show.legend = FALSE
     ) +
-    ggplot2::scale_fill_gradientn(
-      colours = rev(RColorBrewer::brewer.pal(8, node.color)), name = "degree"
-    ) +
+    fill_scale +
     ggplot2::scale_size(range = pres$size_range, guide = "none") +
     ggraph::scale_edge_width(range = pres$edge_width, guide = "none") +
-    ggraph::geom_node_label(
+    (if (pres$n_label > 0L) ggraph::geom_node_label(
       ggplot2::aes(filter = degree >= thr, label = name),
       size = pres$label_size, repel = TRUE,
       label.size = 0.12, label.padding = ggplot2::unit(0.10, "lines"),
       fill = "white", colour = "grey15", alpha = 0.92
-    ) +
+    ) else NULL) +
     ggplot2::coord_fixed() +
     ggraph::theme_graph(background = "white", base_family = "sans") +
     ggplot2::theme(
@@ -261,7 +292,7 @@ ppi_plot <- function(data,
       plot.margin = ggplot2::margin(4, 4, 4, 4)
     )
 
-  if (identical(pres$legend, "degree")) {
+  if (identical(pres$legend, "degree") && !isTRUE(pres$by_module)) {
     p <- p + ggplot2::guides(fill = ggplot2::guide_colourbar(
       barheight = ggplot2::unit(3.2, "lines"), barwidth = ggplot2::unit(0.6, "lines")
     ))
