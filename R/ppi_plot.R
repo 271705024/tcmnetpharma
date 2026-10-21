@@ -69,6 +69,13 @@ ppi_plot <- function(data,
  # data processing
   if (is.data.frame(data)) {
     data <- data %>% dplyr::distinct()
+    # 只有两列（node1/node2，没有 combined_score）也要能画：
+    # 补一列 weight = NA，后续 has_score 兜底会走固定线宽。
+    # （2026-10-21 实测：2 列表直接进 `colnames(data) <- c("from","to","weight")`
+    #   会报 'names' attribute [3] must be the same length as the vector [2]）
+    if (ncol(data) == 2L) {
+      data$weight <- NA_real_
+    }
     if (length(unique(data[, 1])) > length(unique(data[, 2]))) {
       colnames(data) <- c("to", "from", "weight")
     } else {
@@ -99,12 +106,18 @@ ppi_plot <- function(data,
     igraph::V(net)$size <- igraph::degree(net)
     igraph::E(net)$score <- igraph::E(net)$weight
     # ---- 风格模板（2026-10-21）----
-    # 原实现（default）保留完全兼容；其余三种是给「论文投稿 / Cytoscape 观感 /
-    # 组会演示」用的预设，差别只在**视觉参数**，数据与统计口径完全一致。
+    # 原实现（default）保留输出形态；其余预设是给「论文投稿 / Cytoscape 观感 /
+    # 组会演示」用的，差别只在**视觉参数**，数据与统计口径完全一致。
     if (!identical(style, "default")) {
       return(.ppi_style_plot(net, style, node.color, node.size, label.size,
                              graph.layout))
     }
+
+    # ⚠️ default 也要做节点筛选（2026-10-21 补）：
+    # 之前 default 是全量出图，737 节点在 kk 布局下必然散成"中心一团 + 外围孤点"，
+    # 用户看到的就是「PPI 结果有问题」。可读性上限对所有风格都成立，
+    # 不该因为"保持原始行为"就放行。
+    net <- .ppi_cap_nodes(net, 150L, style)
 
     # Plot with ggraph (default：保持原行为不动)
     ggraph(net, layout = graph.layout) +
@@ -221,16 +234,7 @@ ppi_plot <- function(data,
   # 按度数保留核心 max_nodes 个节点及其内部边。叶子节点（度 1-2）对网络结构
   # 没有信息量，删掉不影响解读。
   max_nodes <- if (!is.null(pres$max_nodes)) as.integer(pres$max_nodes) else 150L
-  # ⚠️ 不要 as.integer()：那会丢掉向量里的**节点名**，names() 变 NULL，
-  # induced_subgraph(vids = NULL) 会得到空图（2026-10-21 实测踩过：0 条边）。
-  deg_all <- igraph::degree(net)
-  if (igraph::vcount(net) > max_nodes) {
-    keep <- names(sort(deg_all, decreasing = TRUE))[seq_len(max_nodes)]
-    net <- igraph::induced_subgraph(net, vids = keep)
-    message(sprintf(
-      "ppi_plot(style = \"%s\"): \u7F51\u7EDC %d \u4E2A\u8282\u70B9\u8D85\u8FC7\u663E\u793A\u4E0A\u9650\uFF0C\u5DF2\u6309\u5EA6\u6570\u4FDD\u7559\u524D %d \u4E2A\u6838\u5FC3\u8282\u70B9\uFF08%d \u6761\u8FB9\uFF09\u3002",
-      style, length(deg_all), max_nodes, igraph::ecount(net)))
-  }
+  net <- .ppi_cap_nodes(net, max_nodes, style)
 
   # module 预设：walktrap 社区检测后按模块着色（看模块结构而不是单个基因）
   if (isTRUE(pres$by_module)) {
@@ -241,6 +245,20 @@ ppi_plot <- function(data,
   # 若用户显式选了布局且不是默认 kk，尊重用户；否则用模板布局
   lay <- if (!identical(graph.layout, "kk")) graph.layout else pres$layout
 
+  # fr 布局的初始位置是随机的：同一份数据、同样的代码，两次出图可能一次密集
+  # 一次散开（2026-10-21 boss 那张"孤点图"即由此而来，而同一数据在我这里却是
+  # 密集网络）。固定种子保证**可复现** —— 科研出图必须能重跑。
+  old_seed <- if (exists(".Random.seed", envir = globalenv()))
+    get(".Random.seed", envir = globalenv()) else NULL
+  set.seed(20261021L)
+  on.exit({
+    if (is.null(old_seed)) {
+      if (exists(".Random.seed", envir = globalenv()))
+        rm(".Random.seed", envir = globalenv())
+    } else {
+      assign(".Random.seed", old_seed, envir = globalenv())
+    }
+  }, add = TRUE)
   lay_obj <- if (identical(lay, "fr")) {
     ggraph::create_layout(net, layout = "fr", niter = pres$niter)
   } else {
@@ -266,11 +284,24 @@ ppi_plot <- function(data,
     )
   }
 
-  p <- ggraph::ggraph(lay_obj) +
+  # 边宽兜底：边表若没有 combined_score（或全 NA），aes(edge_width = score)
+  # 会映射成 NA -> **整片边消失**，只剩一堆散点 —— 这是「PPI 结果看起来没边」
+  # 的第二种可能成因。没有分数就用固定线宽，至少保证网络结构可见。
+  has_score <- !is.null(igraph::E(net)$score) && any(!is.na(igraph::E(net)$score))
+  edge_layer <- if (has_score) {
     ggraph::geom_edge_link(
       ggplot2::aes(edge_width = score),
       colour = "grey70", alpha = pres$edge_alpha, show.legend = FALSE
-    ) +
+    )
+  } else {
+    ggraph::geom_edge_link(
+      colour = "grey70", alpha = pres$edge_alpha, linewidth = 0.45,
+      show.legend = FALSE
+    )
+  }
+
+  p <- ggraph::ggraph(lay_obj) +
+    edge_layer +
     ggraph::geom_node_point(
       fill_aes,
       shape = 21, colour = "white", stroke = pres$stroke, show.legend = FALSE
@@ -298,4 +329,28 @@ ppi_plot <- function(data,
     ))
   }
   p
+}
+
+
+# ---------------------------------------------------------------------------
+# 节点容量：**default 与所有预设共用这一份实现**（2026-10-21）
+#
+# 为什么必须统一：default 曾被"保持原始行为"放行全量出图，结果 737 节点在 kk
+# 布局下散成「中心一团 + 外围孤点」，用户直接判定为「PPI 结果有问题」。
+# 可读性上限不是风格选择，是所有风格共同的前提。
+#
+# ⚠️ 不要写成 `as.integer(igraph::degree(net))`：那会丢掉向量里的节点名，
+# `names()` 变 NULL，`induced_subgraph(vids = NULL)` 得到**空图（0 条边）**，
+# 而日志还照样打印"已保留 N 个节点"（2026-10-21 踩过）。
+# ---------------------------------------------------------------------------
+.ppi_cap_nodes <- function(net, max_nodes = 150L, style_label = "") {
+  if (!is.finite(max_nodes) || igraph::vcount(net) <= max_nodes) return(net)
+  deg <- igraph::degree(net)
+  keep <- names(sort(deg, decreasing = TRUE))[seq_len(as.integer(max_nodes))]
+  out <- igraph::induced_subgraph(net, vids = keep)
+  message(sprintf(
+    "ppi_plot%s: %d \u4e2a\u8282\u70b9\u8d85\u8fc7\u663e\u793a\u4e0a\u9650\uff0c\u5df2\u6309\u5ea6\u6570\u4fdd\u7559\u524d %d \u4e2a\u6838\u5fc3\u8282\u70b9\uff08%d \u6761\u8fb9\uff09\u3002",
+    if (nzchar(style_label)) paste0(" (style = \"", style_label, "\")") else "",
+    igraph::vcount(net), as.integer(max_nodes), igraph::ecount(out)))
+  out
 }
