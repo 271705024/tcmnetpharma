@@ -69,7 +69,7 @@
 .tcm_col_clean <- function(nm) sub("_[0-9]+$", "", nm)
 
 .tcm_parquet_path <- function(which = c("compat", "standard", "disease", "disease_target",
-                                        "string_ppi")) {
+                                        "string_ppi", "mol_indication", "mol_moa")) {
   which <- match.arg(which)
   fn <- switch(which,
     compat         = "tcm_network_compat.parquet",
@@ -77,7 +77,11 @@
     disease        = "disease_main.parquet",
     disease_target = "disease_target.parquet",
     # STRING v12.0 人类 PPI（combined_score >= 700），见 docs/data-license-string-2026-10-20.md
-    string_ppi     = "string_ppi_human.parquet"
+    string_ppi     = "string_ppi_human.parquet",
+    # ChEMBL 37 药物-适应症（药-病二元组 + 适应症级研发阶段），见 02h_drug_indication.py
+    mol_indication = "tcm_mol_indication.parquet",
+    # ChEMBL 37 药物-靶点作用机制（MOA），见 02f_chembl_moa.py
+    mol_moa        = "tcm_target_moa.parquet"
   )
   p <- system.file("extdata", fn, package = "TCMNP")
   if (!nzchar(p)) {  # development mode (not installed): fall back to repo path
