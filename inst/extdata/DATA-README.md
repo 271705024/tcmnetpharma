@@ -31,6 +31,7 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 | etcm2_herb_target | inst/extdata/etcm2_herb_target.parquet | TCMNP_1.3.0_2026-10-21 | 2,836 | **ETCM2 药材→靶点二元组**（Gene Symbol/UniProt + CamelCase 拼音归一 herb_key；靶点命中 target_dict 97.5%；2026-10-21 新增） |
 | etcm2_disease_gene | inst/extdata/etcm2_disease_gene.parquet | TCMNP_1.3.0_2026-10-21 | 24,106 | **ETCM2 疾病→基因二元组**（Global/Anatomical 分类 + Disease-related Genes；基因命中 target_dict 99.9%；2026-10-21 新增） |
 | tcm_target_moa | inst/extdata/tcm_target_moa.parquet | TCMNP_1.3.0_2026-10-21 | 7,561 | **药物→靶点作用机制（MOA）**（ChEMBL 37 `drug_mechanism` 全量；action_type 35 种（INHIBITOR/AGONIST/ANTAGONIST…）+ 研发阶段 max_phase + InChIKey/gene；gene 挂 target_dict 75.6%、人源 6,065；**开放许可替代 TTD MOA**；2026-10-21 新增） |
+| tcm_mol_indication | inst/extdata/tcm_mol_indication.parquet | TCMNP_1.3.0_2026-10-21 | 60,055 | **药物→适应症**（ChEMBL 37 `drug_indication` 全量；**独有 `max_phase_for_ind` 适应症级研发阶段**（区别 tcm_target_moa 的药级 max_phase）；病名双体系 MeSH+EFO + InChIKey；覆盖 10,073 分子、天然产物占 45.9%；药-病二元组独立表不进 standard；挂 mol_dict 9.1%（中药成分库 vs 西药研发库天然交集有限，InChIKey 74.9% 为跨库对齐主通道）；2026-10-21 新增） |
 | mol_entity_alias | inst/extdata/mol_entity_alias.parquet | TCMNP_1.3.0_2026-10-21 | 39,388 | **分子实体别名表**（`entity_key` = InChIKey 前 14 位连接性层；`alias_name`/`alias_type`（std_name 33,337 + herb_norm 6,051）+ `n_inkey`/`n_cid`/`n_rows`/`has_herb_named`；覆盖 29,374 个实体；**供 `molecule_serch()` 解析同分子异立体的跨库别名**；2026-10-21 新增） |
 | herb_pm | data/herb_pm.rda | TCMNP_0.2.0_2026-08-22 | 6,860 | HERB 性味归经（6,892 去空后） |
 
