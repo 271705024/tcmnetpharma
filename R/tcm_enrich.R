@@ -20,14 +20,18 @@
 #'     \code{mu_wikipathways}) via \code{enricher}.
 #' }
 #'
-#' \strong{Licensing note:} KEGG pathway enrichment is intentionally NOT provided.
+#' \strong{Licensing note:} KEGG gene sets are intentionally \emph{not bundled}.
 #' KEGG-derived gene sets (including MSigDB C2 CP:KEGG) carry Kanehisa
-#' Laboratories' "all rights reserved" licensing and are not redistributable
+#' Laboratories' licensing and may not be redistributed with software
 #' (see \code{inst/extdata/DATA-README.md}). Reactome (CC BY 4.0) and
-#' WikiPathways (CC0 / public domain) fully cover pathway-level enrichment
-#' offline and redistributable. KEGG can be used as an \emph{online} add-on via
-#' \code{clusterProfiler::enrichKEGG()} — its \code{enrichResult} is compatible
-#' with the plotting functions in this package.
+#' WikiPathways (CC0) cover pathway-level enrichment fully offline.
+#' \code{ont = "KEGG"} instead fetches KEGG data \strong{at run time} from
+#' \url{https://rest.kegg.jp} (free for academic use on the user's own machine),
+#' and caches a snapshot under \code{tools::R_user_dir("TCMNP", "cache")}.
+#' No KEGG data is ever redistributed by this package. Because KEGG content
+#' changes over time, the snapshot date is attached to the result
+#' (\code{attr(x, "kegg_snapshot")}) — report it for reproducibility.
+#' Requires network access; each request may take 30-90 s (timeout 180 s).
 #'
 #' @param gene character vector of gene identifiers.
 #' @param keytype \code{"SYMBOL"} or \code{"ENTREZID"}. \code{ENTREZID} inputs are
@@ -35,6 +39,7 @@
 #'   needed).
 #' @param species \code{"human"} or \code{"mouse"}.
 #' @param ont character vector; any of \code{"GO"}, \code{"Reactome"},
+#'   \code{"WikiPathways"}, \code{"KEGG"}.
 #'   \code{"WikiPathways"}. Default all three.
 #' @param pvalueCutoff numeric cutoff passed to the underlying \code{enrich*} calls.
 #' @param qvalueCutoff numeric cutoff passed through.
@@ -84,7 +89,8 @@ tcm_enrich <- function(gene, keytype = "SYMBOL", species = "human",
   species <- match.arg(as.character(unlist(species, use.names = FALSE)),
                        c("human", "mouse"))
   ont <- match.arg(as.character(unlist(ont, use.names = FALSE)),
-                   c("GO", "Reactome", "WikiPathways"), several.ok = TRUE)
+                   c("GO", "Reactome", "WikiPathways", "KEGG"),
+                   several.ok = TRUE)
   organism <- if (identical(species, "human")) "Homo sapiens" else "Mus musculus"
 
   # 两种物种的离线 GO 注释（含祖先传播 + IEA；见 build_go_offline_annot.R）
@@ -166,6 +172,25 @@ tcm_enrich <- function(gene, keytype = "SYMBOL", species = "human",
     wpres <- .run_offline(wp, sym, "WikiPathways")
     if (!is.null(wpres)) out$wikipathways <- wpres
     report(95, "WikiPathways \u5bcc\u96c6\u5b8c\u6210")
+  }
+
+  # ---- KEGG：联网（数据不可随包分发，见 inst/extdata/DATA-README.md）----
+  # 走 KEGG REST + 本地快照缓存：首次联网约 30-90 秒（KEGG 服务端慢时更久，
+  # 故超时给 180 秒），之后 30 天内走缓存、断网也能复跑同一份结果。
+  # 结果随 KEGG 版本变化 -> snapshot 日期挂在返回对象的 attribute 上，
+  # GUI 必须显示出来，否则结果不可复现。
+  if ("KEGG" %in% ont) {
+    report(88, "\u6b63\u5728\u8054\u7f51\u83b7\u53d6 KEGG \u901a\u8def\u6570\u636e\uff08\u9996\u6b21\u8f83\u6162\uff0c\u4e4b\u540e\u8d70\u672c\u5730\u7f13\u5b58\uff09\u2026")
+    kres <- .tcm_kegg_enrich(
+      sym,
+      species = species, ann = ann_go,
+      cache_days = 30L, timeout_s = 180,
+      pvalueCutoff = pvalueCutoff, qvalueCutoff = qvalueCutoff,
+      pAdjustMethod = pAdjustMethod,
+      minGSSize = minGSSize, maxGSSize = maxGSSize
+    )
+    if (!is.null(kres)) out$kegg <- kres
+    report(97, "KEGG \u5bcc\u96c6\u5b8c\u6210")
   }
 
   if (!length(out))

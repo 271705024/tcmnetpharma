@@ -33,7 +33,9 @@ test_that("tcm_enrich: list 与 character 输入结果完全一致", {
 test_that("tcm_enrich: 非法**取值**仍要报可读错误（宽容类型 ≠ 放过错误值）", {
   expect_error(tcm_enrich(c("TP53", "BRCA1"), species = list("rat")),
                "should be one of")
-  expect_error(tcm_enrich(c("TP53", "BRCA1"), ont = list("KEGG")),
+  # 注意：2026-10-21 起 "KEGG" 已是**合法**取值（联网富集），不能再拿它当非法样例；
+  # 这里换成一个确定不存在的来源，保持"宽容类型 ≠ 放过错误值"的语义。
+  expect_error(tcm_enrich(c("TP53", "BRCA1"), ont = list("NOT_A_SOURCE")),
                "should be one of")
 })
 

@@ -28,6 +28,7 @@ needed).}
 \item{species}{\code{"human"} or \code{"mouse"}.}
 
 \item{ont}{character vector; any of \code{"GO"}, \code{"Reactome"},
+\code{"WikiPathways"}, \code{"KEGG"}.
 \code{"WikiPathways"}. Default all three.}
 
 \item{pvalueCutoff}{numeric cutoff passed to the underlying \code{enrich*} calls.}
@@ -74,14 +75,18 @@ p < 0.05; identical GeneRatio / BgRatio / p-values).
 \code{mu_wikipathways}) via \code{enricher}.
 }
 
-\strong{Licensing note:} KEGG pathway enrichment is intentionally NOT provided.
+\strong{Licensing note:} KEGG gene sets are intentionally \emph{not bundled}.
 KEGG-derived gene sets (including MSigDB C2 CP:KEGG) carry Kanehisa
-Laboratories' "all rights reserved" licensing and are not redistributable
+Laboratories' licensing and may not be redistributed with software
 (see \code{inst/extdata/DATA-README.md}). Reactome (CC BY 4.0) and
-WikiPathways (CC0 / public domain) fully cover pathway-level enrichment
-offline and redistributable. KEGG can be used as an \emph{online} add-on via
-\code{clusterProfiler::enrichKEGG()} — its \code{enrichResult} is compatible
-with the plotting functions in this package.
+WikiPathways (CC0) cover pathway-level enrichment fully offline.
+\code{ont = "KEGG"} instead fetches KEGG data \strong{at run time} from
+\url{https://rest.kegg.jp} (free for academic use on the user's own machine),
+and caches a snapshot under \code{tools::R_user_dir("TCMNP", "cache")}.
+No KEGG data is ever redistributed by this package. Because KEGG content
+changes over time, the snapshot date is attached to the result
+(\code{attr(x, "kegg_snapshot")}) — report it for reproducibility.
+Requires network access; each request may take 30-90 s (timeout 180 s).
 }
 \examples{
 \dontrun{
