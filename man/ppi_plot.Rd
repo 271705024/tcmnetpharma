@@ -14,7 +14,8 @@ ppi_plot(
   edge.color = "lightgrey",
   edge.width = c(0.2, 2),
   rem.dis.inter = FALSE,
-  graph.layout = "kk"
+  graph.layout = "kk",
+  style = c("default", "journal", "cytoscape", "presentation")
 )
 }
 \arguments{
@@ -45,6 +46,14 @@ equal to degree will be displayed.}
 "bipartite", "star","tree", "randomly",
 "gem", "graphopt","lgl", "grid",
 "mds", "sugiyama"}
+
+\item{style}{visual preset. \code{"default"} keeps the original look;
+\code{"journal"} (thin edges, white-stroked nodes, top-8 white labels,
+no legend) suits manuscript figures; \code{"cytoscape"} mimics Cytoscape
+(more FR iterations, edge width by score, top-15 labels, one colour bar);
+\code{"presentation"} uses a compact stress layout with large labels and
+full legends for slides. Only visual parameters change — data and
+statistics are identical across presets.}
 }
 \value{
 network diagrams
