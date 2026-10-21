@@ -6,7 +6,7 @@
 \alias{TCMNP-package}
 \title{TCMNP: Traditional Chinese Medicine Network Pharmacology}
 \description{
-A visualization tool for network pharmacology data analysis, powered by an integrated multi-source database (TCMSP, HERB 2.0, BATMAN-TCM 2.0, ETCM2, TTD). All underlying data are from open public sources; see inst/extdata/DATA-README.md for versioning and licensing details.
+A visualization tool for network pharmacology data analysis, powered by an integrated multi-source database (TCMSP, HERB 2.0, BATMAN-TCM 2.0, ETCM2, ChEMBL). Distributed data are from openly licensed sources; see inst/extdata/DATA-README.md for versioning and licensing details.
 }
 \author{
 \strong{Maintainer}: JianXiao Zheng \email{zhengjianxiao@tjutcm.edu.cn} (affiliation: Haihe Laboratory of Modern Traditional Chinese Medicine, Tianjin University of Traditional Chinese Medicine)

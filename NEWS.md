@@ -1,6 +1,18 @@
 # NEWS
 
-## TCMNP 0.2.0（数据修订 2026-10-14，数据版本 TCMNP_1.3.0_2026-10-12）
+## TCMNP 0.2.0（数据修订 2026-10-21，数据版本 TCMNP_1.3.0_2026-10-21）
+
+### ETCM2 未消费数据接入（2026-10-21）
+- **ETCM2 4 张已解析未消费表接入**（`02e_etcm2_align.py` 非破坏性对齐；粒度为二元组，**不进 standard 三元组**，行数守恒 16,269,155 不变）：
+  - `etcm2_herb_property.parquet`（2,079）药材性味归经；herb_dict 补空缺 Properties 378 / Meridians 367 / **新增 Flavor 列 1,511**（旧非空值 0 覆盖）；命中 92.2%
+  - `etcm2_mol_adme.parquet`（38,298）成分 QED/FDAMDD/MW；成分名精确匹配 mol_dict 40.0%（同名多 InChIKey 标 ambiguous 不硬配）
+  - `etcm2_herb_target.parquet`（2,836）药材→靶点二元组（CamelCase 拼音归一）；靶点命中 97.5%
+  - `etcm2_disease_gene.parquet`（24,106）疾病→基因二元组；基因命中 99.9%
+- **TTD 处置**：不进对外分发（All rights reserved）；其 MOA/研发阶段增值改由 **ChEMBL `drug_mechanism`/`drug_indication`** 提供（开放许可）
+- **文档纠错**：修正 `DATA-README.md` 中 TTD 版本/许可/用途三项失实、ETCM2 用途不全；`DESCRIPTION`/`TCMNP-package.Rd` 源列表移除 TTD、补 ChEMBL
+- 数据版本统一 `_2026-10-12` → `_2026-10-21`（`verify_data_readme` 版本比对稳健化）
+
+## TCMNP 0.2.0（数据修订 2026-10-14，数据版本 TCMNP_1.3.0_2026-10-21）
 
 ### Layer A 一次源融合（去依赖重建）
 - 一次性独立源 **Open Targets 25.06（CC0, EBI FTP）** 与 **SymMap V2.0** 全量接入；关系层 herb-mol-target 由 HERB 2.0 / BATMAN 2.0（已冻结、开放许可）兜底，形成「半一次依赖」骨架（合规底线：DrugBank / TTD / 药典不进对外分发产物）
