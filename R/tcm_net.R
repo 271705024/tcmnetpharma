@@ -21,6 +21,10 @@
 #' "mds", "sugiyama","fr"
 #' @param rem.dis.inter remove single free unconnected nodes
 #' @param label.repel label repel
+#' @param style visual preset, same names as \code{\link{ppi_plot}}:
+#'   \code{"default"} keeps the original look (arc edges + three legends);
+#'   \code{"journal"} / \code{"cytoscape"} / \code{"presentation"} draw a
+#'   cleaner single-layer edge set with white-backed labels.
 #'
 #' @return Network Diagram
 #' @export
@@ -67,7 +71,9 @@ tcm_net <- function(network.data,
                     edge.color = "lightgrey",
                     edge.width = c(0.2, 2),
                     graph.layout = "kk",
-                    rem.dis.inter = FALSE) {
+                    rem.dis.inter = FALSE,
+                    style = c("default", "journal", "cytoscape", "presentation")) {
+  style <- match.arg(style)
   network.data <- as.data.frame(network.data)
 
   # ★ E5 修复（2026-09-28）——「三元组列」按名取，并按节点名赋 class
@@ -140,6 +146,11 @@ tcm_net <- function(network.data,
     col <- RColorBrewer::brewer.pal(8, name = node.color)
     colorN <- grDevices::colorRampPalette(colors = col)(nrow(nodes))
     names(colorN) <- nodes$node
+
+    if (!identical(style, "default")) {
+      return(.tcm_net_style_plot(net, style, node.color, node.size, label.size,
+                                 graph.layout))
+    }
 
     ggraph(net, layout = graph.layout) +
       geom_edge_link0(aes(edge_linewidth = weight), edge_colour = edge.color) +
@@ -216,4 +227,92 @@ tcm_net <- function(network.data,
       ) +
       ggraph::theme_graph(base_family = "sans")
   }
+}
+
+
+# ---------------------------------------------------------------------------
+# 三层网络（药材-成分-靶点）风格模板（2026-10-21）
+#
+# 原实现（default）的三个具体缺陷，boss 的截图里都能看到：
+#   1. **画了两层边**：`geom_edge_link0`（直线，按 weight）+ `geom_edge_fan`
+#      （弧线，按 score）—— 同一批边画两遍，视觉上糊成一团；
+#   2. **三个图例**（degree 色条 / size / edge width）挤在右侧，吃掉 1/4 画布；
+#   3. 标签用 `geom_node_text`，没有底色，长分子名直接横穿图面。
+#
+# 注意：三层网络**天然是放射状**（每个成分挂几十个靶点，靶点度数为 1，
+# 布局算法必然把它们推到外圈）。模板只能改善"干净程度"，改变不了骨相。
+# 想要密集的靶点网络，应该走「靶点 → PPI 子网 → ppi_plot」那条路。
+# ---------------------------------------------------------------------------
+.tcm_net_style_plot <- function(net, style, node.color, node.size, label.size,
+                                graph.layout) {
+  pres <- switch(
+    style,
+    journal = list(layout = "fr", niter = 3000L, edge_alpha = 0.45,
+                   edge_width = c(0.2, 0.9), n_label = 10L, label_size = 3.0,
+                   legend = "none"),
+    cytoscape = list(layout = "fr", niter = 4000L, edge_alpha = 0.55,
+                     edge_width = c(0.3, 1.4), n_label = 15L, label_size = 3.3,
+                     legend = "class"),
+    presentation = list(layout = "fr", niter = 3500L, edge_alpha = 0.6,
+                        edge_width = c(0.4, 1.8), n_label = 20L, label_size = 4.0,
+                        legend = "all")
+  )
+  lay <- if (!identical(graph.layout, "kk")) graph.layout else pres$layout
+
+  old_seed <- if (exists(".Random.seed", envir = globalenv()))
+    get(".Random.seed", envir = globalenv()) else NULL
+  set.seed(20261021L)
+  on.exit({
+    if (is.null(old_seed)) {
+      if (exists(".Random.seed", envir = globalenv()))
+        rm(".Random.seed", envir = globalenv())
+    } else {
+      assign(".Random.seed", old_seed, envir = globalenv())
+    }
+  }, add = TRUE)
+  lay_obj <- ggraph::create_layout(net, layout = lay, niter = pres$niter)
+
+  deg <- igraph::degree(net)
+  n_lab <- min(pres$n_label, length(deg))
+  thr <- if (n_lab > 0L) sort(as.integer(deg), decreasing = TRUE)[n_lab] else 0L
+
+  col <- RColorBrewer::brewer.pal(8, name = node.color)
+  colorN <- grDevices::colorRampPalette(colors = col)(max(2L, igraph::vcount(net)))
+
+  # 形状区分三类节点（herb / molecule / target）—— 这是三层网络唯一有信息量的
+  # 视觉编码，任何模板都保留。
+  p <- ggraph::ggraph(lay_obj) +
+    ggraph::geom_edge_link0(
+      ggplot2::aes(edge_linewidth = weight),
+      colour = "grey70", alpha = pres$edge_alpha, show.legend = FALSE
+    ) +
+    ggraph::geom_node_point(
+      ggplot2::aes(colour = degree, size = degree, shape = class),
+      alpha = 1, show.legend = c(size = FALSE, colour = FALSE, shape = TRUE)
+    ) +
+    ggplot2::scale_colour_gradientn(colours = rev(colorN)) +
+    ggraph::scale_edge_width(range = pres$edge_width, guide = "none") +
+    ggplot2::scale_size_continuous(range = node.size, guide = "none") +
+    (if (n_lab > 0L) ggraph::geom_node_label(
+      # 长 IUPAC 分子名（如 5,7-dihydroxy-3-(4-methoxyphenyl)-8-...）会把
+      # 版面横向劈成两半，截到 24 字符。完整名可导出边表查看。
+      ggplot2::aes(filter = degree >= thr,
+                   label = ifelse(nchar(name) > 24,
+                                  paste0(substr(name, 1, 23), "\u2026"), name)),
+      size = pres$label_size, repel = TRUE,
+      label.size = 0.12, label.padding = ggplot2::unit(0.10, "lines"),
+      fill = "white", colour = "grey15", alpha = 0.92
+    ) else NULL) +
+    ggraph::theme_graph(background = "white", base_family = "sans") +
+    ggplot2::theme(
+      legend.position = if (identical(pres$legend, "none")) "none" else "right",
+      legend.key.size = ggplot2::unit(0.9, "lines"),
+      plot.margin = ggplot2::margin(4, 4, 4, 4)
+    )
+
+  if (identical(pres$legend, "class")) {
+    p <- p + ggplot2::guides(shape = ggplot2::guide_legend(
+      title = "type", override.aes = list(size = 3.2)))
+  }
+  p
 }

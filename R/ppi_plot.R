@@ -310,7 +310,9 @@ ppi_plot <- function(data,
     ggplot2::scale_size(range = pres$size_range, guide = "none") +
     ggraph::scale_edge_width(range = pres$edge_width, guide = "none") +
     (if (pres$n_label > 0L) ggraph::geom_node_label(
-      ggplot2::aes(filter = degree >= thr, label = name),
+      ggplot2::aes(filter = degree >= thr,
+                   label = ifelse(nchar(name) > 24,
+                                  paste0(substr(name, 1, 23), "\u2026"), name)),
       size = pres$label_size, repel = TRUE,
       label.size = 0.12, label.padding = ggplot2::unit(0.10, "lines"),
       fill = "white", colour = "grey15", alpha = 0.92

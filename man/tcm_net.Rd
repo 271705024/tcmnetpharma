@@ -14,7 +14,8 @@ tcm_net(
   edge.color = "lightgrey",
   edge.width = c(0.2, 2),
   graph.layout = "kk",
-  rem.dis.inter = FALSE
+  rem.dis.inter = FALSE,
+  style = c("default", "journal", "cytoscape", "presentation")
 )
 }
 \arguments{
@@ -46,6 +47,11 @@ equal to degree will be displayed.}
 "mds", "sugiyama","fr"}
 
 \item{rem.dis.inter}{remove single free unconnected nodes}
+
+\item{style}{visual preset, same names as \code{\link{ppi_plot}}:
+\code{"default"} keeps the original look (arc edges + three legends);
+\code{"journal"} / \code{"cytoscape"} / \code{"presentation"} draw a
+cleaner single-layer edge set with white-backed labels.}
 }
 \value{
 Network Diagram
