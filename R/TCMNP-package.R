@@ -71,6 +71,11 @@ if (getRversion() >= "2.15.1") {
     "next_x",
     "node",
     "richFactor",
+    # 2026-10-22 风格预设：形制函数在 ggplot2::aes() 里引用这两个派生列
+    # （.go_barplot_literature 的 -log10(p.adjust)、.go_dotplot_genratio 的
+    #  GeneRatio 数值化），否则 R CMD check 报 no visible binding。
+    "neglogp",
+    "x_value",
     "RichFactor",
     "rowname",
     "size",

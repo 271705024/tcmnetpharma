@@ -20,6 +20,7 @@
 #' @param text.width text width
 #' @param plot.set "horizontal" or "vertical"
 #' @param title title
+#' @param style visual preset: \code{"default"} keeps the original look, \code{"journal"} applies a publication theme (white background, no grid, thin axis lines), \code{"presentation"} enlarges text and axis lines for slides. Only visuals change; data and statistics are identical across presets.
 #' @param ... additional parameters
 #'
 #' @return bar plot
@@ -57,7 +58,9 @@ degree_plot <- function(data,
                         text.width = 20,
                         plot.set = "vertical",
                         title = "the degree of networks",
+                        style = c("default", "journal", "presentation"),
                         ...) {
+  style <- match.arg(style, .tcm_style_generic)
   # data processing
   deg <- data %>% dplyr::mutate(., value = 1)
   herb_degree <- aggregate(deg$value, by = list(deg$herb), length) %>%
@@ -103,7 +106,7 @@ degree_plot <- function(data,
       ) +
       coord_flip() +
       scale_y_continuous(expand = c(0, 0))
-    return(p)
+    return(.tcm_style_apply(p, style))
   } else if (plot.set == "horizontal") {
     # hertical version
     p <- ggplot(data = data_sorted, aes(x = id, y = degree, fill = type)) +
@@ -124,7 +127,7 @@ degree_plot <- function(data,
         axis.text = element_text(size = text.size, colour = "black")
       ) +
       scale_y_continuous(expand = c(0, 0))
-    return(p)
+    return(.tcm_style_apply(p, style))
   } else {
     print("The plot.set must be 'horizontal' or 'vertical'.")
   }

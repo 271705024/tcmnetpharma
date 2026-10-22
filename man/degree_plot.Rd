@@ -12,6 +12,7 @@ degree_plot(
   text.width = 20,
   plot.set = "vertical",
   title = "the degree of networks",
+  style = c("default", "journal", "presentation"),
   ...
 )
 }
@@ -41,6 +42,8 @@ the number of categories to show}
 \item{plot.set}{"horizontal" or "vertical"}
 
 \item{title}{title}
+
+\item{style}{visual preset: \code{"default"} keeps the original look, \code{"journal"} applies a publication theme (white background, no grid, thin axis lines), \code{"presentation"} enlarges text and axis lines for slides. Only visuals change; data and statistics are identical across presets.}
 
 \item{...}{additional parameters}
 }

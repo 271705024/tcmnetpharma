@@ -1,5 +1,21 @@
 # NEWS
 
+## 未发布（2026-10-22）
+
+### 出图风格预设：GO 富集文献形制 + 通用期刊/演示风
+
+- **`go_barplot(style = )`** 新增 6 种预设（**只改视觉，条目与统计量完全一致**，见 `tests/testthat/test-style-presets.R`）：
+  - `classic`（新增）文献最常见形制：横条长度 = 基因数 `Count`，按本体（BP/CC/MF）三色，条端标注 Count
+  - `grouped`（新增）"三合一图"：BP/CC/MF 分面，长度 = `Count`，颜色 = `p.adjust` 渐变
+  - `significance`（新增）长度与颜色均为 `-log10(p.adjust)`，单图按显著性排序
+  - `journal` / `presentation`（新增）通用期刊风 / 演示风
+  - `default` 保持原有输出不变
+- **`go_dotplot(style = )`** 新增 `genratio`（横轴 `GeneRatio`，clusterProfiler 经典口径，文献绝大多数气泡图用此口径）、`journal`、`presentation`；`default` 仍为 Rich Factor。GeneRatio 缺失时自动退回 Rich Factor 并给出 message（不静默丢点）
+- **`bar_plot` / `degree_plot` / `tcm_sankey`** 新增 `style = c("default","journal","presentation")`，统一走 `R/style-presets.R` 的 `.tcm_style_apply()`（风格单一事实源）
+- **GUI**：富集可视化新增「出图风格」下拉（文献横条 / 三合一分面 / 显著性渐变 / GeneRatio 气泡 / 期刊风 / 演示风）；绘图页的风格下拉改为**按图型动态重建**（此前只有 4 个网络风选项且提示"仅网络类图生效"）
+- **契约**：`plot_contract` / `enrich_plot_contract` 新增 `styles` 字段（风格白名单单一事实源），前后端一致由 `test-style-presets.R` 双向断言
+- **防御**：非法风格值在后端被 `.sanitize_style()` 丢弃并记 `style_dropped` 日志，不再因 `match.arg` 报错中断出图
+
 ## TCMNP 0.2.0（数据修订 2026-10-21，数据版本 TCMNP_1.3.0_2026-10-21）
 
 ### CID 桥接假阴性修复（2026-10-21）

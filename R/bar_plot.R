@@ -16,6 +16,7 @@
 #' cellular component, CC
 #' molecular function, MF
 #' biological process, BP
+#' @param style visual preset: \code{"default"} keeps the original look, \code{"journal"} applies a publication theme (white background, no grid, thin axis lines), \code{"presentation"} enlarges text and axis lines for slides. Only visuals change; data and statistics are identical across presets.
 #' @param ... additional parameters
 #'
 #' @return barplot
@@ -42,7 +43,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' data(xfbdf, package = "TCMNP")
+#' data(xfbdf, package = "tcmnetpharma")
 #' # 富集结果：GO / Reactome / WikiPathways 全部离线，无需 OrgDb 包
 #' res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
 #'                   pvalueCutoff = 0.05, qvalueCutoff = 1)
@@ -61,7 +62,9 @@ bar_plot <- function(data,
                      text.width = 35,
                      text.bar = 4,
                      title = NULL,
-                     sort.by = c("count", "p.adjust"), ...) {
+                     sort.by = c("count", "p.adjust"),
+                     style = c("default", "journal", "presentation"), ...) {
+  style <- match.arg(style, .tcm_style_generic)
   # data processing
   sort.by <- match.arg(sort.by)
   if (isS4(data)) {
@@ -142,5 +145,5 @@ bar_plot <- function(data,
     theme(legend.position = "right") +
     ylab(NULL) +
     ggtitle(title)
-  return(p)
+  return(.tcm_style_apply(p, style))
 }

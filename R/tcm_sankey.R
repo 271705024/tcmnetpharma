@@ -4,6 +4,7 @@
 #' @param text.size text size
 #' @param text.position text position 0, 0.5, 1
 #' @param x.axis.text.size Location of x-axis labels in sankey plot
+#' @param style visual preset: \code{"default"} keeps the original look, \code{"journal"} applies a publication theme (white background, no grid, thin axis lines), \code{"presentation"} enlarges text and axis lines for slides. Only visuals change; data and statistics are identical across presets.
 #' @param ... additional parameters
 #'
 #' @return figure
@@ -25,7 +26,7 @@
 #' @importFrom cols4all c4a
 #'
 #' @examples
-#' data("xfbdf", package = "TCMNP")
+#' data("xfbdf", package = "tcmnetpharma")
 #' data <- xfbdf %>% dplyr::slice_sample(n = 30)
 #' tcm_sankey(data, text.position = 1)
 
@@ -33,7 +34,9 @@ tcm_sankey <- function(data_sankey,
                        text.size = 3,
                        text.position = 0,
                        x.axis.text.size = 12,
+                       style = c("default", "journal", "presentation"),
                        ...){
+  style <- match.arg(style, .tcm_style_generic)
   # color settings
   df <- data_sankey %>%
         as.data.frame()%>%
@@ -78,5 +81,5 @@ tcm_sankey <- function(data_sankey,
       hjust = 0.5, vjust = 10,
       colour = "black"
     ))
-  return(p)
+  return(.tcm_style_apply(p, style))
 }

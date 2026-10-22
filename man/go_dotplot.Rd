@@ -11,6 +11,7 @@ go_dotplot(
   text.size = 12,
   text.width = 35,
   title = "GO enrichment of cluster",
+  style = c("default", "genratio", "journal", "presentation"),
   ...
 )
 }
@@ -28,6 +29,14 @@ the number of categories to show}
 
 \item{title}{title}
 
+\item{style}{visual preset. \code{"default"} keeps the original look
+(x = Rich Factor). \code{"genratio"} uses the clusterProfiler convention
+most papers follow: x = \code{GeneRatio} (k/n), dot size = \code{Count},
+colour = \code{p.adjust}. \code{"journal"} / \code{"presentation"}
+apply a publication / slide theme on top of the default form.
+\strong{Only the visual form changes} — the selected terms and their
+statistics are identical across presets.}
+
 \item{...}{additional parameters}
 }
 \value{
@@ -39,10 +48,12 @@ Dot plot showed the results of GO results
 \examples{
 \dontrun{
 # 富集结果：GO 离线即可，无需 OrgDb 包（等价 enrichGO(ont = "all")）
-data(xfbdf, package = "TCMNP")
+data(xfbdf, package = "tcmnetpharma")
 res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
                   pvalueCutoff = 0.01, qvalueCutoff = 0.05)
 go.diff <- res$go
 go_dotplot(go.diff, color = "Spectral")
+# 文献标准口径（2026-10-22 新增预设）：横轴 GeneRatio，点大小 = 基因数
+go_dotplot(go.diff, top = 10, style = "genratio")
 }
 }

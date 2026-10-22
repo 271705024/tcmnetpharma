@@ -14,6 +14,7 @@ go_barplot(
   text.size = 12,
   text.width = 30,
   title = "GO enrichment of cluster",
+  style = c("default", "classic", "grouped", "significance", "journal", "presentation"),
   ...
 )
 }
@@ -46,6 +47,19 @@ colour9 <- c("#A40545", "#7FCBA4", "#4B65AF")}
 
 \item{title}{title}
 
+\item{style}{visual preset. \code{"default"} keeps the original look.
+\code{"classic"} is the form most used in the GO literature: horizontal
+bars whose length is the gene \code{Count}, filled by ontology
+(BP/CC/MF), with the count printed at the bar end.
+\code{"grouped"} facets BP/CC/MF into separate panels, bar length =
+\code{Count}, fill = \code{p.adjust} gradient ("three-in-one" figure).
+\code{"significance"} keeps one panel and uses \code{-log10(p.adjust)}
+as both bar length and fill gradient.
+\code{"journal"} / \code{"presentation"} apply a publication /
+slide theme on top of the default form.
+\strong{Only the visual form changes} — the selected terms, their counts and
+all statistics are identical across presets.}
+
 \item{...}{additional parameters}
 }
 \value{
@@ -57,10 +71,14 @@ Bar graphs showed the results of GO results
 \examples{
 \dontrun{
 # 富集结果：GO 离线即可，无需 OrgDb 包（等价 enrichGO(ont = "all")）
-data(xfbdf, package = "TCMNP")
+data(xfbdf, package = "tcmnetpharma")
 res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
                   pvalueCutoff = 0.01, qvalueCutoff = 0.05)
 go.diff <- res$go
 go_barplot(go.diff)
+# 文献常用形制（2026-10-22 新增预设）：横条长度 = 基因数，按本体三色
+go_barplot(go.diff, top = 10, style = "classic")
+# BP/CC/MF 三栏分面 + p 值渐变（"三合一图"）
+go_barplot(go.diff, top = 8, style = "grouped")
 }
 }

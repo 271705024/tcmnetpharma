@@ -9,6 +9,7 @@ tcm_sankey(
   text.size = 3,
   text.position = 0,
   x.axis.text.size = 12,
+  style = c("default", "journal", "presentation"),
   ...
 )
 }
@@ -21,6 +22,8 @@ tcm_sankey(
 
 \item{x.axis.text.size}{Location of x-axis labels in sankey plot}
 
+\item{style}{visual preset: \code{"default"} keeps the original look, \code{"journal"} applies a publication theme (white background, no grid, thin axis lines), \code{"presentation"} enlarges text and axis lines for slides. Only visuals change; data and statistics are identical across presets.}
+
 \item{...}{additional parameters}
 }
 \value{
@@ -30,7 +33,7 @@ figure
 Sankey diagram
 }
 \examples{
-data("xfbdf", package = "TCMNP")
+data("xfbdf", package = "tcmnetpharma")
 data <- xfbdf \%>\% dplyr::slice_sample(n = 30)
 tcm_sankey(data, text.position = 1)
 }
