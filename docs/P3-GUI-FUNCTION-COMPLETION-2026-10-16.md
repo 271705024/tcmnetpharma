@@ -55,11 +55,13 @@
   - **端到端实证**：`tcm_enrich(30 基因)` → go 2020 / reactome 734 / **wikipathways 522** 项，三绘图器串联 OK，全程离线。
   - `DESCRIPTION`：`clusterProfiler`/`DOSE`/`org.Hs.eg.db`/`org.Mm.eg.db` 已自 Suggests→Imports（进 exe 分发）。
   - **R CMD check（70f1zL）Status: OK（0 WARNING / 0 NOTE）**：初次 2 WARNING/2 NOTE 已清零——漏跑 `document()` 补生成 man/human_wikipathways.Rd、man/mu_wikipathways.Rd、tcm_enrich.Rd 默认更正；`globalVariables()` 增 4 个基因集名；OrgDb `::` 引用消 NOTE。
-- **待办（GUI 串联，本阶段后半）**：
-  - `gui-app/R/server.R`：新增 `run_enrich` handler + 绘图白名单加 `go_barplot`/`pathway_ccplot`（及 `go_dotplot`/`pathway_cirplot`）。
-  - `gui-app/R/adapter.R`：富集结果框列契约（`ID/Description/Count/p.adjust` 等）。
-  - `gui-app/www/*`：新增"富集"流程 UI（查询结果→抽基因→跑富集→结果框→绘图）。
-- **自检**：GUI 内选查询结果→跑富集→出 GO/WikiPathways/Reactome 图，**全程无外部干预**；`R CMD check` 绿。
+- **GUI 串联：✅ 已实现（2026-10-17，待 test-enrich.R 全绿 + boss 视觉验收）**：
+  - `gui-app/R/server.R`：新增 `run_enrich` handler（payload=genes/species/ont/pvalueCutoff…，`tcm_enrich()` → `flatten_enrich_to_df()` → 表格）+ `run_enrich_plot` handler（按 `.TCMNP_ENRICH_PLOT` 注册表分发：首参名 `go.diff`/`data`、按 source 过滤、列契约校验、喂给 `go_barplot`/`go_dotplot`/`pathway_ccplot`/`pathway_cirplot`）。两条均 async + tryCatch 收敛为 ok=FALSE 返回值（绝不抛）。
+  - `gui-app/R/adapter.R`：新增 `flatten_enrich_to_df()`（enrichResult 列表→统一表 + `source` 列）+ `.TCMNP_ENRICH_PLOT` 注册表（4 图的首参/来源/列契约）。
+  - `gui-app/www/index.html`：新增「富集」导航 + `page-enrich`（基因输入/从查询取基因/物种/来源勾选/p 阈值/结果表/4 个绘图按钮/图预览/导出）。
+  - `gui-app/www/js/app.js`：富集流程逻辑（`buildEnrichArgs`/`run_enrich_result`/`run_enrich_plot_result`/`genesFromLastQuery` 等），复用 `renderTable`/`beginReq`/`addResult`/`sendExportCsv/Png`。
+  - `gui-app/tests/test-enrich.R`：后端自测（铁律28）——跑真实基因 → flatten → 4 图出 base64 png；并证伪「go 图误吃 pathway 数据」。
+- **自检**：`tests/test-enrich.R` 全绿即证明"接入可用"；GUI 内交互（按钮/视觉）需 boss 在 RDesk 运行时肉眼验收。R CMD check（R 包层）已绿（70f1zL）。
 
 ### G1 · 拓扑模块识别
 - **目标**：R 包补 betweenness/closeness 中心性 + MCODE/community 模块检测（核心靶点识别）；接 GUI。
