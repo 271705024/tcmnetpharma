@@ -46,10 +46,10 @@ Desktop.ini
 .idea/
 .vscode/
 
-# --- inst/extdata 数据件例外（parquet 为包内运行时数据，必须入库）----
-# 说明：P4 exe 分发包的离线数据源即 inst/extdata/*.parquet，
-#       上游规则 `*.parquet` 会误伤，故此处显式反忽略。
-!inst/extdata/*.parquet
+# --- inst/extdata 数据件（parquet 为运行时数据，已外置，不入库）----
+# 说明：P4 exe 分发包的离线数据源 inst/extdata/*.parquet 已外置，
+#       通过 GitHub Releases / Zenodo(DOI) 分发，由 tools/fetch-data.R 拉取；
+#       故此处保留全局 `*.parquet` 忽略，不再反忽略入库。
 
 # --- 构建身份注入残留（构建期由 make_build_identity.py 写入，不应入库）----
 # 说明：流水线 build 阶段会把 BUILD-INFO.json 注入 inst/ 再打包，
