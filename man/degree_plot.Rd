@@ -13,6 +13,7 @@ degree_plot(
   plot.set = "vertical",
   title = "the degree of networks",
   style = c("default", "journal", "presentation"),
+  palette = NULL,
   ...
 )
 }
@@ -44,6 +45,10 @@ the number of categories to show}
 \item{title}{title}
 
 \item{style}{visual preset: \code{"default"} keeps the original look, \code{"journal"} applies a publication theme (white background, no grid, thin axis lines), \code{"presentation"} enlarges text and axis lines for slides. Only visuals change; data and statistics are identical across presets.}
+
+\item{palette}{colour scheme key, see \code{\link[=tcm_palette_names]{tcm_palette_names()}}. \code{NULL}
+(default) keeps \code{color}. The chart has three node types
+(herb / molecule / target), so the first three colours are used.}
 
 \item{...}{additional parameters}
 }

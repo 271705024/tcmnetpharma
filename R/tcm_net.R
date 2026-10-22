@@ -25,6 +25,10 @@
 #'   \code{"default"} keeps the original look (arc edges + three legends);
 #'   \code{"journal"} / \code{"cytoscape"} / \code{"presentation"} draw a
 #'   cleaner single-layer edge set with white-backed labels.
+#' @param palette colour scheme key, see [tcm_palette_names()]. `NULL`
+#'   (default) keeps the ColorBrewer colours named by \code{node.color};
+#'   a palette key replaces that base colour set. Colours only — the node
+#'   set, edges and layout are unaffected.
 #'
 #' @return Network Diagram
 #' @export
@@ -53,7 +57,7 @@
 #' @importFrom igraph graph_from_data_frame
 #' @examples
 #' \dontrun{
-#' data("xfbdf", package = "TCMNP")
+#' data("xfbdf", package = "tcmnetpharma")
 #' network.data <- xfbdf %>%
 #'   dplyr::select(herb, molecule, target) %>%
 #'   dplyr::slice_sample(n = 100) %>%
@@ -72,8 +76,14 @@ tcm_net <- function(network.data,
                     edge.width = c(0.2, 2),
                     graph.layout = "kk",
                     rem.dis.inter = FALSE,
-                    style = c("default", "journal", "cytoscape", "presentation")) {
+                    style = c("default", "journal", "cytoscape", "presentation"),
+                    palette = NULL) {
   style <- match.arg(style)
+  palette <- .tcm_palette_check(palette)
+  # 配色体系（2026-10-22）：统一成一组基准色，各分支（含风格模板）都从它插值，
+  # 保证「同一张图换风格不改配色逻辑」。
+  node_base <- if (is.null(palette)) RColorBrewer::brewer.pal(8, name = node.color) else
+    .tcm_palette_ramp(palette, 8L)
   network.data <- as.data.frame(network.data)
 
   # ★ E5 修复（2026-09-28）——「三元组列」按名取，并按节点名赋 class
@@ -143,13 +153,13 @@ tcm_net <- function(network.data,
     # Plot with ggraph
     # ggraph is a package based on ggplot2,
     # the syntax is similar to regular ggplot2
-    col <- RColorBrewer::brewer.pal(8, name = node.color)
+    col <- node_base
     colorN <- grDevices::colorRampPalette(colors = col)(nrow(nodes))
     names(colorN) <- nodes$node
 
     if (!identical(style, "default")) {
       return(.tcm_net_style_plot(net, style, node.color, node.size, label.size,
-                                 graph.layout))
+                                 graph.layout, node_base))
     }
 
     ggraph(net, layout = graph.layout) +
@@ -181,7 +191,7 @@ tcm_net <- function(network.data,
         data.frame(node = c(.$from, .$to))
       } %>%
       dplyr::distinct()
-    col <- RColorBrewer::brewer.pal(8, name = node.color)
+    col <- node_base
     colorN <- grDevices::colorRampPalette(colors = col)(nrow(nodes))
     names(colorN) <- nodes$node
 
@@ -244,7 +254,8 @@ tcm_net <- function(network.data,
 # 想要密集的靶点网络，应该走「靶点 → PPI 子网 → ppi_plot」那条路。
 # ---------------------------------------------------------------------------
 .tcm_net_style_plot <- function(net, style, node.color, node.size, label.size,
-                                graph.layout) {
+                                graph.layout, node_base = NULL) {
+  if (is.null(node_base)) node_base <- RColorBrewer::brewer.pal(8, name = node.color)
   pres <- switch(
     style,
     journal = list(layout = "fr", niter = 3000L, edge_alpha = 0.45,
@@ -276,7 +287,7 @@ tcm_net <- function(network.data,
   n_lab <- min(pres$n_label, length(deg))
   thr <- if (n_lab > 0L) sort(as.integer(deg), decreasing = TRUE)[n_lab] else 0L
 
-  col <- RColorBrewer::brewer.pal(8, name = node.color)
+  col <- node_base
   colorN <- grDevices::colorRampPalette(colors = col)(max(2L, igraph::vcount(net)))
 
   # 形状区分三类节点（herb / molecule / target）—— 这是三层网络唯一有信息量的

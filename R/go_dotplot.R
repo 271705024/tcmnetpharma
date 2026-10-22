@@ -14,6 +14,10 @@
 #'   apply a publication / slide theme on top of the default form.
 #'   **Only the visual form changes** — the selected terms and their
 #'   statistics are identical across presets.
+#' @param palette colour scheme key, see [tcm_palette_names()]. `NULL`
+#'   (default) keeps the ColorBrewer ramp named by \code{color}; a palette
+#'   key replaces that ramp (interpolated to a continuous scale).
+#'   Colours only — data and statistics are untouched.
 #' @param ... additional parameters
 #'
 #' @return dotplot
@@ -65,8 +69,13 @@ go_dotplot <- function(go.diff,
                        text.width = 35,
                        title = "GO enrichment of cluster",
                        style = c("default", "genratio", "journal", "presentation"),
+                       palette = NULL,
                        ...) {
   style <- match.arg(style)
+  palette <- .tcm_palette_check(palette)
+  # 连续型配色：点色映射的是 p.adjust，故取色阶（不是分类色）
+  grad_cols <- if (is.null(palette)) RColorBrewer::brewer.pal(8, color) else
+    .tcm_palette_ramp(palette, 8L)
   # data processing
   if (isS4(go.diff)) {
     go.diff <- go.diff@result
@@ -96,7 +105,7 @@ go_dotplot <- function(go.diff,
   #   RichFactor = 命中基因数 / 该条目注释基因总数（衡量"条目被覆盖比例"）
   # 二者都是有效口径，故做成预设而不是替换默认（不改变 default 的历史输出）。
   if (identical(style, "genratio")) {
-    return(.go_dotplot_genratio(go_enrich, color, text.size, text.width, title))
+    return(.go_dotplot_genratio(go_enrich, grad_cols, text.size, text.width, title))
   }
 
   # ggplot2 plotting
@@ -104,7 +113,7 @@ go_dotplot <- function(go.diff,
     geom_point(aes(color = p.adjust, size = Count)) +
     facet_grid(ONTOLOGY ~ ., scales = "free_y", space = "free_y") +
     scale_color_gradientn(
-      colours = RColorBrewer::brewer.pal(8, color),
+      colours = grad_cols,
       trans = "log10",
       guide = guide_colorbar(reverse = TRUE, order = 1)
     ) +
@@ -139,7 +148,7 @@ go_dotplot <- function(go.diff,
 # Rich Factor 并给出 message** —— 不做「部分行静默丢掉」：
 #   气泡图少几个点比多点一个假的 x 轴更危险（读者无从发现）。
 # ---------------------------------------------------------------------------
-.go_dotplot_genratio <- function(go_enrich, color, text.size, text.width, title) {
+.go_dotplot_genratio <- function(go_enrich, grad_cols, text.size, text.width, title) {
   xl <- "GeneRatio"
   gr <- rep(NA_real_, nrow(go_enrich))
   if ("GeneRatio" %in% names(go_enrich)) {
@@ -162,7 +171,7 @@ go_dotplot <- function(go.diff,
     geom_point(aes(color = p.adjust, size = Count)) +
     facet_grid(ONTOLOGY ~ ., scales = "free_y", space = "free_y") +
     scale_color_gradientn(
-      colours = RColorBrewer::brewer.pal(8, color),
+      colours = grad_cols,
       trans = "log10",
       guide = guide_colorbar(reverse = TRUE, order = 1)
     ) +

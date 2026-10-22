@@ -10,6 +10,7 @@ tcm_sankey(
   text.position = 0,
   x.axis.text.size = 12,
   style = c("default", "journal", "presentation"),
+  palette = NULL,
   ...
 )
 }
@@ -23,6 +24,9 @@ tcm_sankey(
 \item{x.axis.text.size}{Location of x-axis labels in sankey plot}
 
 \item{style}{visual preset: \code{"default"} keeps the original look, \code{"journal"} applies a publication theme (white background, no grid, thin axis lines), \code{"presentation"} enlarges text and axis lines for slides. Only visuals change; data and statistics are identical across presets.}
+
+\item{palette}{colour scheme key, see \code{\link[=tcm_palette_names]{tcm_palette_names()}}. \code{NULL}
+(default) keeps the built-in rainbow palette. Colours only.}
 
 \item{...}{additional parameters}
 }

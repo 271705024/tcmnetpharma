@@ -38,6 +38,8 @@ export(tcm_enrich)
 export(tcm_intersect_target)
 export(tcm_modules)
 export(tcm_net)
+export(tcm_palette)
+export(tcm_palette_names)
 export(tcm_ppi)
 export(tcm_pre_plot)
 export(tcm_prescription)
@@ -244,3 +246,4 @@ importFrom(utils,
   stack,
   tail
 )
+importFrom(viridisLite,viridis)

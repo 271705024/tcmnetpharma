@@ -16,7 +16,8 @@ ppi_plot(
   rem.dis.inter = FALSE,
   graph.layout = "kk",
   style = c("default", "journal", "cytoscape", "presentation", "hub30", "module",
-    "minimal")
+    "minimal"),
+  palette = NULL
 )
 }
 \arguments{
@@ -55,6 +56,11 @@ no legend) suits manuscript figures; \code{"cytoscape"} mimics Cytoscape
 \code{"presentation"} uses a compact stress layout with large labels and
 full legends for slides. Only visual parameters change — data and
 statistics are identical across presets.}
+
+\item{palette}{colour scheme key, see \code{\link[=tcm_palette_names]{tcm_palette_names()}}. \code{NULL}
+(default) keeps the ColorBrewer palette named by \code{node.color};
+a palette key replaces that gradient. Colours only — the node set,
+layout and statistics are identical.}
 }
 \value{
 network diagrams
@@ -64,7 +70,7 @@ Protein-protein interaction analysis
 }
 \examples{
 \dontrun{
-data(ppi_data, package = "TCMNP")
+data(ppi_data, package = "tcmnetpharma")
 ppi_plot(ppi_data, label.repel = FALSE)
 }
 }

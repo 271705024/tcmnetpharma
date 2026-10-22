@@ -1,6 +1,6 @@
-Package: TCMNP
+Package: tcmnetpharma
 Type: Package
-Title: Traditional Chinese Medicine Network Pharmacology
+Title: Network Pharmacology Analysis Toolkit for Traditional Chinese Medicine
 Version: 0.2.0
 Authors@R: 
     person(given = "JianXiao",
@@ -37,6 +37,7 @@ Imports:
     UpSetR,
     ggvenn,
     tidygraph,
+    viridisLite,
     methods,
     VennDetail,
     clusterProfiler,

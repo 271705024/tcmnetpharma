@@ -12,6 +12,7 @@ go_dotplot(
   text.width = 35,
   title = "GO enrichment of cluster",
   style = c("default", "genratio", "journal", "presentation"),
+  palette = NULL,
   ...
 )
 }
@@ -36,6 +37,11 @@ colour = \code{p.adjust}. \code{"journal"} / \code{"presentation"}
 apply a publication / slide theme on top of the default form.
 \strong{Only the visual form changes} — the selected terms and their
 statistics are identical across presets.}
+
+\item{palette}{colour scheme key, see \code{\link[=tcm_palette_names]{tcm_palette_names()}}. \code{NULL}
+(default) keeps the ColorBrewer ramp named by \code{color}; a palette
+key replaces that ramp (interpolated to a continuous scale).
+Colours only — data and statistics are untouched.}
 
 \item{...}{additional parameters}
 }

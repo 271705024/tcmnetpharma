@@ -15,7 +15,8 @@ tcm_net(
   edge.width = c(0.2, 2),
   graph.layout = "kk",
   rem.dis.inter = FALSE,
-  style = c("default", "journal", "cytoscape", "presentation")
+  style = c("default", "journal", "cytoscape", "presentation"),
+  palette = NULL
 )
 }
 \arguments{
@@ -52,6 +53,11 @@ equal to degree will be displayed.}
 \code{"default"} keeps the original look (arc edges + three legends);
 \code{"journal"} / \code{"cytoscape"} / \code{"presentation"} draw a
 cleaner single-layer edge set with white-backed labels.}
+
+\item{palette}{colour scheme key, see \code{\link[=tcm_palette_names]{tcm_palette_names()}}. \code{NULL}
+(default) keeps the ColorBrewer colours named by \code{node.color};
+a palette key replaces that base colour set. Colours only — the node
+set, edges and layout are unaffected.}
 }
 \value{
 Network Diagram
@@ -61,7 +67,7 @@ Network interaction diagram of herbs, ingredients, and targets
 }
 \examples{
 \dontrun{
-data("xfbdf", package = "TCMNP")
+data("xfbdf", package = "tcmnetpharma")
 network.data <- xfbdf \%>\%
   dplyr::select(herb, molecule, target) \%>\%
   dplyr::slice_sample(n = 100) \%>\%

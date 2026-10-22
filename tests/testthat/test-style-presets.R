@@ -100,6 +100,30 @@ test_that("bar_plot / degree_plot 的 journal、presentation 出图且条目数�
   }
 })
 
+test_that("go_barplot 的 top 是「每个本体各 top 条」，不是全局 top", {
+  go <- go_fixture()
+  # 实测语义（2026-10-22 核对）：函数内先 group_by(ONTOLOGY) 再 slice(1:top)，
+  # 所以 top=5 最多给出 5*3=15 条（BP/CC/MF 各 5），不是 5 条。
+  # 锁这条是为防「顺手改成全局 top」—— 那会让用户拿到的图莫名少一半。
+  n5 <- nrow(go_barplot(go, top = 5, style = "classic")$data)
+  n9 <- nrow(go_barplot(go, top = 9, style = "classic")$data)
+  n_ont <- length(unique(as.character(go@result$ONTOLOGY)))
+  expect_lte(n5, 5L * n_ont)
+  expect_gt(n5, 5L)          # 若哪天变成全局 top，这条会失败
+  expect_gt(n9, n5)          # top 增大条目必须变多（否则 top 被静默忽略）
+})
+
+test_that("各风格下 top 的效果一致（风格不能改变入选条目数）", {
+  go <- go_fixture()
+  ns <- vapply(
+    c("default", "classic", "grouped", "significance",
+      "journal", "presentation"),
+    function(st) nrow(go_barplot(go, top = 4, style = st)$data),
+    integer(1)
+  )
+  expect_equal(unname(ns), rep(ns[[1]], length(ns)))
+})
+
 test_that("非法风格值必须报错（不静默出图）", {
   data("kegg.filter", package = "tcmnetpharma", envir = environment())
   expect_error(bar_plot(kegg.filter, style = "cytoscape"))

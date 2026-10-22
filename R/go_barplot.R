@@ -2,7 +2,10 @@
 #'
 #' @param go.diff R clusterprofiler package for enrichGO results
 #' @param top  According to the order of P adjust value from small to large
-#' the number of categories to show
+#' the number of categories to show **per ontology**. Because GO terms are
+#' grouped by \code{ONTOLOGY} (BP / CC / MF) before slicing, \code{top = 8}
+#' yields at most \code{8 * 3 = 24} bars (8 from each ontology); ontologies
+#' with fewer significant terms contribute fewer.
 #' @param plot.set "horizontal" or "vertical"
 #' @param facet facet
 #' @param color color, Recommended color:
@@ -31,6 +34,11 @@
 #'   slide theme on top of the default form.
 #'   **Only the visual form changes** — the selected terms, their counts and
 #'   all statistics are identical across presets.
+#' @param palette colour scheme key, see [tcm_palette_names()]. `NULL`
+#'   (default) keeps the colours given by \code{color}. Setting a palette
+#'   overrides \code{color} and also drives the gradient used by the
+#'   \code{"grouped"} / \code{"significance"} forms. Colours only — data and
+#'   statistics are untouched.
 #' @param ... additional parameters
 #'
 #' @return bar plot
@@ -88,8 +96,10 @@ go_barplot <- function(go.diff,
                        title = "GO enrichment of cluster",
                        style = c("default", "classic", "grouped", "significance",
                                  "journal", "presentation"),
+                       palette = NULL,
                        ...) {
   style <- match.arg(style)
+  palette <- .tcm_palette_check(palette)
   # data processing
   if (isS4(go.diff)) {
     go.diff <- go.diff@result
@@ -120,9 +130,17 @@ go_barplot <- function(go.diff,
   #   significance x = -log10(p.adjust)，且按显著性渐变上色（单图）
   # ⚠️ 三者与 default **共用同一份 go_enrich**（同样每本体 top 个条目），
   #    只改「x 轴口径 / 配色映射 / 是否分面」——条目集合与统计量完全一致。
+  # 配色体系（2026-10-22）：ONTOLOGY 是 3 分类 -> 取色板前 3 色；
+  # 渐变（grouped / significance）取该色板的插值色阶。
+  if (!is.null(palette)) color <- tcm_palette(palette, 3L)
+  grad_cols <- if (is.null(palette)) {
+    rev(RColorBrewer::brewer.pal(8, "RdBu"))
+  } else {
+    .tcm_palette_ramp(palette, 8L)
+  }
   if (style %in% c("classic", "grouped", "significance")) {
     return(.go_barplot_literature(go_enrich, style, color, bar.width,
-                                  text.size, text.width, title))
+                                  text.size, text.width, title, grad_cols))
   }
 
   # ggplot2 plotting
@@ -281,7 +299,9 @@ go_barplot <- function(go.diff,
 #    significance 按 -log10(p) 升序 —— 只改**显示顺序**，不改入选条目。
 # ---------------------------------------------------------------------------
 .go_barplot_literature <- function(go_enrich, style, color, bar.width,
-                                   text.size, text.width, title) {
+                                   text.size, text.width, title,
+                                   grad_cols = NULL) {
+  if (is.null(grad_cols)) grad_cols <- rev(RColorBrewer::brewer.pal(8, "RdBu"))
   lab_fun <- function(x) str_wrap(x, width = text.width)
 
   if (identical(style, "classic")) {
@@ -316,7 +336,7 @@ go_barplot <- function(go.diff,
       ggplot(d, aes(Count, Description, fill = p.adjust)) +
         geom_col(width = bar.width) +
         scale_fill_gradientn(
-          colours = rev(RColorBrewer::brewer.pal(8, "RdBu")),
+          colours = grad_cols,
           trans = "log10",
           name = "p.adjust"
         ) +
@@ -341,7 +361,7 @@ go_barplot <- function(go.diff,
   ggplot(d, aes(neglogp, Description, fill = neglogp)) +
     geom_col(width = bar.width) +
     scale_fill_gradientn(
-      colours = rev(RColorBrewer::brewer.pal(8, "RdBu")),
+      colours = grad_cols,
       name = "-log10(p.adjust)"
     ) +
     scale_x_continuous(expand = expansion(mult = c(0, 0.10))) +

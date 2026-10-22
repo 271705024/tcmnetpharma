@@ -18,6 +18,10 @@
 #' "gem", "graphopt","lgl", "grid",
 #' "mds", "sugiyama"
 #' @param label.repel label repel
+#' @param palette colour scheme key, see [tcm_palette_names()]. `NULL`
+#'   (default) keeps the ColorBrewer palette named by \code{node.color};
+#'   a palette key replaces that gradient. Colours only — the node set,
+#'   layout and statistics are identical.
 #' @param style visual preset. \code{"default"} keeps the original look;
 #'   \code{"journal"} (thin edges, white-stroked nodes, top-8 white labels,
 #'   no legend) suits manuscript figures; \code{"cytoscape"} mimics Cytoscape
@@ -49,7 +53,7 @@
 
 #' @examples
 #' \dontrun{
-#' data(ppi_data, package = "TCMNP")
+#' data(ppi_data, package = "tcmnetpharma")
 #' ppi_plot(ppi_data, label.repel = FALSE)
 
 #' }
@@ -64,8 +68,13 @@ ppi_plot <- function(data,
                      rem.dis.inter = FALSE,
                      graph.layout = "kk",
                      style = c("default", "journal", "cytoscape", "presentation",
-                            "hub30", "module", "minimal")) {
+                            "hub30", "module", "minimal"),
+                     palette = NULL) {
   style <- match.arg(style)
+  palette <- .tcm_palette_check(palette)
+  # 配色体系（2026-10-22）：基准色统一在这里算，default 与风格模板共用
+  node_base <- if (is.null(palette)) rev(RColorBrewer::brewer.pal(8, node.color)) else
+    .tcm_palette_ramp(palette, 8L)
  # data processing
   if (is.data.frame(data)) {
     data <- data %>% dplyr::distinct()
@@ -110,7 +119,7 @@ ppi_plot <- function(data,
     # 组会演示」用的，差别只在**视觉参数**，数据与统计口径完全一致。
     if (!identical(style, "default")) {
       return(.ppi_style_plot(net, style, node.color, node.size, label.size,
-                             graph.layout))
+                             graph.layout, node_base, palette))
     }
 
     # ⚠️ default 也要做节点筛选（2026-10-21 补）：
@@ -130,10 +139,7 @@ ppi_plot <- function(data,
         show.legend = TRUE
       ) +
       geom_node_point(aes(color = degree, size = size), alpha = 1.0) +
-      scale_color_gradientn(
-        colours =
-          rev(RColorBrewer::brewer.pal(8, node.color))
-      ) +
+      scale_color_gradientn(colours = node_base) +
       geom_node_text(aes(filter = degree >= label.degree, label = name),
         size = label.size,
         repel = label.repel
@@ -171,9 +177,7 @@ ppi_plot <- function(data,
         color = edge.color, show.legend = TRUE
       ) +
       geom_node_point(aes(color = degree, size = size), alpha = 1.0) +
-      scale_color_gradientn(colours = rev(
-        RColorBrewer::brewer.pal(8, node.color)
-      )) +
+      scale_color_gradientn(colours = node_base) +
       geom_node_text(aes(filter = degree >= label.degree, label = name),
         size = label.size, repel = label.repel
       ) +
@@ -201,7 +205,8 @@ ppi_plot <- function(data,
 #   presentation —— 组会/答辩：stress 布局更紧凑、大节点大标签、完整图例
 # ---------------------------------------------------------------------------
 .ppi_style_plot <- function(net, style, node.color, node.size, label.size,
-                            graph.layout) {
+                            graph.layout, node_base = NULL, palette = NULL) {
+  if (is.null(node_base)) node_base <- rev(RColorBrewer::brewer.pal(8, node.color))
   pres <- switch(
     style,
     journal = list(layout = "fr", niter = 3000L, size_range = c(1.2, 5),
@@ -277,11 +282,16 @@ ppi_plot <- function(data,
     ggplot2::aes(fill = degree, size = size)
   }
   fill_scale <- if (isTRUE(pres$by_module)) {
-    ggplot2::scale_fill_brewer(palette = "Set2", name = "module")
+    # 模块着色的颜色数 = 社区数：指定配色体系时按它取色，否则用 ColorBrewer Set2
+    if (is.null(palette)) {
+      ggplot2::scale_fill_brewer(palette = "Set2", name = "module")
+    } else {
+      n_mod <- nlevels(igraph::V(net)$module)
+      ggplot2::scale_fill_manual(values = tcm_palette(palette, max(2L, n_mod)),
+                                 name = "module")
+    }
   } else {
-    ggplot2::scale_fill_gradientn(
-      colours = rev(RColorBrewer::brewer.pal(8, node.color)), name = "degree"
-    )
+    ggplot2::scale_fill_gradientn(colours = node_base, name = "degree")
   }
 
   # 边宽兜底：边表若没有 combined_score（或全 NA），aes(edge_width = score)

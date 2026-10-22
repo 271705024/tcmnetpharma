@@ -21,6 +21,9 @@
 #' @param plot.set "horizontal" or "vertical"
 #' @param title title
 #' @param style visual preset: \code{"default"} keeps the original look, \code{"journal"} applies a publication theme (white background, no grid, thin axis lines), \code{"presentation"} enlarges text and axis lines for slides. Only visuals change; data and statistics are identical across presets.
+#' @param palette colour scheme key, see [tcm_palette_names()]. `NULL`
+#'   (default) keeps \code{color}. The chart has three node types
+#'   (herb / molecule / target), so the first three colours are used.
 #' @param ... additional parameters
 #'
 #' @return bar plot
@@ -59,8 +62,11 @@ degree_plot <- function(data,
                         plot.set = "vertical",
                         title = "the degree of networks",
                         style = c("default", "journal", "presentation"),
+                        palette = NULL,
                         ...) {
   style <- match.arg(style, .tcm_style_generic)
+  palette <- .tcm_palette_check(palette)
+  if (!is.null(palette)) color <- tcm_palette(palette, 3L)
   # data processing
   deg <- data %>% dplyr::mutate(., value = 1)
   herb_degree <- aggregate(deg$value, by = list(deg$herb), length) %>%

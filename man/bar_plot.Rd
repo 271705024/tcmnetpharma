@@ -14,6 +14,7 @@ bar_plot(
   title = NULL,
   sort.by = c("count", "p.adjust"),
   style = c("default", "journal", "presentation"),
+  palette = NULL,
   ...
 )
 }
@@ -43,6 +44,9 @@ molecular function, MF
 biological process, BP}
 
 \item{style}{visual preset: \code{"default"} keeps the original look, \code{"journal"} applies a publication theme (white background, no grid, thin axis lines), \code{"presentation"} enlarges text and axis lines for slides. Only visuals change; data and statistics are identical across presets.}
+
+\item{palette}{colour scheme key, see \code{\link[=tcm_palette_names]{tcm_palette_names()}}. \code{NULL}
+(default) keeps the ColorBrewer ramp named by \code{color}. Colours only.}
 
 \item{...}{additional parameters}
 }

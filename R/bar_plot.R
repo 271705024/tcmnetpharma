@@ -17,6 +17,8 @@
 #' molecular function, MF
 #' biological process, BP
 #' @param style visual preset: \code{"default"} keeps the original look, \code{"journal"} applies a publication theme (white background, no grid, thin axis lines), \code{"presentation"} enlarges text and axis lines for slides. Only visuals change; data and statistics are identical across presets.
+#' @param palette colour scheme key, see [tcm_palette_names()]. `NULL`
+#'   (default) keeps the ColorBrewer ramp named by \code{color}. Colours only.
 #' @param ... additional parameters
 #'
 #' @return barplot
@@ -63,8 +65,10 @@ bar_plot <- function(data,
                      text.bar = 4,
                      title = NULL,
                      sort.by = c("count", "p.adjust"),
-                     style = c("default", "journal", "presentation"), ...) {
+                     style = c("default", "journal", "presentation"),
+                     palette = NULL, ...) {
   style <- match.arg(style, .tcm_style_generic)
+  palette <- .tcm_palette_check(palette)
   # data processing
   sort.by <- match.arg(sort.by)
   if (isS4(data)) {
@@ -118,7 +122,8 @@ bar_plot <- function(data,
       size = text.bar
     ) +
     scale_fill_gradientn(
-      colours = RColorBrewer::brewer.pal(8, color),
+      colours = if (is.null(palette)) RColorBrewer::brewer.pal(8, color) else
+        .tcm_palette_ramp(palette, 8L),
       trans = "log10",
       guide = guide_colorbar(reverse = TRUE, order = 1)
     ) +

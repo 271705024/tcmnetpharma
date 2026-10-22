@@ -16,6 +16,27 @@
 - **契约**：`plot_contract` / `enrich_plot_contract` 新增 `styles` 字段（风格白名单单一事实源），前后端一致由 `test-style-presets.R` 双向断言
 - **防御**：非法风格值在后端被 `.sanitize_style()` 丢弃并记 `style_dropped` 日志，不再因 `match.arg` 报错中断出图
 
+### 配色体系：期刊色板 / 色盲友好 / ColorBrewer（同一版本）
+
+- **新增 `R/palettes.R`** 作为配色单一事实源，登记 **13 套色板**，每套都带「出处」字段（`source`）与类型（`kind` = qual/seq/div）：
+  - 期刊/机构色板（取自 **ggsci** 收录的同名色板）：`npg`（Nature 系列）、`aaas`（Science/AAAS）、`lancet`（Lancet Oncology）、`jama`、`nejm`、`jco`
+  - 色盲友好：`okabe` = **Okabe & Ito 2008 Color Universal Design** 全 8 色（Wong 2011, *Nat Methods* 8:441, doi:10.1038/nmeth.1618）
+  - 通用分类：`set2`、`tableau`
+  - 连续/发散（取自 **ColorBrewer 2.0** / viridisLite）：`viridis`（色盲友好且可灰度还原）、`rdbu`、`spectral`、`ylgnbu`
+- **新接口**：`tcm_palette(name, n, type)` 取色（超出原生颜色数自动插值并提示）；`tcm_palette_names(names_only = FALSE)` 返回带 label/short/source/kind 的目录
+- **接入 `palette = ` 参数的 7 个绘图函数**：`go_barplot`、`go_dotplot`、`bar_plot`、`degree_plot`、`tcm_sankey`、`tcm_net`、`ppi_plot`。缺省 `NULL` = **行为与旧版完全一致**
+- **修掉一处非确定性**：`tcm_sankey` 原先用 `sample(mycol, ...)` 取色 → **同一数据两次出图颜色不同**；现改为按节点数确定性取色（`test-palettes.R` 有回归锚点）
+- **GUI**：绘图页与富集可视化各新增「配色体系」下拉，按分类/连续/发散分组显示，选项 label 用中文名、`title` 显示色值出处；空值 = 默认配色
+- **契约**：`plot_contract` / `enrich_plot_contract` 新增 `palettes` 字段；`app_info` 新增 `palette_catalog`（name/label/short/source/kind），前端据此渲染分组
+- **三方一致性由测试守**：前端常量 ↔ 契约 ↔ 包内色板表（`gui-app/tests/test-style-presets.R` F 段），并对「有 palette 形参却没登记进契约」做**导出函数反查**（否则前端下拉置灰、用户点不到 = 等于没接）
+- **防御**：非法配色值由 `.sanitize_palette()` 丢弃并记 `palette_dropped` 日志，不把「配色不存在」升级成「绘图失败」
+- `DESCRIPTION` 新增 `viridisLite` 依赖
+
+### 文档澄清
+
+- **`go_barplot(top = )` 的口径**：`top` 是「**每个本体**各取 top 条」，不是全局 top。因为入选前先按 `ONTOLOGY`（BP/CC/MF）分组再切片，`top = 8` 最多给出 `8 × 3 = 24` 条（某本体显著条目不足时更少）。原文档只写 "the number of categories to show"，易被读成全局条数 → 已补明，并加断言锁定（`test-style-presets.R`），防止未来被"顺手改成全局 top"。
+
+
 ## TCMNP 0.2.0（数据修订 2026-10-21，数据版本 TCMNP_1.3.0_2026-10-21）
 
 ### CID 桥接假阴性修复（2026-10-21）

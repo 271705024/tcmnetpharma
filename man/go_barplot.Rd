@@ -15,6 +15,7 @@ go_barplot(
   text.width = 30,
   title = "GO enrichment of cluster",
   style = c("default", "classic", "grouped", "significance", "journal", "presentation"),
+  palette = NULL,
   ...
 )
 }
@@ -22,7 +23,10 @@ go_barplot(
 \item{go.diff}{R clusterprofiler package for enrichGO results}
 
 \item{top}{According to the order of P adjust value from small to large
-the number of categories to show}
+the number of categories to show \strong{per ontology}. Because GO terms are
+grouped by \code{ONTOLOGY} (BP / CC / MF) before slicing, \code{top = 8}
+yields at most \code{8 * 3 = 24} bars (8 from each ontology); ontologies
+with fewer significant terms contribute fewer.}
 
 \item{plot.set}{"horizontal" or "vertical"}
 
@@ -59,6 +63,12 @@ as both bar length and fill gradient.
 slide theme on top of the default form.
 \strong{Only the visual form changes} — the selected terms, their counts and
 all statistics are identical across presets.}
+
+\item{palette}{colour scheme key, see \code{\link[=tcm_palette_names]{tcm_palette_names()}}. \code{NULL}
+(default) keeps the colours given by \code{color}. Setting a palette
+overrides \code{color} and also drives the gradient used by the
+\code{"grouped"} / \code{"significance"} forms. Colours only — data and
+statistics are untouched.}
 
 \item{...}{additional parameters}
 }
