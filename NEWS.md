@@ -1,6 +1,36 @@
 # NEWS
 
-## 未发布（2026-10-22）
+## 未发布（2026-10-23）
+
+### 修复：三合一分面图（`grouped`）的色阶改为每本体独立
+
+- **问题**（boss 2026-10-23 截图反馈）：原 `grouped` 用 `facet_grid` + **单个**
+  `scale_fill_gradientn`，色阶整图共用。实测三个本体的 `p.adjust` 量级差 20+ 个
+  数量级（BP 1.3e-35 / CC 1.1e-9 / MF 6.6e-14）→ BP 全挤深蓝端、CC 挤红端、
+  **各分面内部的条目差异完全看不出来**（MF 一组内部只差 1.4 个数量级，几乎同色）
+- **改法**：改为 `patchwork` 上下拼三张独立图，每段有自己的 `scale` 与自己的
+  色条，色条上显示**该本体真实的 `p.adjust`**。宽度不增（三行同宽，色条各在
+  自己那行右侧垂直堆叠）
+- **为什么不用分面独立标度**：ggplot2 原生不支持按分面切 `fill` 标度；
+  `ggnewscale` 三层实测图例与分面错位、颜色不单调；`ggh4x::facetted_pos_scales`
+  只支持 x/y 不支持 fill
+- ⚠️ **返回类型变化**：`grouped` 现在返回 **patchwork** 对象（`inherits("ggplot")`
+  仍为 TRUE，GUI 抓图链路不受影响），但它**没有单一 `$data`** —— `p$data` 只拿到
+  第一段（BP）的条目。外部代码若用 `nrow(p$data)` 统计条数请改用各子图汇总
+  （包内测试已抽到 `tests/testthat/helper-plots.R` 的 `items_of()`）
+- 段标题改为 BP / CC / MF 本体名；用户传的 `title` 不再丢失，改走
+  `patchwork::plot_annotation()` 作为整体标题（`title = NULL` 时不加）
+- 新增 `patchwork` 依赖
+
+### GUI：绘图页下线「富集柱状图」（`bar_plot`）
+
+- 与富集页的 `go_barplot` 数据同源（富集结果会 `pushDataset` 进绘图页），而
+  `go_barplot` 能力更强（本体三色 / BP-CC-MF 分段 / 文献横条·显著渐变 /
+  GeneRatio / 配色体系），`bar_plot` 都不具备 → 留着只会让人选错
+- **包 API 保留**（`R/bar_plot.R` 未删），只是绘图页不再暴露
+- 绘图页保留 `cir_plot`（富集环形条形图，无对应专页图）
+
+## 未发布（2026-10-22 批次，与上节同属一个未发布版本）
 
 ### 出图风格预设：GO 富集文献形制 + 通用期刊/演示风
 

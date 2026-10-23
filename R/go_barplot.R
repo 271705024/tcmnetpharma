@@ -71,6 +71,8 @@
 #' @importFrom tidyr drop_na
 #' @importFrom stats reorder
 #' @importFrom stringr str_wrap
+#' @importFrom patchwork wrap_plots
+#' @importFrom patchwork plot_annotation
 #'
 #' @examples
 #' \dontrun{
@@ -328,30 +330,78 @@ go_barplot <- function(go.diff,
   }
 
   if (identical(style, "grouped")) {
-    # "三合一图"：BP/CC/MF 各一栏，长度=Count，颜色=p.adjust 渐变
+    # "三合一图"：BP/CC/MF 各一段，长度=Count，颜色=p.adjust 渐变。
+    #
+    # ⚠️ 2026-10-23 由 boss 截图暴露后重写：原实现用 facet_grid + **一个**
+    #    scale_fill_gradientn，色阶是整图共用。实测三个本体的 p.adjust 量级
+    #    差 20+ 个数量级（BP 1.3e-35 / CC 1.1e-9 / MF 6.6e-14），共用色阶导致
+    #    BP 全挤深蓝端、CC 全挤红端 —— **各分面内部的条目差异完全看不出来**
+    #    （MF 一组内部只差 1.4 个数量级，色条上几乎同色）。
+    #
+    #    改用 patchwork 上下拼三张独立图：每段有自己的 scale 与自己的色条，
+    #    色条上显示**该本体真实的 p.adjust**。宽度不增（三行同宽，色条各在
+    #    自己那行右侧垂直堆叠）。
+    #
+    #    为什么不用 facet + 分面独立标度：ggplot2 原生不支持按分面切 fill 标度；
+    #    ggnewscale 三层实测 legend 与分面错位、颜色不单调；ggh4x 的
+    #    facetted_pos_scales 只支持 x/y 不支持 fill。
+    #
+    # ⚠️ 返回类型变了（ggplot -> patchwork）。patchwork 对象 inherits("ggplot")
+    #    为 TRUE，故 GUI 的 capture="ggplot" 契约与抓图链路不受影响；但它没有
+    #    单一 $data，`p$data` 只拿到**第一段**的条目 —— 测试里必须穿透子图取
+    #    并集，否则「条目集合一致」断言会变成假失败（见 helper-plots.R）。
     d <- go_enrich
     d$Description <- factor(d$Description,
                             levels = d$Description[order(d$Count, d$ONTOLOGY)])
-    return(
-      ggplot(d, aes(Count, Description, fill = p.adjust)) +
+    onto_lv <- sort(unique(as.character(d$ONTOLOGY)))
+    n_by <- vapply(onto_lv, function(o) sum(as.character(d$ONTOLOGY) == o), numeric(1))
+    xmax <- max(d$Count, na.rm = TRUE) * 1.10
+
+    one_panel <- function(on) {
+      dd <- d[as.character(d$ONTOLOGY) == on, , drop = FALSE]
+      ggplot(dd, aes(Count, Description, fill = p.adjust)) +
         geom_col(width = bar.width) +
         scale_fill_gradientn(
           colours = grad_cols,
           trans = "log10",
-          name = "p.adjust"
+          name = sprintf("%s\np.adjust", on)
         ) +
-        facet_grid(ONTOLOGY ~ ., scales = "free_y", space = "free_y") +
-        scale_x_continuous(expand = expansion(mult = c(0, 0.10))) +
+        scale_x_continuous(limits = c(0, xmax),
+                           expand = expansion(mult = c(0, 0))) +
         scale_y_discrete(labels = lab_fun) +
-        labs(x = "Gene count", y = NULL, title = title) +
+        labs(x = "Gene count", y = NULL, title = on) +
         theme_bw() +
         theme(
           axis.text = element_text(size = text.size, colour = "black"),
           axis.title.x = element_text(size = text.size),
-          strip.text = element_text(face = "bold", size = text.size),
+          plot.title = element_text(face = "bold", size = text.size + 0.5,
+                                    hjust = 0),
           panel.grid.minor = element_blank()
         )
-    )
+    }
+    ps <- lapply(onto_lv, one_panel)
+    # 只有最底下一段保留 x 轴刻度与标题，避免重复三条 x 轴
+    for (i in seq_len(length(ps) - 1L)) {
+      ps[[i]] <- ps[[i]] +
+        theme(axis.text.x = element_blank(),
+              axis.ticks.x = element_blank(),
+              axis.title.x = element_blank())
+    }
+    out <- patchwork::wrap_plots(ps, ncol = 1L, heights = n_by)
+    # 段标题被 BP/CC/MF 占了，用户传的总标题不能就此消失 ——
+    # 原 facet 实现里它是 `labs(title = title)`（默认 "GO enrichment of
+    # cluster"）。改走 patchwork 的整体标题，保住同一个形参的语义。
+    if (!is.null(title) && nzchar(title)) {
+      out <- out + patchwork::plot_annotation(
+        title = title,
+        theme = ggplot2::theme(
+          plot.title = ggplot2::element_text(
+            face = "bold", size = text.size + 1, hjust = 0
+          )
+        )
+      )
+    }
+    return(out)
   }
 
   # significance：单图，长度与颜色都是 -log10(p.adjust)

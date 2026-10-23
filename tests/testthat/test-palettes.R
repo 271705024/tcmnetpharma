@@ -54,11 +54,8 @@ go_fixture <- function() {
   res$go
 }
 
-items_of <- function(p) {
-  d <- p$data
-  if (is.null(d) || !"Description" %in% names(d)) return(character(0))
-  sort(unique(as.character(d$Description)))
-}
+# items_of() / items_diff() 来自 helper-plots.R（testthat 自动加载）。
+# 为什么挪走：grouped 风格返回 patchwork，没有单一 $data，必须穿透子图取并集。
 
 test_that("换配色不改数据：条目集合与不指定配色时完全一致", {
   go <- go_fixture()
@@ -111,10 +108,27 @@ test_that("tcm_sankey 配色可复现（原来 sample() 打乱）", {
   }
 
   # 两条分支都要测：默认（c4a）与指定配色（manual）
+  #
+  # ⚠️ 2026-10-23 排查记录（全量「断言总数 726 / PASS 725」差的那 1 条）：
+  #    ① `.tcm_palette()` 对超量取色用的是 **message()** 不是 warning()
+  #       （"palette "npg": 原生 10 色，请求 14 色，已插值补足"）——
+  #       它没人接，但 message 不计入 expectation，不产生差额。
+  #    ② 真正的差额来自 **ggsankey 的第三方弃用警告**
+  #       （`element_rect()` 的 `size` 参数），只在**首次绘图**触发一次；
+  #       没人接 → testthat 记成 1 条未处理警告，该块 nb=9 / passed=8。
+  #    处置：① 显式断言 message（锁住插值行为，避免以后静默退化）；
+  #          ② 第三方弃用警告一律 suppressWarnings —— **不能**去断言它：
+  #             它随 ggplot2 / ggsankey 版本出现或消失，断言会变成
+  #             环境相关的假失败（铁律 52：假失败与假通过同样危险）。
+  sk <- function(pal) suppressWarnings(tcm_sankey(df, palette = pal))
+
+  expect_message(sk("npg"), "npg",
+                 info = "npg 只有 10 色、本图需 14 色 -> 应插值补足并提示")
+
   for (pal in list(NULL, "npg", "tableau")) {
     lbl <- if (is.null(pal)) "default" else pal
-    p1 <- tcm_sankey(df, palette = pal)
-    p2 <- tcm_sankey(df, palette = pal)
+    p1 <- sk(pal)
+    p2 <- sk(pal)
     c1 <- cols_of(p1); c2 <- cols_of(p2)
     testthat::skip_if(is.null(c1) || is.null(c2),
                       "\u586b\u8272\u6807\u5ea6\u4e0d\u53ef\u8bfb")
@@ -126,8 +140,8 @@ test_that("tcm_sankey 配色可复现（原来 sample() 打乱）", {
 
   # 指定配色时首个颜色必须来自该色板（证明 palette 真的被用上，而非被忽略）
   first_col <- function(p) cols_of(p, 1)[[1]]
-  expect_identical(first_col(tcm_sankey(df, palette = "npg")), "#E64B35")
-  expect_identical(first_col(tcm_sankey(df, palette = "tableau")), "#1F77B4")
+  expect_identical(first_col(sk("npg")), "#E64B35")
+  expect_identical(first_col(sk("tableau")), "#1F77B4")
 })
 
 test_that("色板 kind 只有 qual/seq/div（前端分组依赖这三个值）", {

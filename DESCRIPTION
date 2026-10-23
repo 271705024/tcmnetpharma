@@ -38,6 +38,7 @@ Imports:
     ggvenn,
     tidygraph,
     viridisLite,
+    patchwork,
     methods,
     VennDetail,
     clusterProfiler,

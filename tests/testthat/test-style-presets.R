@@ -26,11 +26,8 @@ go_fixture <- function() {
   res$go
 }
 
-items_of <- function(p) {
-  d <- p$data
-  if (is.null(d) || !"Description" %in% names(d)) return(character(0))
-  sort(unique(as.character(d$Description)))
-}
+# items_of() / items_diff() 来自 helper-plots.R（testthat 自动加载）。
+# 为什么挪走：grouped 风格返回 patchwork，没有单一 $data，必须穿透子图取并集。
 
 test_that("go_barplot 的每种风格都出图，且条目集合与 default 一致", {
   go <- go_fixture()
@@ -49,6 +46,52 @@ test_that("go_barplot 的每种风格都出图，且条目集合与 default 一�
       expect_identical(it, ref, info = st)
     }
   }
+})
+
+test_that("grouped 是三段独立标度的 patchwork（不是共用色阶的 facet）", {
+  go <- go_fixture()
+  p <- go_barplot(go, top = 3, style = "grouped")
+
+  # boss 2026-10-23 截图暴露的问题：原实现 facet_grid + 单个 fill 标度，
+  # 三本体 p.adjust 量级差 20+ 个数量级，导致各分面内部差异看不出来。
+  # 这条测试锁住修复后的性质：**三段各自一个 fill 标度**。
+  expect_s3_class(p, "patchwork")
+  expect_length(p, 3L)
+
+  n_fill <- vapply(seq_len(3L), function(i) {
+    sp <- p[[i]]
+    if (!inherits(sp, "ggplot")) return(NA_integer_)
+    sum(vapply(sp$scales$scales,
+               function(x) "fill" %in% x$aesthetics, logical(1)))
+  }, integer(1))
+  # 每段恰好 1 个 fill 标度。若是 facet 共用标度，子图里会是 0 个。
+  expect_equal(unname(n_fill), rep(1L, 3L))
+
+  # 各段数据的 p.adjust 范围必须互不相同 —— 若哪天又退回共用标度，
+  # 三段数据范围虽仍不同，但上面的 n_fill 会变成 0，两条一起锁。
+  rngs <- lapply(seq_len(3L), function(i) {
+    d <- p[[i]]$data
+    if (is.null(d) || !"p.adjust" %in% names(d)) return(NULL)
+    signif(range(log10(d$p.adjust)), 3)
+  })
+  expect_true(all(!vapply(rngs, is.null, logical(1))))
+  expect_gt(length(unique(vapply(rngs, function(x) paste(x, collapse = "|"), ""))), 1L)
+
+  # 每段自身的 p.adjust 跨度必须是「这个本体」的真实跨度（不是整图的最小/最大）
+  ontos <- vapply(seq_len(3L), function(i) as.character(p[[i]]$data$ONTOLOGY[[1]]), "")
+  expect_setequal(ontos, c("BP", "CC", "MF"))
+})
+
+test_that("grouped 传进来的总标题不会被段标题挤掉", {
+  go <- go_fixture()
+  # 段标题被 BP/CC/MF 占了，用户传的 title 若就此消失，等于悄悄改了形参语义
+  # （原 facet 实现里 title 走 labs(title = )，是一直显示的）。
+  p <- go_barplot(go, top = 3, style = "grouped", title = "我的富集图")
+  expect_true(any(grepl("我的富集图", ggplot_titles(p))))
+
+  # 反过来：不传标题时不应凭空多出一个 "NA" 之类的空标题
+  p0 <- go_barplot(go, top = 3, style = "grouped", title = NULL)
+  expect_false(any(grepl("^NA$", ggplot_titles(p0))))
 })
 
 test_that("go_dotplot 的每种风格都出图，且条目集合与 default 一致", {
@@ -115,13 +158,17 @@ test_that("go_barplot 的 top 是「每个本体各 top 条」，不是全局 to
 
 test_that("各风格下 top 的效果一致（风格不能改变入选条目数）", {
   go <- go_fixture()
+  # ⚠️ 必须用 items_of() 而不是 nrow(p$data)：
+  #    grouped 风格返回 patchwork，`p$data` 只拿到**第一段**（BP）的条目，
+  #    直接 nrow 会得到 4 而不是 12（2026-10-23 实测假失败）。
   ns <- vapply(
     c("default", "classic", "grouped", "significance",
       "journal", "presentation"),
-    function(st) nrow(go_barplot(go, top = 4, style = st)$data),
+    function(st) length(items_of(go_barplot(go, top = 4, style = st))),
     integer(1)
   )
   expect_equal(unname(ns), rep(ns[[1]], length(ns)))
+  expect_gt(ns[[1]], 0L)
 })
 
 test_that("非法风格值必须报错（不静默出图）", {
