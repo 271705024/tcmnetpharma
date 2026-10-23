@@ -8,7 +8,10 @@ module_netplot(
   network.data,
   algorithm = c("louvain", "infomap", "walktrap"),
   rem.dis.inter = FALSE,
-  graph.layout = "fr"
+  graph.layout = "fr",
+  max_nodes = 150,
+  min_degree = 1,
+  keep = c("top_degree", "ego")
 )
 }
 \arguments{
@@ -19,6 +22,12 @@ module_netplot(
 \item{rem.dis.inter}{是否移除孤立节点}
 
 \item{graph.layout}{ggraph 布局，默认 \code{"fr"}}
+
+\item{max_nodes}{节点数上限（\code{Inf} 不裁剪），默认 150}
+
+\item{min_degree}{度数下限，默认 1（移除孤立节点）}
+
+\item{keep}{超限选点策略：\code{"top_degree"} / \code{"ego"}}
 }
 \value{
 ggplot 对象

@@ -86,3 +86,29 @@ test_that("边少于节点上限时不做任何删减（不误伤小网络）", 
   p <- suppressMessages(ppi_plot(e, style = "cytoscape"))
   expect_equal(nrow(p$data), n_in)
 })
+
+# ---- 2026-10-23 P2：显式暴露 max_nodes / min_degree / keep 三个容量形参 ----
+test_that("显式 max_nodes 覆盖默认 150（风格与容量解耦）", {
+  e <- make_edges(n_leaf = 400)
+  p50 <- suppressMessages(ppi_plot(e, style = "cytoscape", max_nodes = 50))
+  expect_lte(nrow(p50$data), 50L)
+  # max_nodes = Inf 回退为不裁剪（全量节点）
+  p_inf <- suppressMessages(ppi_plot(e, style = "cytoscape", max_nodes = Inf))
+  n_in <- length(unique(c(e$node1, e$node2)))
+  expect_equal(nrow(p_inf$data), n_in)
+})
+
+test_that("keep = 'ego' 与 keep = 'top_degree' 产出的节点集不同但都受上限约束", {
+  e <- make_edges(n_leaf = 400)
+  p_top <- suppressMessages(ppi_plot(e, style = "cytoscape", max_nodes = 40, keep = "top_degree"))
+  p_ego <- suppressMessages(ppi_plot(e, style = "cytoscape", max_nodes = 40, keep = "ego"))
+  expect_lte(nrow(p_top$data), 40L)
+  # ego 保留 top + 一跳邻居，节点数可略超上限但封顶 2x
+  expect_lte(nrow(p_ego$data), 80L)
+  expect_false(identical(sort(p_top$data$name), sort(p_ego$data$name)))
+})
+
+test_that("非法 keep 报错（与 tcm_filter_network 同口径）", {
+  e <- make_edges()
+  expect_error(suppressMessages(ppi_plot(e, keep = "bogus")), "should be one of")
+})

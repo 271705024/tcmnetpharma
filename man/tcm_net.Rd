@@ -16,7 +16,10 @@ tcm_net(
   graph.layout = "kk",
   rem.dis.inter = FALSE,
   style = c("default", "journal", "cytoscape", "presentation"),
-  palette = NULL
+  palette = NULL,
+  max_nodes = 150,
+  min_degree = 1,
+  keep = c("top_degree", "ego")
 )
 }
 \arguments{
@@ -58,6 +61,15 @@ cleaner single-layer edge set with white-backed labels.}
 (default) keeps the ColorBrewer colours named by \code{node.color};
 a palette key replaces that base colour set. Colours only — the node
 set, edges and layout are unaffected.}
+
+\item{max_nodes}{节点数上限。超过时按度数保留核心节点及其连边（\code{Inf} 表示
+不裁剪）。默认 150。}
+
+\item{min_degree}{度数下限：度数低于此值的节点（及其孤立边）在构图前剔除。
+默认 1（等价于「移除孤立节点」）。}
+
+\item{keep}{超限选点策略：\code{"top_degree"}（保留度数最高者）或
+\code{"ego"}（保留核心节点及其一跳邻居，子网更密）。}
 }
 \value{
 Network Diagram

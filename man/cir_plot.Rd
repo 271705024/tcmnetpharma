@@ -17,7 +17,7 @@ cir_plot(
   p.cex = 0.8,
   richFactor.color = "RdBu",
   richFactor.cex = 0.7,
-  legend.position = c(0.8, 0.45),
+  legend.position = c(0.85, 0.2),
   text.width = 35,
   ...
 )

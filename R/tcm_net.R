@@ -20,6 +20,12 @@
 #' "gem", "graphopt","lgl", "grid",
 #' "mds", "sugiyama","fr"
 #' @param rem.dis.inter remove single free unconnected nodes
+#' @param max_nodes 节点数上限。超过时按度数保留核心节点及其连边（`Inf` 表示
+#'   不裁剪）。默认 150。
+#' @param min_degree 度数下限：度数低于此值的节点（及其孤立边）在构图前剔除。
+#'   默认 1（等价于「移除孤立节点」）。
+#' @param keep 超限选点策略：\code{"top_degree"}（保留度数最高者）或
+#'   \code{"ego"}（保留核心节点及其一跳邻居，子网更密）。
 #' @param label.repel label repel
 #' @param style visual preset, same names as \code{\link{ppi_plot}}:
 #'   \code{"default"} keeps the original look (arc edges + three legends);
@@ -77,8 +83,12 @@ tcm_net <- function(network.data,
                     graph.layout = "kk",
                     rem.dis.inter = FALSE,
                     style = c("default", "journal", "cytoscape", "presentation"),
-                    palette = NULL) {
+                    palette = NULL,
+                    max_nodes = 150,
+                    min_degree = 1,
+                    keep = c("top_degree", "ego")) {
   style <- match.arg(style)
+  keep <- match.arg(keep)
   palette <- .tcm_palette_check(palette)
   # 配色体系（2026-10-22）：统一成一组基准色，各分支（含风格模板）都从它插值，
   # 保证「同一张图换风格不改配色逻辑」。
@@ -130,6 +140,17 @@ tcm_net <- function(network.data,
       dplyr::mutate(weight = 1)
   ) %>%
     dplyr::distinct()
+
+  # ---- 统一节点容量控制（2026-10-23，P2）----
+  # 原实现**没有任何容量控制**：节点数 = 全量 links 端点并集，数百/上千节点
+  # 时力导向布局糊成一团、标签互相压（boss 反馈「药物-靶点图爆炸」）。
+  # 现接入统一管线 tcm_filter_network（边规则先行 → 节点=边端点 → 过滤后算度数
+  # → 超限 induced subgraph），节点/边口径与 ppi_plot、拓扑页一致（单一事实源）。
+  # max_nodes = Inf 可回退为「不裁剪」（仅供调试/全量导出）。
+  flt <- tcm_filter_network(links, max_nodes = max_nodes,
+                            min_degree = min_degree, keep = keep)
+  links <- flt$links
+  rm(flt)
   # Create a network graph from links and nodes
   if (rem.dis.inter == FALSE) {
     nodes <- links %>%

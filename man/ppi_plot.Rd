@@ -17,7 +17,10 @@ ppi_plot(
   graph.layout = "kk",
   style = c("default", "journal", "cytoscape", "presentation", "hub30", "module",
     "minimal"),
-  palette = NULL
+  palette = NULL,
+  max_nodes = 150,
+  min_degree = 0,
+  keep = c("top_degree", "ego")
 )
 }
 \arguments{
@@ -61,6 +64,18 @@ statistics are identical across presets.}
 (default) keeps the ColorBrewer palette named by \code{node.color};
 a palette key replaces that gradient. Colours only — the node set,
 layout and statistics are identical.}
+
+\item{max_nodes}{node count upper bound. When the network exceeds this,
+the highest-degree nodes (and their edges) are kept via the shared
+\code{tcm_filter_network} pipeline. \code{Inf} disables capping. Note: \code{style = "hub30"} overrides this to 30 by design.}
+
+\item{min_degree}{degree floor applied by \code{tcm_filter_network} (default 0
+keeps everything up to \code{max_nodes}; raise to drop low-degree fringe nodes
+first). Only matters when \code{max_nodes} is finite.}
+
+\item{keep}{selection strategy when capping: \code{"top_degree"} keeps the
+highest-degree nodes; \code{"ego"} keeps them plus their one-hop neighbours
+(denser subnet, more nodes). See \code{tcm_filter_network()}.}
 }
 \value{
 network diagrams

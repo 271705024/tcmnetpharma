@@ -95,7 +95,7 @@ go_dotplot <- function(go.diff,
     decreasing = FALSE
   ), ]
   go_enrich$Description <- factor(go_enrich$Description,
-    levels = go_enrich$Description
+    levels = unique(go_enrich$Description)
   )
 
   # ---- 文献形制预设（2026-10-22）-------------------------------------------
@@ -166,7 +166,7 @@ go_dotplot <- function(go.diff,
   go_enrich$x_value <- gr
   go_enrich <- go_enrich[order(go_enrich$x_value), ]
   go_enrich$Description <- factor(go_enrich$Description,
-                                  levels = go_enrich$Description)
+                                  levels = unique(go_enrich$Description))
 
   ggplot(go_enrich, aes(x_value, Description)) +
     geom_point(aes(color = p.adjust, size = Count)) +

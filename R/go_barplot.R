@@ -121,7 +121,7 @@ go_barplot <- function(go.diff,
     decreasing = TRUE
   ), ]
   go_enrich$Description <- factor(go_enrich$Description,
-    levels = go_enrich$Description
+    levels = unique(go_enrich$Description)
   )
 
   # ---- 文献形制预设（2026-10-22）-------------------------------------------
@@ -326,7 +326,7 @@ go_barplot <- function(go.diff,
     # 文献最常见：横条 + 长度=基因数 + 本体三色 + 条端标数
     d <- go_enrich
     d$Description <- factor(d$Description,
-                            levels = d$Description[order(d$Count, d$ONTOLOGY)])
+                            levels = unique(d$Description[order(d$Count, d$ONTOLOGY)]))
     return(
       ggplot(d, aes(Count, Description, fill = ONTOLOGY)) +
         geom_col(width = bar.width) +
@@ -358,7 +358,7 @@ go_barplot <- function(go.diff,
     #    注：分面用 space = "free_y"，段高按条目数分配（与截图一致）。
     d <- go_enrich
     d$Description <- factor(d$Description,
-                            levels = d$Description[order(d$Count, d$ONTOLOGY)])
+                            levels = unique(d$Description[order(d$Count, d$ONTOLOGY)]))
     onto_lv <- sort(unique(as.character(d$ONTOLOGY)))
     # 图例顺序固定成 BP/CC/MF，不随数据里出现顺序漂移
     d$ONTOLOGY <- factor(as.character(d$ONTOLOGY), levels = onto_lv)
@@ -388,7 +388,7 @@ go_barplot <- function(go.diff,
   #    而非基因数、条目按显著性排序」上。
   d <- go_enrich
   d$neglogp <- -log10(d$p.adjust)
-  d$Description <- factor(d$Description, levels = d$Description[order(d$neglogp)])
+  d$Description <- factor(d$Description, levels = unique(d$Description[order(d$neglogp)]))
   d$ONTOLOGY <- factor(as.character(d$ONTOLOGY),
                        levels = sort(unique(as.character(d$ONTOLOGY))))
   ggplot(d, aes(neglogp, Description, fill = ONTOLOGY)) +

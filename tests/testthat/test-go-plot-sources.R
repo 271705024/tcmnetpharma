@@ -74,3 +74,23 @@ test_that("纯 GO 数据（ONTOLOGY 完整）行为不变（向后兼容）", {
   # GO 数据的 ONTOLOGY 保持 BP/CC/MF 三本体，不被 source 覆盖
   expect_setequal(as.character(p$data$ONTOLOGY), c("BP", "CC", "MF"))
 })
+
+# ---- 2026-10-23 P2.5：Description 跨来源/本体撞名根治 ----
+# 缺陷形态：GO 与 KEGG 各有一条同名 term（如都叫 "cell cycle"），bind_rows
+# 合并后 Description 出现重复值，而 go_barplot/go_dotplot 用
+#   factor(Description, levels = Description)
+# 直接以「含重复的向量」做 levels → 报 "factor level [N] is duplicated"。
+# 修复：levels 一律 unique() 去重，撞名时两条同名 term 仍是两个独立条形（不丢、不崩）。
+test_that("Description 撞名（GO 与 KEGG 同名 term）不崩", {
+  go <- make_enrich_df(has_ontology = TRUE, src = "go", prefix = "GO")
+  kegg <- make_enrich_df(has_ontology = FALSE, src = "kegg", prefix = "KEGG")
+  # 人为制造撞名：让 KEGG 前 3 条 Description 与 GO 前 3 条完全相同
+  kegg$Description[1:3] <- go$Description[1:3]
+  mixed <- rbind(go, kegg)
+  # 修复前：factor(levels = 含重复向量) 直接报 duplicated levels
+  expect_error(go_barplot(mixed, top = 5, style = "grouped"), NA)
+  expect_error(go_dotplot(mixed, top = 5, style = "genratio"), NA)
+  # 撞名的 term 仍保留两条（GO 一条 + KEGG 一条），不因去重而丢失
+  p <- go_barplot(mixed, top = 5, style = "classic")
+  expect_s3_class(p, "ggplot")
+})

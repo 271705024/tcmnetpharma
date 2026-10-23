@@ -202,6 +202,9 @@ module_barplot <- function(modules, title = "module size") {
 #' @param algorithm 社区发现算法（同 [tcm_modules()]）
 #' @param rem.dis.inter 是否移除孤立节点
 #' @param graph.layout ggraph 布局，默认 `"fr"`
+#' @param max_nodes 节点数上限（`Inf` 不裁剪），默认 150
+#' @param min_degree 度数下限，默认 1（移除孤立节点）
+#' @param keep 超限选点策略：`"top_degree"` / `"ego"`
 #' @return ggplot 对象
 #' @export
 #'
@@ -222,9 +225,20 @@ module_barplot <- function(modules, title = "module size") {
 module_netplot <- function(network.data,
                            algorithm = c("louvain", "infomap", "walktrap"),
                            rem.dis.inter = FALSE,
-                           graph.layout = "fr") {
+                           graph.layout = "fr",
+                           max_nodes = 150,
+                           min_degree = 1,
+                           keep = c("top_degree", "ego")) {
   algorithm <- match.arg(algorithm)
+  keep <- match.arg(keep)
   net <- .tcm_build_graph(network.data, rem.dis.inter = rem.dis.inter)
+  # ---- 节点容量控制（2026-10-23，P2）----
+  # 原来拓扑页靠 GUI 侧 .cap_network_nodes 裁节点（口径与 ppi 不一致），且
+  # module_netplot 本身无上限，大数据量糊成球。现统一走 tcm_filter_network 的
+  # 正确顺序（过滤后算度数 → induced subgraph），与 ppi_plot/tcm_net 一致。
+  # max_nodes = Inf 回退为不裁剪。
+  net <- .tcm_filter_igraph(net, max_nodes = max_nodes,
+                            min_degree = min_degree, keep = keep)
   comm <- switch(algorithm,
     louvain = igraph::cluster_louvain(net),
     infomap = igraph::cluster_infomap(net),

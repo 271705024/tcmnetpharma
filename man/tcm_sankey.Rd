@@ -11,6 +11,7 @@ tcm_sankey(
   x.axis.text.size = 12,
   style = c("default", "journal", "presentation"),
   palette = NULL,
+  max_per_level = 10,
   ...
 )
 }
@@ -27,6 +28,9 @@ tcm_sankey(
 
 \item{palette}{colour scheme key, see \code{\link[=tcm_palette_names]{tcm_palette_names()}}. \code{NULL}
 (default) keeps the built-in rainbow palette. Colours only.}
+
+\item{max_per_level}{每层（列）保留的出现频率最高的条目数。按完整路径过滤
+（不截行），节点数 = 过滤后路径端点数。\code{Inf} 表示不过滤。默认 10。}
 
 \item{...}{additional parameters}
 }

@@ -29,6 +29,16 @@
 #'   \code{"presentation"} uses a compact stress layout with large labels and
 #'   full legends for slides. Only visual parameters change — data and
 #'   statistics are identical across presets.
+#' @param max_nodes node count upper bound. When the network exceeds this,
+#'   the highest-degree nodes (and their edges) are kept via the shared
+#'   `tcm_filter_network` pipeline. `Inf` disables capping. Note: `style =
+#'   "hub30"` overrides this to 30 by design.
+#' @param min_degree degree floor applied by `tcm_filter_network` (default 0
+#'   keeps everything up to `max_nodes`; raise to drop low-degree fringe nodes
+#'   first). Only matters when `max_nodes` is finite.
+#' @param keep selection strategy when capping: `"top_degree"` keeps the
+#'   highest-degree nodes; `"ego"` keeps them plus their one-hop neighbours
+#'   (denser subnet, more nodes). See `tcm_filter_network()`.
 
 #' @return network diagrams
 #' @export
@@ -69,8 +79,12 @@ ppi_plot <- function(data,
                      graph.layout = "kk",
                      style = c("default", "journal", "cytoscape", "presentation",
                             "hub30", "module", "minimal"),
-                     palette = NULL) {
+                     palette = NULL,
+                     max_nodes = 150,
+                     min_degree = 0,
+                     keep = c("top_degree", "ego")) {
   style <- match.arg(style)
+  keep <- match.arg(keep)
   palette <- .tcm_palette_check(palette)
   # 配色体系（2026-10-22）：基准色统一在这里算，default 与风格模板共用
   node_base <- if (is.null(palette)) rev(RColorBrewer::brewer.pal(8, node.color)) else
@@ -119,14 +133,16 @@ ppi_plot <- function(data,
     # 组会演示」用的，差别只在**视觉参数**，数据与统计口径完全一致。
     if (!identical(style, "default")) {
       return(.ppi_style_plot(net, style, node.color, node.size, label.size,
-                             graph.layout, node_base, palette))
+                             graph.layout, node_base, palette,
+                             max_nodes = max_nodes, min_degree = min_degree,
+                             keep = keep))
     }
 
     # ⚠️ default 也要做节点筛选（2026-10-21 补）：
     # 之前 default 是全量出图，737 节点在 kk 布局下必然散成"中心一团 + 外围孤点"，
     # 用户看到的就是「PPI 结果有问题」。可读性上限对所有风格都成立，
     # 不该因为"保持原始行为"就放行。
-    net <- .ppi_cap_nodes(net, 150L, style)
+    net <- .ppi_cap_nodes(net, max_nodes, min_degree, keep, style)
 
     # Plot with ggraph (default：保持原行为不动)
     ggraph(net, layout = graph.layout) +
@@ -205,7 +221,9 @@ ppi_plot <- function(data,
 #   presentation —— 组会/答辩：stress 布局更紧凑、大节点大标签、完整图例
 # ---------------------------------------------------------------------------
 .ppi_style_plot <- function(net, style, node.color, node.size, label.size,
-                            graph.layout, node_base = NULL, palette = NULL) {
+                            graph.layout, node_base = NULL, palette = NULL,
+                            max_nodes = 150L, min_degree = 0L,
+                            keep = "top_degree") {
   if (is.null(node_base)) node_base <- rev(RColorBrewer::brewer.pal(8, node.color))
   pres <- switch(
     style,
@@ -238,8 +256,13 @@ ppi_plot <- function(data,
   # Cytoscape 出图好看的前提就是**先按度数过滤**再布局 —— 这里同样处理：
   # 按度数保留核心 max_nodes 个节点及其内部边。叶子节点（度 1-2）对网络结构
   # 没有信息量，删掉不影响解读。
-  max_nodes <- if (!is.null(pres$max_nodes)) as.integer(pres$max_nodes) else 150L
-  net <- .ppi_cap_nodes(net, max_nodes, style)
+  # ⚠️ 2026-10-23 风格与容量解耦：默认容量取用户显式传的 max_nodes（=150）。
+  #   hub30 预设自带 max_nodes=30，作为「风格自带的选点意图」覆盖用户值；
+  #   其余预设尊重用户值。min_degree / keep 始终由用户透传（缺省 0 / top_degree）。
+  #   ⚠️ Inf 不能直接 as.integer（会 warning "NAs introduced by coercion"）；
+  #     .ppi_cap_nodes 内部用 is.finite 判断，这里先原样透传、由它处理 Inf。
+  cap_nodes <- if (!is.null(pres$max_nodes)) pres$max_nodes else max_nodes
+  net <- .ppi_cap_nodes(net, cap_nodes, min_degree, keep, style)
 
   # module 预设：walktrap 社区检测后按模块着色（看模块结构而不是单个基因）
   if (isTRUE(pres$by_module)) {
@@ -345,21 +368,25 @@ ppi_plot <- function(data,
 
 
 # ---------------------------------------------------------------------------
-# 节点容量：**default 与所有预设共用这一份实现**（2026-10-21）
+# 节点容量：**default 与所有预设共用这一份实现**（2026-10-21；2026-10-23 改）
 #
 # 为什么必须统一：default 曾被"保持原始行为"放行全量出图，结果 737 节点在 kk
 # 布局下散成「中心一团 + 外围孤点」，用户直接判定为「PPI 结果有问题」。
 # 可读性上限不是风格选择，是所有风格共同的前提。
 #
+# ⚠️ 2026-10-23 根治「只有点没有线」（boss 反复反馈）：
+#   旧实现 `induced_subgraph(net, vids=keep)` 在**全图**算度数、取 top hub，
+#   若被保留的 hub 之间恰好无边，induced subgraph 就只剩点（0 条边）。
+#   现改为走统一管线 tcm_filter_network：先把 igraph 还原成边表，按
+#   「过滤后算度数 → induced subgraph」的正确顺序裁，边跟着节点一起保留。
 # ⚠️ 不要写成 `as.integer(igraph::degree(net))`：那会丢掉向量里的节点名，
-# `names()` 变 NULL，`induced_subgraph(vids = NULL)` 得到**空图（0 条边）**，
-# 而日志还照样打印"已保留 N 个节点"（2026-10-21 踩过）。
+#   `names()` 变 NULL，`induced_subgraph(vids = NULL)` 得到空图（2026-10-21 踩过）。
 # ---------------------------------------------------------------------------
-.ppi_cap_nodes <- function(net, max_nodes = 150L, style_label = "") {
+.ppi_cap_nodes <- function(net, max_nodes = 150L, min_degree = 0L,
+                           keep = "top_degree", style_label = "") {
   if (!is.finite(max_nodes) || igraph::vcount(net) <= max_nodes) return(net)
-  deg <- igraph::degree(net)
-  keep <- names(sort(deg, decreasing = TRUE))[seq_len(as.integer(max_nodes))]
-  out <- igraph::induced_subgraph(net, vids = keep)
+  out <- .tcm_filter_igraph(net, max_nodes = max_nodes,
+                            min_degree = min_degree, keep = keep)
   message(sprintf(
     "ppi_plot%s: %d \u4e2a\u8282\u70b9\u8d85\u8fc7\u663e\u793a\u4e0a\u9650\uff0c\u5df2\u6309\u5ea6\u6570\u4fdd\u7559\u524d %d \u4e2a\u6838\u5fc3\u8282\u70b9\uff08%d \u6761\u8fb9\uff09\u3002",
     if (nzchar(style_label)) paste0(" (style = \"", style_label, "\")") else "",
