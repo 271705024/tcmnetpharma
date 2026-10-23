@@ -14,7 +14,7 @@
 #'
 #' @examples
 #'  \dontrun{
-#' data(venn_data, package = "TCMNP")
+#' data(venn_data, package = "tcmnetpharma")
 #' venn_result(venn_data)
 #' }
 #'

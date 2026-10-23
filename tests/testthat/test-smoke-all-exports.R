@@ -51,7 +51,7 @@ with_null_device <- function(expr) {
 # ---------------------------------------------------------------------------
 .compat_available <- function() {
   p <- tryCatch(
-    system.file("extdata", "tcm_network_compat.parquet", package = "TCMNP"),
+    system.file("extdata", "tcm_network_compat.parquet", package = "tcmnetpharma"),
     error = function(e) ""
   )
   if (is.null(p) || !nzchar(p)) {
@@ -72,7 +72,7 @@ skip_if_no_compat <- function() {
 #   - getNamespace() 失败时，回退到调用者环境（由 logs/_l2_testthat.R 注入）
 # ---------------------------------------------------------------------------
 .pkg_ns <- function() {
-  ns <- tryCatch(getNamespace("TCMNP"), error = function(e) NULL)
+  ns <- tryCatch(getNamespace("tcmnetpharma"), error = function(e) NULL)
   if (!is.null(ns)) {
     return(ns)
   }
@@ -215,11 +215,11 @@ make_pre_plot_fixture <- function() {
 # 1. 导出面完整性：NAMESPACE 里每个导出名都必须真实存在且是函数
 # ===========================================================================
 test_that("所有导出符号均已定义且为 function（%>% 除外）", {
-  exports <- getNamespaceExports("TCMNP")
+  exports <- getNamespaceExports("tcmnetpharma")
   exports <- setdiff(exports, "%>%")
   expect_gt(length(exports), 30)  # 防止 NAMESPACE 被误改后静默通过
 
-  ns <- asNamespace("TCMNP")
+  ns <- asNamespace("tcmnetpharma")
   missing <- exports[!vapply(exports, exists, logical(1), envir = ns)]
   expect_equal(missing, character(0),
                info = paste("未定义的导出:", paste(missing, collapse = ", ")))
@@ -234,7 +234,7 @@ test_that("所有导出符号均已定义且为 function（%>% 除外）", {
 })
 
 test_that("管道运算符 %>% 可从包中取到", {
-  expect_true(is.function(TCMNP::`%>%`))
+  expect_true(is.function(tcmnetpharma::`%>%`))
 })
 
 # ===========================================================================
@@ -293,56 +293,56 @@ test_that("查询不存在的关键词时优雅返回空结果而非报错", {
 # 3. 内置数据集契约：每个 .rda 都可被 data() 载入且结构正确
 # ===========================================================================
 test_that("内置数据集均可载入且结构符合预期", {
-  expect_true(is.data.frame(TCMNP::network_data))
-  expect_named(TCMNP::network_data, c("herb", "molecule", "target"))
+  expect_true(is.data.frame(tcmnetpharma::network_data))
+  expect_named(tcmnetpharma::network_data, c("herb", "molecule", "target"))
 
-  expect_true(is.data.frame(TCMNP::sankey_data))
-  expect_named(TCMNP::sankey_data, c("herb", "molecule_id", "molecule", "target"))
+  expect_true(is.data.frame(tcmnetpharma::sankey_data))
+  expect_named(tcmnetpharma::sankey_data, c("herb", "molecule_id", "molecule", "target"))
 
-  expect_true(is.data.frame(TCMNP::ppi_data))
-  expect_named(TCMNP::ppi_data, c("node1", "node2", "combined_score"))
+  expect_true(is.data.frame(tcmnetpharma::ppi_data))
+  expect_named(tcmnetpharma::ppi_data, c("node1", "node2", "combined_score"))
 
-  expect_true(is.data.frame(TCMNP::tf_data))
-  expect_named(TCMNP::tf_data, c("TF", "Target"))
+  expect_true(is.data.frame(tcmnetpharma::tf_data))
+  expect_named(tcmnetpharma::tf_data, c("TF", "Target"))
 
-  expect_true(is.data.frame(TCMNP::venn_data))
-  expect_named(TCMNP::venn_data, c("gene", "source"))
+  expect_true(is.data.frame(tcmnetpharma::venn_data))
+  expect_named(tcmnetpharma::venn_data, c("gene", "source"))
 
-  expect_true(is.data.frame(TCMNP::compound_data))
+  expect_true(is.data.frame(tcmnetpharma::compound_data))
   expect_true(all(c("herb", "weight", "property", "flavor", "meridian") %in%
-                    colnames(TCMNP::compound_data)))
+                    colnames(tcmnetpharma::compound_data)))
 
-  expect_true(is.data.frame(TCMNP::herb_pm))
+  expect_true(is.data.frame(tcmnetpharma::herb_pm))
   expect_true(all(c("Herb_cn_name", "Herb_name_pinyin", "Property", "Flavor",
-                    "Meridian") %in% colnames(TCMNP::herb_pm)))
+                    "Meridian") %in% colnames(tcmnetpharma::herb_pm)))
 
-  expect_true(is.data.frame(TCMNP::xfbdf))
-  expect_named(TCMNP::xfbdf, c("herb", "molecule_id", "molecule", "target"))
+  expect_true(is.data.frame(tcmnetpharma::xfbdf))
+  expect_named(tcmnetpharma::xfbdf, c("herb", "molecule_id", "molecule", "target"))
 
-  expect_true(is.data.frame(TCMNP::kegg.filter))
+  expect_true(is.data.frame(tcmnetpharma::kegg.filter))
   expect_true(all(c("ID", "Description", "GeneRatio", "BgRatio", "pvalue",
                     "p.adjust", "qvalue", "geneID", "Count") %in%
-                    colnames(TCMNP::kegg.filter)))
+                    colnames(tcmnetpharma::kegg.filter)))
 
-  expect_true(is.data.frame(TCMNP::trrust))
-  expect_true(is.data.frame(TCMNP::disease_data))
-  expect_true(is.data.frame(TCMNP::mahuang))
-  expect_true(is.data.frame(TCMNP::compoundfinal))
-  expect_true(is.data.frame(TCMNP::human_go))
-  expect_true(is.data.frame(TCMNP::human_reactome))
-  expect_true(is.data.frame(TCMNP::mu_go))
-  expect_true(is.data.frame(TCMNP::mu_reactome))
+  expect_true(is.data.frame(tcmnetpharma::trrust))
+  expect_true(is.data.frame(tcmnetpharma::disease_data))
+  expect_true(is.data.frame(tcmnetpharma::mahuang))
+  expect_true(is.data.frame(tcmnetpharma::compoundfinal))
+  expect_true(is.data.frame(tcmnetpharma::human_go))
+  expect_true(is.data.frame(tcmnetpharma::human_reactome))
+  expect_true(is.data.frame(tcmnetpharma::mu_go))
+  expect_true(is.data.frame(tcmnetpharma::mu_reactome))
 })
 
 test_that("富集结果对象 KK 仍为 enrichResult", {
-  expect_s4_class(TCMNP::KK, "enrichResult")
+  expect_s4_class(tcmnetpharma::KK, "enrichResult")
 })
 
 # ===========================================================================
 # 4. 转换/查询型函数（不绘图）
 # ===========================================================================
 test_that("etcm 清洗 ETCM 下载数据返回 4 列契约", {
-  res <- etcm(TCMNP::mahuang, herb = "ma huang")
+  res <- etcm(tcmnetpharma::mahuang, herb = "ma huang")
   expect_true(is.data.frame(res))
   expect_named(res, c("herb", "molecule", "target", "QED"))
 })
@@ -359,13 +359,13 @@ test_that("tf_filter 对非字符输入不报错（打印提示后返回 NULL）
 })
 
 test_that("venn_result 返回列表且能取到交集结果", {
-  res <- with_null_device(venn_result(TCMNP::venn_data))
+  res <- with_null_device(venn_result(tcmnetpharma::venn_data))
   expect_true(!is.null(res))
 })
 
 test_that("tcm_prescription 返回双元素列表（草药频次 + 复方富集）", {
   skip_if_no_compat()
-  res <- tcm_prescription(TCMNP::disease_data)
+  res <- tcm_prescription(tcmnetpharma::disease_data)
   expect_type(res, "list")
   expect_length(res, 2)
   expect_true(is.data.frame(res[[1]]))
@@ -378,7 +378,7 @@ test_that("tcm_prescription 返回双元素列表（草药频次 + 复方富集�
 # ===========================================================================
 
 test_that("富集类 KEGG 绘图函数（kegg.filter 兼容子集）全部无错", {
-  kegg <- TCMNP::kegg.filter
+  kegg <- tcmnetpharma::kegg.filter
   specs <- list(
     bar_plot      = function() bar_plot(kegg),
     bubble_plot   = function() bubble_plot(kegg),
@@ -412,12 +412,12 @@ test_that("GO 类 KEGG 绘图函数（含 ONTOLOGY 合成 fixture）全部无错
 
 test_that("网络/桑基/冲击图类绘图函数全部无错", {
   specs <- list(
-    degree_plot = function() degree_plot(TCMNP::network_data),
-    ppi_plot    = function() ppi_plot(TCMNP::ppi_data),
-    tcm_net     = function() tcm_net(TCMNP::network_data),
-    tf_cirplot  = function() tf_cirplot(TCMNP::tf_data),
-    tcm_sankey  = function() tcm_sankey(TCMNP::sankey_data),
-    tcm_alluvial = function() tcm_alluvial(TCMNP::sankey_data)
+    degree_plot = function() degree_plot(tcmnetpharma::network_data),
+    ppi_plot    = function() ppi_plot(tcmnetpharma::ppi_data),
+    tcm_net     = function() tcm_net(tcmnetpharma::network_data),
+    tf_cirplot  = function() tf_cirplot(tcmnetpharma::tf_data),
+    tcm_sankey  = function() tcm_sankey(tcmnetpharma::sankey_data),
+    tcm_alluvial = function() tcm_alluvial(tcmnetpharma::sankey_data)
   )
   res <- run_plot_smoke(specs, env = environment())
   expect_equal(res$status[res$status != "PASS"], character(0),
@@ -426,10 +426,10 @@ test_that("网络/桑基/冲击图类绘图函数全部无错", {
 
 test_that("venn / 复方 / 通路类绘图函数全部无错", {
   specs <- list(
-    venn_plot       = function() venn_plot(TCMNP::venn_data),
-    venn_net        = function() venn_net(TCMNP::venn_data),
-    tcm_comp        = function() tcm_comp(TCMNP::compound_data),
-    tcm_compound    = function() tcm_compound(TCMNP::compound_data),
+    venn_plot       = function() venn_plot(tcmnetpharma::venn_data),
+    venn_net        = function() venn_net(tcmnetpharma::venn_data),
+    tcm_comp        = function() tcm_comp(tcmnetpharma::compound_data),
+    tcm_compound    = function() tcm_compound(tcmnetpharma::compound_data),
     tcm_pre_plot    = function() tcm_pre_plot(make_pre_plot_fixture()),
     # pathway_ccplot 于 2026-09-14 修复 .dots defunct 缺陷后并入本组（默认 root=NULL）
     pathway_ccplot  = function() pathway_ccplot(make_enrich_fixture())
@@ -482,5 +482,5 @@ test_that("pathway_ccplot 在 label.name='ID' 路径可无错完成", {
 })
 
 test_that("pathway_ccplot 接受内置 enrichResult 对象 KK（真实数据路径）", {
-  expect_no_error(with_null_device(pathway_ccplot(TCMNP::KK, root = "KEGG")))
+  expect_no_error(with_null_device(pathway_ccplot(tcmnetpharma::KK, root = "KEGG")))
 })

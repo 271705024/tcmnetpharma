@@ -12,7 +12,7 @@
 #' A data frame with 5024 rows and 4 variables
 #' @source \url{https://www.nhc.gov.cn/cms-search/downFiles/a449a3e2e2c94d9a856d5faea2ff0f94.pdf}
 #' @examples
-#' data("xfbdf", package = "TCMNP")
+#' data("xfbdf", package = "tcmnetpharma")
 #' head(xfbdf)
 "xfbdf"
 

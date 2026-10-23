@@ -12,7 +12,7 @@
 
 .adme_test_compat_ok <- function() {
   if (!requireNamespace("duckdb", quietly = TRUE)) return(FALSE)
-  p <- system.file("extdata", "tcm_network_compat.parquet", package = "TCMNP")
+  p <- system.file("extdata", "tcm_network_compat.parquet", package = "tcmnetpharma")
   if (!nzchar(p)) return(FALSE)
   file.exists(p)
 }
@@ -41,17 +41,17 @@ test_that("\u53e3\u5f84\u300c\u5c3d\u91cf\u5168\u300d\u786e\u5b9e\u6bd4\u65e7\u5
   .adme_skip()
   # \u786c\u8bc1\u636e\uff1a\u540c\u4e00\u67e5\u8be2\u5728\u4e24\u79cd\u53e3\u5f84\u4e0b\u7684\u884c\u6570\u5dee = \u88ab\u65e7\u53e3\u5f84\u4e22\u6389\u7684\u90e8\u5206\u3002
   keep_all <- herb_target("\u7f8c\u6d3b")
-  old <- TCMNP:::.tcm_query(sprintf(
+  old <- tcmnetpharma:::.tcm_query(sprintf(
     "SELECT COUNT(*) AS n FROM read_parquet('%s') WHERE \"%s\" IN ('\u7f8c\u6d3b') AND (%s)",
-    TCMNP:::.tcm_parquet_path(), TCMNP:::.tcm_col_db("Herb_cn_name"),
-    TCMNP:::.tcm_adme_where(30, 0.18, include_missing = FALSE)))
+    tcmnetpharma:::.tcm_parquet_path(), tcmnetpharma:::.tcm_col_db("Herb_cn_name"),
+    tcmnetpharma:::.tcm_adme_where(30, 0.18, include_missing = FALSE)))
   expect_gt(nrow(keep_all), old$n)
   expect_true(any(keep_all$adme == "no_adme"))
 })
 
 test_that("\u65e7\u53e3\u5f84 include_missing=FALSE \u4ecd\u53ef\u7528\uff08\u53ef\u56de\u9000\uff09", {
   .adme_skip()
-  w <- TCMNP:::.tcm_adme_where(30, 0.18, include_missing = FALSE)
+  w <- tcmnetpharma:::.tcm_adme_where(30, 0.18, include_missing = FALSE)
   expect_false(grepl("no_adme", w, fixed = TRUE))
   expect_false(grepl(" IS NULL", w, fixed = TRUE))
 })

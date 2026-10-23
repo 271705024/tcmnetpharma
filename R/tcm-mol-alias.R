@@ -31,7 +31,7 @@
 #' @noRd
 .tcm_mol_alias_path <- function() {
   fn <- "mol_entity_alias.parquet"
-  p <- system.file("extdata", fn, package = "TCMNP")
+  p <- system.file("extdata", fn, package = "tcmnetpharma")
   if (!nzchar(p)) {
     p <- file.path("inst", "extdata", fn)
     if (!file.exists(p)) return("")

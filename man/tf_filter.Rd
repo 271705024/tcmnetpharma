@@ -16,7 +16,7 @@ data.frame
 Finding transcription factors and their target genes
 }
 \examples{
-data(xfbdf, package = "TCMNP")
+data(xfbdf, package = "tcmnetpharma")
 newdata <- tf_filter(xfbdf$target)
 head(newdata)
 }

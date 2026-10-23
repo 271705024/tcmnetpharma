@@ -19,7 +19,7 @@
 #'
 #' @return data.frame with columns `disease_id`, `disease_name`, `ot_disease_id`
 #'   (the OpenTargets disease the score came from), `target_symbol`,
-#'   `target_entrez`, `target_id` (TCMNP target id), `target_ensembl`, `score`,
+#'   `target_entrez`, `target_id` (tcmnetpharma target id), `target_ensembl`, `score`,
 #'   `evidence_count`, `n_ot_disease`. Returns 0 rows (same column contract) when
 #'   nothing matches.
 #'
@@ -36,7 +36,7 @@
 #' "max" never hides the multi-source nature.
 #'
 #' `target_entrez` / `target_id` are `NA` for targets that OpenTargets knows but
-#' the TCMNP target dictionary does not (about 11% of rows); those rows are kept
+#' the tcmnetpharma target dictionary does not (about 11% of rows); those rows are kept
 #' so that the gap is visible rather than silently filtered out.
 #'
 #' @seealso [disease_serch()], [target_herb()]

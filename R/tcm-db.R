@@ -83,7 +83,7 @@
     # ChEMBL 37 药物-靶点作用机制（MOA），见 02f_chembl_moa.py
     mol_moa        = "tcm_target_moa.parquet"
   )
-  p <- system.file("extdata", fn, package = "TCMNP")
+  p <- system.file("extdata", fn, package = "tcmnetpharma")
   if (!nzchar(p)) {  # development mode (not installed): fall back to repo path
     p <- file.path("inst", "extdata", fn)
     if (!file.exists(p)) {
@@ -156,7 +156,7 @@
 #   （铁律：不改变默认口径；新能力显式开启）。
 # ---------------------------------------------------------------------------
 .tcm_herb_keymap_path <- function() {
-  p <- system.file("extdata", "herb_key_map.parquet", package = "TCMNP")
+  p <- system.file("extdata", "herb_key_map.parquet", package = "tcmnetpharma")
   if (!nzchar(p)) {                      # development mode (not installed)
     p <- file.path("inst", "extdata", "herb_key_map.parquet")
     if (!file.exists(p)) {
@@ -245,7 +245,7 @@
   cache <- NULL
   function() {
     if (is.null(cache)) {
-      p <- system.file("extdata", "herb_main.parquet", package = "TCMNP")
+      p <- system.file("extdata", "herb_main.parquet", package = "tcmnetpharma")
       if (!nzchar(p)) p <- file.path("inst", "extdata", "herb_main.parquet")
       if (!file.exists(p)) stop("herb_main.parquet not found (run 06_export.py)")
       mn <- .tcm_query(sprintf("SELECT herb_id, herb_cn FROM read_parquet('%s')", p))

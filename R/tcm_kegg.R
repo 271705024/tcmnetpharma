@@ -6,7 +6,7 @@
 #' (which cannot be redistributed — see \code{inst/extdata/DATA-README.md}).
 #'
 #' Gene-to-pathway memberships are fetched from \code{https://rest.kegg.jp} and
-#' cached under \code{tools::R_user_dir("TCMNP", "cache")/kegg/} so that
+#' cached under \code{tools::R_user_dir("tcmnetpharma", "cache")/kegg/} so that
 #' subsequent runs work offline and reproduce the same result within the cache
 #' window.
 #'
@@ -62,7 +62,7 @@
 .tcm_kegg_snapshot <- function(code = c("hsa", "mmu"), cache_days = 30L,
                                timeout_s = 180) {
   code <- match.arg(code)
-  dir <- file.path(tools::R_user_dir("TCMNP", "cache"), "kegg")
+  dir <- file.path(tools::R_user_dir("tcmnetpharma", "cache"), "kegg")
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   f <- file.path(dir, sprintf("%s_pathway.rds", code))
 
@@ -134,5 +134,5 @@
 #' Where is the KEGG snapshot cached (for UI / debugging)
 #' @noRd
 .tcm_kegg_cache_path <- function() {
-  file.path(tools::R_user_dir("TCMNP", "cache"), "kegg")
+  file.path(tools::R_user_dir("tcmnetpharma", "cache"), "kegg")
 }

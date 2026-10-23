@@ -41,7 +41,7 @@ Bar graphs showed the results of tcm_prescription  analysis
 }
 \examples{
 \dontrun{
-data(disease_data, package = "TCMNP")
+data(disease_data, package = "tcmnetpharma")
 compound<- tcm_prescription(disease_data)[[2]]
 tcm_pre_plot(compound)
 }

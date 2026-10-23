@@ -11,7 +11,7 @@
 #      （已修：has_score 兜底，退回固定线宽）
 
 skip_if_no_ppi <- function() {
-  p <- tryCatch(TCMNP:::.tcm_parquet_path("string_ppi"), error = function(e) "")
+  p <- tryCatch(tcmnetpharma:::.tcm_parquet_path("string_ppi"), error = function(e) "")
   testthat::skip_if(!nzchar(p) || !file.exists(p), "STRING parquet 未构建")
 }
 skip_if_no_ppi()

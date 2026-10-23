@@ -46,7 +46,7 @@ enriched by KEGG or GO in the form of a chord diagram
 }
 \examples{
 \dontrun{
-data(xfbdf, package = "TCMNP")
+data(xfbdf, package = "tcmnetpharma")
 library(tidyverse)
 # 富集结果：全部离线，无需 OrgDb 包
 res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",

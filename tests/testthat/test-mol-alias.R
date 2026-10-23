@@ -22,15 +22,15 @@
 # ===========================================================================
 
 alias_tbl <- function() {
-  p <- system.file("extdata", "mol_entity_alias.parquet", package = "TCMNP")
+  p <- system.file("extdata", "mol_entity_alias.parquet", package = "tcmnetpharma")
   if (!nzchar(p)) return(NULL)
-  arrow <- asNamespace("TCMNP")$.tcm_query(sprintf(
+  arrow <- asNamespace("tcmnetpharma")$.tcm_query(sprintf(
     "SELECT * FROM read_parquet('%s')", p))
   arrow
 }
 
 test_that("别名表存在且列契约稳定", {
-  p <- system.file("extdata", "mol_entity_alias.parquet", package = "TCMNP")
+  p <- system.file("extdata", "mol_entity_alias.parquet", package = "tcmnetpharma")
   expect_true(nzchar(p), "mol_entity_alias.parquet 缺失 —— R3 别名通道不可用")
   expect_true(file.exists(p))
 })

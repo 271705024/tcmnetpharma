@@ -31,7 +31,7 @@
 #' @importFrom stats reorder
 #' @examples
 #' \dontrun{
-#' data(kegg.filter, package = "TCMNP")
+#' data(kegg.filter, package = "tcmnetpharma")
 #' dot_sankey2 (kegg.filter)
 #' }
 dot_sankey2 <- function(data,

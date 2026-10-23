@@ -28,7 +28,7 @@ tcm_centrality(network.data, class = NULL, rem.dis.inter = FALSE, top_n = NULL)
 }
 \examples{
 \dontrun{
-data("network_data", package = "TCMNP")
+data("network_data", package = "tcmnetpharma")
 tcm_centrality(network_data)
 tcm_centrality(network_data, class = "target", top_n = 10)
 }

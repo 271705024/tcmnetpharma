@@ -26,7 +26,7 @@
 #' @importFrom cols4all c4a
 #'
 #' @examples
-#' data("xfbdf", package = "TCMNP")
+#' data("xfbdf", package = "tcmnetpharma")
 #' data <- xfbdf %>% dplyr::slice_sample(n = 30)
 #' tcm_alluvial(data, text.position = 1)
 tcm_alluvial <- function(data,

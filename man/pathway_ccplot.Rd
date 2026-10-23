@@ -46,7 +46,7 @@ circle chart showed the results of GO and KEGG analysis
 }
 \examples{
 \dontrun{
-data("KK", package = "TCMNP")
+data("KK", package = "tcmnetpharma")
 library(dplyr)
 pathway_ccplot(KK, root = "KEGG")
 }

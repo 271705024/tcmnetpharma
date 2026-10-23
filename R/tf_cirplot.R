@@ -22,7 +22,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' data(xfbdf, package = "TCMNP")
+#' data(xfbdf, package = "tcmnetpharma")
 #' tf_data <- tf_filter(xfbdf$target)
 #' set.seed(1234)
 #' data <- tf_data[, 1:2] %>%

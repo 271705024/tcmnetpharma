@@ -28,7 +28,7 @@ ggplot 对象
 }
 \examples{
 \dontrun{
-data("network_data", package = "TCMNP")
+data("network_data", package = "tcmnetpharma")
 module_netplot(network_data)
 }
 }

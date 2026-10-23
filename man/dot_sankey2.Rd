@@ -60,7 +60,7 @@ after KEGG/GO screening of pathways and genes
 }
 \examples{
 \dontrun{
-data(kegg.filter, package = "TCMNP")
+data(kegg.filter, package = "tcmnetpharma")
 dot_sankey2 (kegg.filter)
 }
 }

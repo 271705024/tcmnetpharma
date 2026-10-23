@@ -10,12 +10,12 @@
 #      （前者的 matched 子集 == 后者的 disease_id 全集）。
 # ===========================================================================
 
-.tcm_query        <- get(".tcm_query",        envir = getNamespace("TCMNP"))
-.sql_in           <- get(".sql_in",           envir = getNamespace("TCMNP"))
-.tcm_parquet_path <- get(".tcm_parquet_path", envir = getNamespace("TCMNP"))
+.tcm_query        <- get(".tcm_query",        envir = getNamespace("tcmnetpharma"))
+.sql_in           <- get(".sql_in",           envir = getNamespace("tcmnetpharma"))
+.tcm_parquet_path <- get(".tcm_parquet_path", envir = getNamespace("tcmnetpharma"))
 
 disease_main_path <- function() {
-  p <- system.file("extdata", "disease_main.parquet", package = "TCMNP")
+  p <- system.file("extdata", "disease_main.parquet", package = "tcmnetpharma")
   if (!nzchar(p)) p <- file.path("inst", "extdata", "disease_main.parquet")
   if (!file.exists(p)) {
     # 缺数据必须**硬失败**：静默 skip 会让「没检查项」看起来像「通过」（铁律 28）
@@ -106,7 +106,7 @@ test_that("disease_main 契约：身份唯一、多值已归一、占位已清",
 
 test_that("disease_main 与 layer_a_disease_ontology_map 两表自洽", {
   dm <- disease_main_path()
-  om <- system.file("extdata", "layer_a_disease_ontology_map.parquet", package = "TCMNP")
+  om <- system.file("extdata", "layer_a_disease_ontology_map.parquet", package = "tcmnetpharma")
   if (!nzchar(om)) om <- file.path("inst", "extdata", "layer_a_disease_ontology_map.parquet")
   expect_true(file.exists(om))
 
@@ -132,7 +132,7 @@ test_that("disease_main 与 layer_a_disease_ontology_map 两表自洽", {
 # 疾病 → 靶点关联（2026-10-15，boss「纳入」）
 # ===========================================================================
 dt_path <- function() {
-  p <- system.file("extdata", "disease_target.parquet", package = "TCMNP")
+  p <- system.file("extdata", "disease_target.parquet", package = "tcmnetpharma")
   if (!nzchar(p)) p <- file.path("inst", "extdata", "disease_target.parquet")
   if (!file.exists(p)) {
     stop("disease_target.parquet 未导出（先跑 data-raw/cleaning/02e_disease_target.py）")

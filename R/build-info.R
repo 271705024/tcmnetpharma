@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------
 # 背景
 #   本项目多次被「旧包干扰」坑到：验的是旧副本、目标库有残留、同机多份
-#   TCMNP 互相串味。仅看路径或时间戳不足以判别新鲜度 —— 必须能**从代码里
+#   tcmnetpharma 互相串味。仅看路径或时间戳不足以判别新鲜度 —— 必须能**从代码里
 #   问出**「我现在加载的这一份到底是哪个构建」。
 #
 # 设计
@@ -30,13 +30,13 @@
 #        zh_CN.UTF-8  -> 函数体读取即报 embedded nul
 #   3. 二分到**本文件里的中文字符串常量**：把这些常量换成 ASCII 后
 #      （注释中文保留）问题立刻消失 —— 注释无害，**字符串常量才是元凶**；
-#   4. 手写的最小包（4 个文件）可 100% 复现，与 TCMNP 其余代码无关。
+#   4. 手写的最小包（4 个文件）可 100% 复现，与 tcmnetpharma 其余代码无关。
 #
 # 根因：R 4.6.1 (ucrt) 在 UTF-8 locale 下把源文件里的裸多字节字符串常量的
 #   Encoding 标记错标为 "ASCII"（安装期警告原文：
 #     input string '...' cannot be translated from 'ASCII' to UTF-8,
 #     but is valid UTF-8
-#   ），该错误标记随字节码写进 R/TCMNP.rdb；运行时按 UTF-8 locale 反序列化
+#   ），该错误标记随字节码写进 R/tcmnetpharma.rdb；运行时按 UTF-8 locale 反序列化
 #   这条记录就崩。**安装期写的 rdb 有损，运行时 locale 一变就暴露**。
 #
 # 修法（本文件采用）：
@@ -50,9 +50,9 @@
 
 .tcmnp_build_info_cache <- new.env(parent = emptyenv())
 
-#' 读取 TCMNP 构建身份信息
+#' 读取 tcmnetpharma 构建身份信息
 #'
-#' 返回当前已加载的 TCMNP 包的构建身份信息（build_id / 版本 / 数据版本 /
+#' 返回当前已加载的 tcmnetpharma 包的构建身份信息（build_id / 版本 / 数据版本 /
 #' git commit / 源码指纹）。信息由构建流水线在打包时写入
 #' \code{inst/BUILD-INFO.json}；开发期未打包时返回占位值而非报错。
 #'
@@ -66,7 +66,7 @@
 #' @export
 tcmnp_build_info <- function(field = NULL) {
   if (is.null(.tcmnp_build_info_cache$data)) {
-    f <- system.file("BUILD-INFO.json", package = "TCMNP")
+    f <- system.file("BUILD-INFO.json", package = "tcmnetpharma")
     if (nzchar(f) && file.exists(f)) {
       # 刻意**不**依赖 jsonlite：本函数纯信息性，不应为一个「读一行身份」
       # 的功能给包增加硬依赖。内部 JSON 由我们自己的生成器写出、结构固定，
@@ -77,6 +77,8 @@ tcmnp_build_info <- function(field = NULL) {
       # 引用未声明的包，会让 **lazy loading 整体失败**，而 R 只回一句
       # 无信息量的 `ERROR: lazy loading failed for package 'TCMNP'` ——
       # 极难定位（安装日志里连行号都不给）。
+      # 注：引号里是**当时**（2026-09-15，包尚未改名）R 的原样输出，故保留旧名；
+      # 现包名为 tcmnetpharma，同样的错会显示 'tcmnetpharma'。
       info <- .tcmnp_parse_build_info_fallback(f)
       if (is.null(info) || length(info) == 0L) {
         info <- list(build_id = "unknown",
@@ -101,7 +103,7 @@ tcmnp_build_info <- function(field = NULL) {
 #'
 #' ## ★ E8 修复（2026-09-22，commit c7bcb2c）：裸中文字符串常量 → \uXXXX 转义
 #' 根因 —— 本文件原以裸中文字符串常量书写这几条提示文案。R 4.6.1 (ucrt) 在
-#'   安装期把其 `Encoding` 标记错标为 "ASCII"，随字节码写进 `R/TCMNP.rdb`；
+#'   安装期把其 `Encoding` 标记错标为 "ASCII"，随字节码写进 `R/tcmnetpharma.rdb`；
 #'   运行期在 UTF-8 locale 下反序列化该记录即抛 `embedded nul in string`。
 #'   **是「安装期写坏、运行期按 locale 才暴露」的延迟缺陷** —— C locale 下完全正常。
 #' 方案 —— 全部文案改 `\uXXXX` 转义（纯 ASCII，Encoding 标记恒正确），
@@ -198,7 +200,7 @@ tcmnp_build_info <- function(field = NULL) {
 #' @noRd
 .tcmnp_or <- function(a, b) if (is.null(a) || (length(a) == 1L && is.na(a))) b else a
 
-#' 打印 TCMNP 构建身份单行摘要
+#' 打印 tcmnetpharma 构建身份单行摘要
 #'
 #' 适合放在日志/会话开头，快速确认「我加载的是哪一份」。
 #'
@@ -211,7 +213,7 @@ tcmnp_build_info <- function(field = NULL) {
 tcmnp_identity <- function() {
   i <- tcmnp_build_info()
   line <- sprintf(
-    "TCMNP %s | build %s | data %s | git %s%s",
+    "tcmnetpharma %s | build %s | data %s | git %s%s",
     .tcmnp_or(i$version, "?"),
     .tcmnp_or(i$build_id, "?"),
     .tcmnp_or(i$data_version, "?"),

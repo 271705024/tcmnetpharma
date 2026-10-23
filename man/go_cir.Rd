@@ -71,7 +71,7 @@ Chord diagram display of GO results
 \examples{
 \dontrun{
 # 富集结果：GO 离线即可，无需 OrgDb 包（等价 enrichGO(ont = "all")）
-data(xfbdf, package = "TCMNP")
+data(xfbdf, package = "tcmnetpharma")
 res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
                   pvalueCutoff = 0.01, qvalueCutoff = 0.05)
 go.diff <- res$go

@@ -5,7 +5,7 @@
 #' @return data.frame
 #' @export
 #' @examples
-#' data(xfbdf, package = "TCMNP")
+#' data(xfbdf, package = "tcmnetpharma")
 #' newdata <- tf_filter(xfbdf$target)
 #' head(newdata)
 tf_filter <- function(data) {

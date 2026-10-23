@@ -49,7 +49,7 @@
 #' @importFrom igraph E
 #' @examples
 #' \dontrun{
-#' data(venn_data, package = "TCMNP")
+#' data(venn_data, package = "tcmnetpharma")
 #' set.seed(1234)
 #' gene <- names(sort(table(venn_data$gene), decreasing = TRUE))[1:50]
 #' data <- venn_data[venn_data$gene %in% gene, ]

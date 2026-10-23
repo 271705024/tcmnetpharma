@@ -38,7 +38,7 @@ data.frame
 Screen herbs and compound based on disease gene
 }
 \examples{
-data(disease_data, package = "TCMNP")
+data(disease_data, package = "tcmnetpharma")
 herbs <- tcm_prescription(disease_data)[[1]]
 compound <- tcm_prescription(disease_data)[[2]]
 }

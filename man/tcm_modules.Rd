@@ -42,7 +42,7 @@ tcm_modules(
 }
 \examples{
 \dontrun{
-data("network_data", package = "TCMNP")
+data("network_data", package = "tcmnetpharma")
 res <- tcm_modules(network_data)
 head(res$nodes); head(res$modules)
 }

@@ -18,7 +18,7 @@ data.frame
 ETCM database download data collation
 }
 \examples{
-data("mahuang", package = "TCMNP")
+data("mahuang", package = "tcmnetpharma")
 data <- etcm(mahuang, herb = "ma huang")
 head(data)
 }

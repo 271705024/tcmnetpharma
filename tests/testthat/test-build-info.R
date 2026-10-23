@@ -46,7 +46,7 @@ test_that("tcmnp_build_info 返回命名 list 且含关键字段", {
   # 注：字段清单以实际返回为准（实测 10 个），勿凭记忆增删
   expect_true(all(c("build_id", "name", "version", "git_commit") %in% names(info)),
               info = paste("实际字段:", paste(names(info), collapse = ", ")))
-  expect_equal(info$name, "TCMNP")
+  expect_equal(info$name, "tcmnetpharma")
 })
 
 test_that("tcmnp_build_info(field) 单字段取值与完整列表一致", {
@@ -87,7 +87,7 @@ test_that("★E8 回归：UTF-8 locale 下两个身份函数体可 deparse（无
   skip_if_not(entered, "本环境无法设置 UTF-8 locale，跳过 E8 locale 回归守卫")
 
   for (fn in c("tcmnp_build_info", "tcmnp_identity")) {
-    f <- get(fn, envir = asNamespace("TCMNP"))
+    f <- get(fn, envir = asNamespace("tcmnetpharma"))
     # 注：expect_no_error() 不接受 info= 参数，故用 tryCatch 自行捕获再断言
     err <- tryCatch({ deparse(f); NULL }, error = function(e) conditionMessage(e))
     expect_null(
@@ -116,7 +116,7 @@ test_that("★E8 回归：UTF-8 locale 下两个身份函数可实际调用", {
 #    .tcmnp_note() 是 E8 修复时抽出的集中管理点，用 \uXXXX 转义书写。
 # ===========================================================================
 test_that("★E8 回归：内部 .tcmnp_note 返回合法 UTF-8 文本", {
-  ns <- asNamespace("TCMNP")
+  ns <- asNamespace("tcmnetpharma")
   note_fn <- tryCatch(get(".tcmnp_note", envir = ns), error = function(e) NULL)
   skip_if(is.null(note_fn), ".tcmnp_note 未导出到命名空间")
 
@@ -134,7 +134,7 @@ test_that("★E8 回归：内部 .tcmnp_note 返回合法 UTF-8 文本", {
 })
 
 test_that("★E8 回归：未知 key 返回空串而非报错", {
-  ns <- asNamespace("TCMNP")
+  ns <- asNamespace("tcmnetpharma")
   note_fn <- tryCatch(get(".tcmnp_note", envir = ns), error = function(e) NULL)
   skip_if(is.null(note_fn), ".tcmnp_note 未导出到命名空间")
   expect_identical(note_fn("__no_such_key__"), "")

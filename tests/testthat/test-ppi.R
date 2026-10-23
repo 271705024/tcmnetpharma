@@ -13,7 +13,7 @@
 # 数据来源与许可见 docs/data-license-string-2026-10-20.md（CC BY 4.0）
 
 skip_if_no_string <- function() {
-  p <- tryCatch(TCMNP:::.tcm_parquet_path("string_ppi"), error = function(e) "")
+  p <- tryCatch(tcmnetpharma:::.tcm_parquet_path("string_ppi"), error = function(e) "")
   testthat::skip_if(!nzchar(p) || !file.exists(p),
                     "STRING parquet 未构建（先跑 data-raw/string/build_string_parquet.py）")
 }

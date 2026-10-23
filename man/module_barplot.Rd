@@ -19,7 +19,7 @@ ggplot 对象
 }
 \examples{
 \dontrun{
-data("network_data", package = "TCMNP")
+data("network_data", package = "tcmnetpharma")
 module_barplot(tcm_modules(network_data)$modules)
 }
 }

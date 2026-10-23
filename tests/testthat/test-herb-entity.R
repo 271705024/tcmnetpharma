@@ -12,16 +12,16 @@
 # ===========================================================================
 
 # 内部函数取用器：testthat 的 test_file() 不会把包命名空间注入测试环境，
-# 故内部函数必须显式从 TCMNP 命名空间取（与 test-tcm-db.R 的 .tdb_get 同构）。
+# 故内部函数必须显式从 tcmnetpharma 命名空间取（与 test-tcm-db.R 的 .tdb_get 同构）。
 # 2026-10-12 实测：不这样做会以 "could not find function .tcm_query" 报 ERROR（err=3）。
-.tcm_query        <- get(".tcm_query",        envir = getNamespace("TCMNP"))
-.sql_in           <- get(".sql_in",           envir = getNamespace("TCMNP"))
-.tcm_herb_resolve <- get(".tcm_herb_resolve", envir = getNamespace("TCMNP"))
-.tcm_parquet_path <- get(".tcm_parquet_path", envir = getNamespace("TCMNP"))
+.tcm_query        <- get(".tcm_query",        envir = getNamespace("tcmnetpharma"))
+.sql_in           <- get(".sql_in",           envir = getNamespace("tcmnetpharma"))
+.tcm_herb_resolve <- get(".tcm_herb_resolve", envir = getNamespace("tcmnetpharma"))
+.tcm_parquet_path <- get(".tcm_parquet_path", envir = getNamespace("tcmnetpharma"))
 
 kmap_path <- function() {
   cands <- c(
-    system.file("extdata", "herb_key_map.parquet", package = "TCMNP"),
+    system.file("extdata", "herb_key_map.parquet", package = "tcmnetpharma"),
     file.path("inst", "extdata", "herb_key_map.parquet"),
     file.path("..", "..", "inst", "extdata", "herb_key_map.parquet")
   )
@@ -86,7 +86,7 @@ test_that("resolve_herb 展开：键类型与查询列一致，且落到同一�
 })
 
 test_that("herb_alias.csv: 键别名表与 herb_key_map 行数一致", {
-  ka <- c(system.file("extdata", "herb_alias.csv", package = "TCMNP"),
+  ka <- c(system.file("extdata", "herb_alias.csv", package = "tcmnetpharma"),
           file.path("inst", "extdata", "herb_alias.csv"),
           file.path("..", "..", "inst", "extdata", "herb_alias.csv"))
   ka <- ka[nzchar(ka)]
@@ -106,7 +106,7 @@ test_that("herb_alias.csv: 键别名表与 herb_key_map 行数一致", {
 
 test_that("四个查询函数都暴露 resolve_herb / with_trust，且默认关闭", {
   for (fn in c("herb_target", "target_herb", "molecule_serch", "target_serch")) {
-    f <- get(fn, envir = getNamespace("TCMNP"))
+    f <- get(fn, envir = getNamespace("tcmnetpharma"))
     expect_true("resolve_herb" %in% names(formals(f)), info = fn)
     expect_true("with_trust" %in% names(formals(f)), info = fn)
     expect_identical(eval(formals(f)$resolve_herb), FALSE, info = fn)

@@ -54,7 +54,7 @@ Intersection of datasets
 \examples{
  \dontrun{
 library(UpSetR)
-data(venn_data, package = "TCMNP")
+data(venn_data, package = "tcmnetpharma")
 venn_plot(venn_data, type =1)
 venn_plot(venn_data, type =2)
 }

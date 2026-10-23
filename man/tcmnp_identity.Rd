@@ -2,7 +2,7 @@
 % Please edit documentation in R/build-info.R
 \name{tcmnp_identity}
 \alias{tcmnp_identity}
-\title{打印 TCMNP 构建身份单行摘要}
+\title{打印 tcmnetpharma 构建身份单行摘要}
 \usage{
 tcmnp_identity()
 }

@@ -12,11 +12,11 @@
 #   （不断言「某药必有 N 行」这类随数据版本漂移的数字）。
 # ===========================================================================
 
-.tcm_query        <- get(".tcm_query",        envir = getNamespace("TCMNP"))
-.tcm_parquet_path <- get(".tcm_parquet_path", envir = getNamespace("TCMNP"))
+.tcm_query        <- get(".tcm_query",        envir = getNamespace("tcmnetpharma"))
+.tcm_parquet_path <- get(".tcm_parquet_path", envir = getNamespace("tcmnetpharma"))
 
 ind_path <- function() {
-  p <- system.file("extdata", "tcm_mol_indication.parquet", package = "TCMNP")
+  p <- system.file("extdata", "tcm_mol_indication.parquet", package = "tcmnetpharma")
   if (!nzchar(p)) p <- file.path("inst", "extdata", "tcm_mol_indication.parquet")
   if (!file.exists(p)) {
     # 缺数据硬失败，不静默 skip（铁律 28：没有检查项 ≠ 通过）
@@ -26,7 +26,7 @@ ind_path <- function() {
 }
 
 moa_path <- function() {
-  p <- system.file("extdata", "tcm_target_moa.parquet", package = "TCMNP")
+  p <- system.file("extdata", "tcm_target_moa.parquet", package = "tcmnetpharma")
   if (!nzchar(p)) p <- file.path("inst", "extdata", "tcm_target_moa.parquet")
   if (!file.exists(p)) stop("tcm_target_moa.parquet 未导出")
   p

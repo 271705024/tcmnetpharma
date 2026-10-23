@@ -27,7 +27,7 @@
 #' WikiPathways (CC0) cover pathway-level enrichment fully offline.
 #' \code{ont = "KEGG"} instead fetches KEGG data \strong{at run time} from
 #' \url{https://rest.kegg.jp} (free for academic use on the user's own machine),
-#' and caches a snapshot under \code{tools::R_user_dir("TCMNP", "cache")}.
+#' and caches a snapshot under \code{tools::R_user_dir("tcmnetpharma", "cache")}.
 #' No KEGG data is ever redistributed by this package. Because KEGG content
 #' changes over time, the snapshot date is attached to the result
 #' (\code{attr(x, "kegg_snapshot")}) — report it for reproducibility.
@@ -156,7 +156,7 @@ tcm_enrich <- function(gene, keytype = "SYMBOL", species = "human",
     res
   }
 
-  # ---- Reactome (offline gene sets shipped with TCMNP) ----
+  # ---- Reactome (offline gene sets shipped with tcmnetpharma) ----
   if ("Reactome" %in% ont) {
     report(60, "\u6b63\u5728\u8dd1 Reactome \u5bcc\u96c6\u2026")
     gs <- if (identical(species, "human")) human_reactome else mu_reactome

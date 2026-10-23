@@ -63,7 +63,7 @@ Chord diagram display of KEGG or GO results
 \examples{
 \dontrun{
 # 富集结果：全部离线，无需 OrgDb 包
-data(xfbdf, package = "TCMNP")
+data(xfbdf, package = "tcmnetpharma")
 res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human")
 KK <- res$wikipathways  # 通路维度（KEGG 的离线替代）
 # 可选：KEGG 需联网，数据不随包分发（见 inst/extdata/DATA-README.md）

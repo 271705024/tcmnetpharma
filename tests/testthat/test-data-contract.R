@@ -67,7 +67,7 @@ test_that("核心数据集存在且结构稳定", {
 })
 
 test_that("内部数据 tcm_network 惰性查询契约（P3.2，compat parquet 经 DuckDB）", {
-  meta <- TCMNP:::.tcm_meta()
+  meta <- tcmnetpharma:::.tcm_meta()
   # 行数 = 16,269,155（S3-S4 合并 + Layer A 融合后落盘值；dedup 后；> 1.5e7 阈值满足）
   expect_gt(meta$rows, 1.5e7)
   # 9 列契约（与 sysdata 时代一致的列集）
@@ -78,19 +78,19 @@ test_that("内部数据 tcm_network 惰性查询契约（P3.2，compat parquet �
   expect_true(meta$columns[["OB"]] %in% c("VARCHAR", "DOUBLE", "FLOAT", "INTEGER", "BIGINT"))
   expect_true(meta$columns[["DL"]] %in% c("VARCHAR", "DOUBLE", "FLOAT", "INTEGER", "BIGINT"))
   # 关键链可查（Target=PTGS2 且 ADME 达标——CAST 后过滤）
-  hit <- TCMNP:::.tcm_query(sprintf(
+  hit <- tcmnetpharma:::.tcm_query(sprintf(
     "SELECT COUNT(*) AS n FROM read_parquet('%s') WHERE Target IN ('PTGS2') AND %s",
-    TCMNP:::.tcm_parquet_path(), TCMNP:::.tcm_adme_where(30, 0.18)))
+    tcmnetpharma:::.tcm_parquet_path(), tcmnetpharma:::.tcm_adme_where(30, 0.18)))
   expect_gt(hit$n, 0)
   # DISTINCT 草药数（背景集规模，应显著大于旧版 499）
-  hb <- TCMNP:::.tcm_distinct("Herb_cn_name")
+  hb <- tcmnetpharma:::.tcm_distinct("Herb_cn_name")
   expect_gt(length(hb), 1000)
 })
 
 test_that("Layer A 一次源疾病本体映射表存在且结构稳定 (2026-10-14 并入)", {
   # 与上方 tcm_network 惰性查询契约同款定位：已安装走 system.file，未安装走 inst/extdata
   p <- tryCatch(
-    system.file("extdata", "layer_a_disease_ontology_map.parquet", package = "TCMNP"),
+    system.file("extdata", "layer_a_disease_ontology_map.parquet", package = "tcmnetpharma"),
     error = function(e) ""
   )
   if (is.null(p) || !nzchar(p)) {
@@ -122,12 +122,12 @@ test_that("Layer A 一次源疾病本体映射表存在且结构稳定 (2026-10-
 test_that("compat 恒 10 列，standard 已接实体层与信任/溯源列", {
   # compat = 10 列是**硬契约**（D-compat=A）：5 个查询函数与 GUI 都按它写，
   #   新增列会影响 `expect_named` 断言与下游构造 → 必须显式改，不能悄悄长。
-  cc <- TCMNP:::.tcm_query(sprintf("SELECT * FROM read_parquet('%s') LIMIT 0",
-                                    TCMNP:::.tcm_parquet_path("compat")))
+  cc <- tcmnetpharma:::.tcm_query(sprintf("SELECT * FROM read_parquet('%s') LIMIT 0",
+                                    tcmnetpharma:::.tcm_parquet_path("compat")))
   expect_equal(ncol(cc), 10L)
 
-  sc <- TCMNP:::.tcm_query(sprintf("SELECT * FROM read_parquet('%s') LIMIT 0",
-                                    TCMNP:::.tcm_parquet_path("standard")))
+  sc <- tcmnetpharma:::.tcm_query(sprintf("SELECT * FROM read_parquet('%s') LIMIT 0",
+                                    tcmnetpharma:::.tcm_parquet_path("standard")))
   expect_true(all(c("herb_entity_id", "herb_entity_id_source",
                     "qc_level", "qc_level_reason", "cas_verified", "cas_source",
                     "latin_name_std", "latin_match_status",
@@ -144,8 +144,8 @@ test_that("compat 恒 10 列，standard 已接实体层与信任/溯源列", {
 # Layer A 两列契约（2026-10-15 纳入）
 # ===========================================================================
 test_that("standard 的 Layer A 两列：覆盖 > 0、hit 形态合规、键→值函数性", {
-  sp <- TCMNP:::.tcm_parquet_path("standard")
-  agg <- TCMNP:::.tcm_query(sprintf("
+  sp <- tcmnetpharma:::.tcm_parquet_path("standard")
+  agg <- tcmnetpharma:::.tcm_query(sprintf("
     SELECT count(*) AS n,
       sum(CASE WHEN layer_a_latin  IS NOT NULL AND trim(layer_a_latin)  <> '' THEN 1 ELSE 0 END) AS n_lat,
       sum(CASE WHEN layer_a_hit_id IS NOT NULL AND trim(layer_a_hit_id) <> '' THEN 1 ELSE 0 END) AS n_hit
@@ -156,14 +156,14 @@ test_that("standard 的 Layer A 两列：覆盖 > 0、hit 形态合规、键→�
   expect_gt(agg$n_hit, 0)
 
   # hit_id 形态：SymMap 靶点实验标记（T + 数字，实测值如 T1237）
-  bad <- TCMNP:::.tcm_query(sprintf("
+  bad <- tcmnetpharma:::.tcm_query(sprintf("
     SELECT count(*) AS n FROM read_parquet('%s')
     WHERE layer_a_hit_id IS NOT NULL AND trim(layer_a_hit_id) <> ''
       AND NOT regexp_matches(trim(layer_a_hit_id), '^T[0-9]+$')", sp))
   expect_equal(bad$n, 0L)
 
   # 键→latin 函数性：left join `.map` 的前提（否则同一键取值随机）
-  multi <- TCMNP:::.tcm_query(sprintf("
+  multi <- tcmnetpharma:::.tcm_query(sprintf("
     SELECT count(*) AS n FROM (
       SELECT herb, count(DISTINCT layer_a_latin) AS c FROM read_parquet('%s')
       WHERE layer_a_latin IS NOT NULL GROUP BY 1 HAVING c > 1)", sp))
@@ -172,7 +172,7 @@ test_that("standard 的 Layer A 两列：覆盖 > 0、hit 形态合规、键→�
   # ⚠️ 语义区分（防误用）：`layer_a_latin` 是**拉丁药材名**（`Radix Et Rhizoma …`），
   #    与 `latin_name_std`（实体层植物学二名法）**不是同一回事**。
   #    断言二者取值几乎不重合（实测 11.7%）—— 若有人把两列搞混、互相赋值，这条会红。
-  pair <- TCMNP:::.tcm_query(sprintf("
+  pair <- tcmnetpharma:::.tcm_query(sprintf("
     SELECT
       sum(CASE WHEN layer_a_latin IS NOT NULL AND latin_name_std IS NOT NULL THEN 1 ELSE 0 END) AS both_nn,
       sum(CASE WHEN layer_a_latin IS NOT NULL AND latin_name_std IS NOT NULL

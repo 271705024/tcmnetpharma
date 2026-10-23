@@ -22,7 +22,7 @@
 # compat parquet 可用性探测（与 test-smoke-all-exports.R 同语义，独立定义避免耦合）
 .db_ready <- function() {
   p <- tryCatch(
-    system.file("extdata", "tcm_network_compat.parquet", package = "TCMNP"),
+    system.file("extdata", "tcm_network_compat.parquet", package = "tcmnetpharma"),
     error = function(e) ""
   )
   if (is.null(p) || !nzchar(p)) {
@@ -38,7 +38,7 @@ skip_if_no_db <- function() {
 
 # 内部函数取用器：优先已安装命名空间，回退开发期注入环境
 .tdb_get <- function(name) {
-  ns <- tryCatch(getNamespace("TCMNP"), error = function(e) NULL)
+  ns <- tryCatch(getNamespace("tcmnetpharma"), error = function(e) NULL)
   if (!is.null(ns) && exists(name, envir = ns, inherits = FALSE)) {
     return(get(name, envir = ns))
   }

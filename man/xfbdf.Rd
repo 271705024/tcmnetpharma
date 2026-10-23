@@ -25,7 +25,7 @@ raw licorice 10 g.
 A data frame with 5024 rows and 4 variables
 }
 \examples{
-data("xfbdf", package = "TCMNP")
+data("xfbdf", package = "tcmnetpharma")
 head(xfbdf)
 }
 \keyword{datasets}

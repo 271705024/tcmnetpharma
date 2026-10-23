@@ -14,7 +14,7 @@
 #' @importFrom stringr str_trim
 #' @importFrom utils stack
 #' @examples
-#' data("mahuang", package = "TCMNP")
+#' data("mahuang", package = "tcmnetpharma")
 #' data <- etcm(mahuang, herb = "ma huang")
 #' head(data)
 etcm <- function(data, herb = NULL) {

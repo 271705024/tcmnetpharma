@@ -34,7 +34,7 @@
 #' @examples
 #' \dontrun{
 #' library(tidyverse)
-#' data(xfbdf, package = "TCMNP")
+#' data(xfbdf, package = "tcmnetpharma")
 #' # 富集结果：全部离线，无需 OrgDb 包
 #' res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
 #'                   pvalueCutoff = 0.05, qvalueCutoff = 1)

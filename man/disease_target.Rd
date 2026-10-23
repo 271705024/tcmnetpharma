@@ -32,7 +32,7 @@ applied by default} so that nothing is silently dropped.}
 \value{
 data.frame with columns \code{disease_id}, \code{disease_name}, \code{ot_disease_id}
 (the OpenTargets disease the score came from), \code{target_symbol},
-\code{target_entrez}, \code{target_id} (TCMNP target id), \code{target_ensembl}, \code{score},
+\code{target_entrez}, \code{target_id} (tcmnetpharma target id), \code{target_ensembl}, \code{score},
 \code{evidence_count}, \code{n_ot_disease}. Returns 0 rows (same column contract) when
 nothing matches.
 }
@@ -55,7 +55,7 @@ diseases (via different MeSH / UMLS IDs). Rows are deduplicated on
 "max" never hides the multi-source nature.
 
 \code{target_entrez} / \code{target_id} are \code{NA} for targets that OpenTargets knows but
-the TCMNP target dictionary does not (about 11\% of rows); those rows are kept
+the tcmnetpharma target dictionary does not (about 11\% of rows); those rows are kept
 so that the gap is visible rather than silently filtered out.
 }
 \examples{

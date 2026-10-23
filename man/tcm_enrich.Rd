@@ -82,7 +82,7 @@ Laboratories' licensing and may not be redistributed with software
 WikiPathways (CC0) cover pathway-level enrichment fully offline.
 \code{ont = "KEGG"} instead fetches KEGG data \strong{at run time} from
 \url{https://rest.kegg.jp} (free for academic use on the user's own machine),
-and caches a snapshot under \code{tools::R_user_dir("TCMNP", "cache")}.
+and caches a snapshot under \code{tools::R_user_dir("tcmnetpharma", "cache")}.
 No KEGG data is ever redistributed by this package. Because KEGG content
 changes over time, the snapshot date is attached to the result
 (\code{attr(x, "kegg_snapshot")}) — report it for reproducibility.

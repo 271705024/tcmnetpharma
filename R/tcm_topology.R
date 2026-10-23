@@ -5,7 +5,7 @@
 #' 标准拓扑指标（对应 CytoNCA 的 Degree / BC / CC）。
 #'
 #' @param network.data 数据框，必须含 `herb` / `molecule` / `target` 三列
-#'   （与 [tcm_net()] 同构；通常来自 GUI 查询结果或 [TCMNP::network_data]）
+#'   （与 [tcm_net()] 同构；通常来自 GUI 查询结果或 [tcmnetpharma::network_data]）
 #' @param class 仅返回该类型节点：`"herb"` / `"molecule"` / `"target"`；
 #'   默认 NULL = 返回全部
 #' @param rem.dis.inter 是否移除无连接的孤立节点（同 [tcm_net()]）
@@ -20,7 +20,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' data("network_data", package = "TCMNP")
+#' data("network_data", package = "tcmnetpharma")
 #' tcm_centrality(network_data)
 #' tcm_centrality(network_data, class = "target", top_n = 10)
 #' }
@@ -84,7 +84,7 @@ tcm_centrality <- function(network.data,
 #'
 #' @examples
 #' \dontrun{
-#' data("network_data", package = "TCMNP")
+#' data("network_data", package = "tcmnetpharma")
 #' res <- tcm_modules(network_data)
 #' head(res$nodes); head(res$modules)
 #' }
@@ -175,7 +175,7 @@ tcm_modules <- function(network.data,
 #'
 #' @examples
 #' \dontrun{
-#' data("network_data", package = "TCMNP")
+#' data("network_data", package = "tcmnetpharma")
 #' module_barplot(tcm_modules(network_data)$modules)
 #' }
 module_barplot <- function(modules, title = "module size") {
@@ -216,7 +216,7 @@ module_barplot <- function(modules, title = "module size") {
 #'
 #' @examples
 #' \dontrun{
-#' data("network_data", package = "TCMNP")
+#' data("network_data", package = "tcmnetpharma")
 #' module_netplot(network_data)
 #' }
 module_netplot <- function(network.data,
