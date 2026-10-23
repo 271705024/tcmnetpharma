@@ -27,18 +27,21 @@
 #'   bars whose length is the gene \code{Count}, filled by ontology
 #'   (BP/CC/MF), with the count printed at the bar end.
 #'   \code{"grouped"} facets BP/CC/MF into separate panels, bar length =
-#'   \code{Count}, fill = \code{p.adjust} gradient ("three-in-one" figure).
+#'   \code{Count}, filled by ontology (BP/CC/MF) — three categorical colours,
+#'   **no colour scale** ("three-in-one" figure).
 #'   \code{"significance"} keeps one panel and uses \code{-log10(p.adjust)}
-#'   as both bar length and fill gradient.
+#'   as the bar length, again filled by ontology.
 #'   \code{"journal"} / \code{"presentation"} apply a publication /
 #'   slide theme on top of the default form.
 #'   **Only the visual form changes** — the selected terms, their counts and
 #'   all statistics are identical across presets.
 #' @param palette colour scheme key, see [tcm_palette_names()]. `NULL`
 #'   (default) keeps the colours given by \code{color}. Setting a palette
-#'   overrides \code{color} and also drives the gradient used by the
-#'   \code{"grouped"} / \code{"significance"} forms. Colours only — data and
-#'   statistics are untouched.
+#'   overrides \code{color} (the first three colours are used for BP/CC/MF).
+#'   Bar charts **never** use a continuous colour scale, so a sequential or
+#'   diverging palette behaves the same as a qualitative one here — the
+#'   colour only marks the ontology. Colours only — data and statistics are
+#'   untouched.
 #' @param ... additional parameters
 #'
 #' @return bar plot
@@ -53,7 +56,6 @@
 #' @importFrom ggplot2 theme
 #' @importFrom ggplot2 aes
 #' @importFrom ggplot2 geom_col
-#' @importFrom ggplot2 scale_fill_gradientn
 #' @importFrom ggplot2 ggtitle
 #' @importFrom ggplot2 labs
 #' @importFrom ggplot2 element_text
@@ -71,8 +73,6 @@
 #' @importFrom tidyr drop_na
 #' @importFrom stats reorder
 #' @importFrom stringr str_wrap
-#' @importFrom patchwork wrap_plots
-#' @importFrom patchwork plot_annotation
 #'
 #' @examples
 #' \dontrun{
@@ -128,21 +128,27 @@ go_barplot <- function(go.diff,
   # 常见三种形制 ——
   #   classic      x = Count（基因数），按本体三色，条端标 Count
   #                （clusterProfiler barplot(x="Count", split="ONTOLOGY") 观感）
-  #   grouped      BP/CC/MF 分面，x = Count，fill = p.adjust 渐变（"三合一图"）
-  #   significance x = -log10(p.adjust)，且按显著性渐变上色（单图）
+  #   grouped      BP/CC/MF 分面，x = Count，fill = 本体三色（"三合一图"）
+  #   significance x = -log10(p.adjust)，fill = 本体三色（单图）
   # ⚠️ 三者与 default **共用同一份 go_enrich**（同样每本体 top 个条目），
-  #    只改「x 轴口径 / 配色映射 / 是否分面」——条目集合与统计量完全一致。
-  # 配色体系（2026-10-22）：ONTOLOGY 是 3 分类 -> 取色板前 3 色；
-  # 渐变（grouped / significance）取该色板的插值色阶。
+  #    只改「x 轴口径 / 是否分面」——条目集合与统计量完全一致。
+  # 配色体系（2026-10-22）：ONTOLOGY 是 3 分类 -> 取色板前 3 色。
+  #
+  # ⚠️ 2026-10-23 按 boss 决定：**柱状图一律不用色阶**，颜色只表类别（BP/CC/MF
+  #    三色）。原 grouped / significance 用 scale_fill_gradientn 渐变上色，
+  #    已全部改为 scale_fill_manual。
+  #    理由（boss 原话「气泡图类用色阶，柱状图不用色阶了」）：
+  #    ① 柱长已经承载了主量，再拿颜色编码同一/相邻量属**双重编码**；significance
+  #       更极端 —— 长度与颜色是**同一个变量** -log10(p)，纯冗余。
+  #    ② 渐变只能用「连续色板」，但下拉里 13 套色板不分 kind 全可选，选到
+  #       okabe / npg 这类**分类色板**时插值出的渐变色相不单调，"颜色深浅 =
+  #       p 值"这句话就不成立（2026-10-23 实测成图确认）。
+  #    → 气泡/点图（go_dotplot 等）**保留色阶**：那类图里颜色编码的是另一个
+  #      维度（p.adjust），与大小（Count）不重复，用色阶是对的。
   if (!is.null(palette)) color <- tcm_palette(palette, 3L)
-  grad_cols <- if (is.null(palette)) {
-    rev(RColorBrewer::brewer.pal(8, "RdBu"))
-  } else {
-    .tcm_palette_ramp(palette, 8L)
-  }
   if (style %in% c("classic", "grouped", "significance")) {
     return(.go_barplot_literature(go_enrich, style, color, bar.width,
-                                  text.size, text.width, title, grad_cols))
+                                  text.size, text.width, title))
   }
 
   # ggplot2 plotting
@@ -301,9 +307,7 @@ go_barplot <- function(go.diff,
 #    significance 按 -log10(p) 升序 —— 只改**显示顺序**，不改入选条目。
 # ---------------------------------------------------------------------------
 .go_barplot_literature <- function(go_enrich, style, color, bar.width,
-                                   text.size, text.width, title,
-                                   grad_cols = NULL) {
-  if (is.null(grad_cols)) grad_cols <- rev(RColorBrewer::brewer.pal(8, "RdBu"))
+                                   text.size, text.width, title) {
   lab_fun <- function(x) str_wrap(x, width = text.width)
 
   if (identical(style, "classic")) {
@@ -330,90 +334,54 @@ go_barplot <- function(go.diff,
   }
 
   if (identical(style, "grouped")) {
-    # "三合一图"：BP/CC/MF 各一段，长度=Count，颜色=p.adjust 渐变。
+    # "三合一图"：BP/CC/MF 上下三段，x = Count，fill = **本体三色**。
     #
-    # ⚠️ 2026-10-23 由 boss 截图暴露后重写：原实现用 facet_grid + **一个**
-    #    scale_fill_gradientn，色阶是整图共用。实测三个本体的 p.adjust 量级
-    #    差 20+ 个数量级（BP 1.3e-35 / CC 1.1e-9 / MF 6.6e-14），共用色阶导致
-    #    BP 全挤深蓝端、CC 全挤红端 —— **各分面内部的条目差异完全看不出来**
-    #    （MF 一组内部只差 1.4 个数量级，色条上几乎同色）。
-    #
-    #    改用 patchwork 上下拼三张独立图：每段有自己的 scale 与自己的色条，
-    #    色条上显示**该本体真实的 p.adjust**。宽度不增（三行同宽，色条各在
-    #    自己那行右侧垂直堆叠）。
-    #
-    #    为什么不用 facet + 分面独立标度：ggplot2 原生不支持按分面切 fill 标度；
-    #    ggnewscale 三层实测 legend 与分面错位、颜色不单调；ggh4x 的
-    #    facetted_pos_scales 只支持 x/y 不支持 fill。
-    #
-    # ⚠️ 返回类型变了（ggplot -> patchwork）。patchwork 对象 inherits("ggplot")
-    #    为 TRUE，故 GUI 的 capture="ggplot" 契约与抓图链路不受影响；但它没有
-    #    单一 $data，`p$data` 只拿到**第一段**的条目 —— 测试里必须穿透子图取
-    #    并集，否则「条目集合一致」断言会变成假失败（见 helper-plots.R）。
+    # ⚠️ 2026-10-23 第二次改（boss 决定：「柱状图不用色阶了，按 BP/CC/MF
+    #    分类给 3 个颜色」）：上一版用 patchwork 拼三张各自带独立色阶的图，
+    #    那是为了修「一条色阶被三个本体共用、片内差异看不出来」；但更彻底的
+    #    做法是**柱状图根本不用色阶** —— 颜色只表类别。
+    #    好处：① 三段共用一个离散标度，facet_grid 就够，**不需要 patchwork**；
+    #          ② 返回类型回到普通 ggplot，没有「$data 只含第一段」的坑；
+    #          ③ 只有一条图例（三个色块），正是 boss 给的那张文献图的形制。
+    #    注：分面用 space = "free_y"，段高按条目数分配（与截图一致）。
     d <- go_enrich
     d$Description <- factor(d$Description,
                             levels = d$Description[order(d$Count, d$ONTOLOGY)])
     onto_lv <- sort(unique(as.character(d$ONTOLOGY)))
-    n_by <- vapply(onto_lv, function(o) sum(as.character(d$ONTOLOGY) == o), numeric(1))
-    xmax <- max(d$Count, na.rm = TRUE) * 1.10
-
-    one_panel <- function(on) {
-      dd <- d[as.character(d$ONTOLOGY) == on, , drop = FALSE]
-      ggplot(dd, aes(Count, Description, fill = p.adjust)) +
+    # 图例顺序固定成 BP/CC/MF，不随数据里出现顺序漂移
+    d$ONTOLOGY <- factor(as.character(d$ONTOLOGY), levels = onto_lv)
+    return(
+      ggplot(d, aes(Count, Description, fill = ONTOLOGY)) +
         geom_col(width = bar.width) +
-        scale_fill_gradientn(
-          colours = grad_cols,
-          trans = "log10",
-          name = sprintf("%s\np.adjust", on)
-        ) +
-        scale_x_continuous(limits = c(0, xmax),
-                           expand = expansion(mult = c(0, 0))) +
+        scale_fill_manual(values = color, name = "Ontology",
+                          breaks = onto_lv, drop = FALSE) +
+        scale_x_continuous(expand = expansion(mult = c(0, 0.10))) +
         scale_y_discrete(labels = lab_fun) +
-        labs(x = "Gene count", y = NULL, title = on) +
+        facet_grid(ONTOLOGY ~ ., scales = "free_y", space = "free_y") +
+        labs(x = "Gene count", y = NULL, title = title) +
         theme_bw() +
         theme(
           axis.text = element_text(size = text.size, colour = "black"),
           axis.title.x = element_text(size = text.size),
-          plot.title = element_text(face = "bold", size = text.size + 0.5,
-                                    hjust = 0),
+          strip.text = element_text(face = "bold", size = text.size),
+          panel.grid.major.y = element_blank(),
           panel.grid.minor = element_blank()
         )
-    }
-    ps <- lapply(onto_lv, one_panel)
-    # 只有最底下一段保留 x 轴刻度与标题，避免重复三条 x 轴
-    for (i in seq_len(length(ps) - 1L)) {
-      ps[[i]] <- ps[[i]] +
-        theme(axis.text.x = element_blank(),
-              axis.ticks.x = element_blank(),
-              axis.title.x = element_blank())
-    }
-    out <- patchwork::wrap_plots(ps, ncol = 1L, heights = n_by)
-    # 段标题被 BP/CC/MF 占了，用户传的总标题不能就此消失 ——
-    # 原 facet 实现里它是 `labs(title = title)`（默认 "GO enrichment of
-    # cluster"）。改走 patchwork 的整体标题，保住同一个形参的语义。
-    if (!is.null(title) && nzchar(title)) {
-      out <- out + patchwork::plot_annotation(
-        title = title,
-        theme = ggplot2::theme(
-          plot.title = ggplot2::element_text(
-            face = "bold", size = text.size + 1, hjust = 0
-          )
-        )
-      )
-    }
-    return(out)
+    )
   }
 
-  # significance：单图，长度与颜色都是 -log10(p.adjust)
+  # significance：单图，x = -log10(p.adjust)，fill = 本体三色
+  # ⚠️ 原实现 fill 也是 -log10(p.adjust) 渐变 —— 与 x 轴**同一个变量**，
+  #    纯属重复编码。改成本体三色后，这张图的独特价值落在「x 轴口径是显著性
+  #    而非基因数、条目按显著性排序」上。
   d <- go_enrich
   d$neglogp <- -log10(d$p.adjust)
   d$Description <- factor(d$Description, levels = d$Description[order(d$neglogp)])
-  ggplot(d, aes(neglogp, Description, fill = neglogp)) +
+  d$ONTOLOGY <- factor(as.character(d$ONTOLOGY),
+                       levels = sort(unique(as.character(d$ONTOLOGY))))
+  ggplot(d, aes(neglogp, Description, fill = ONTOLOGY)) +
     geom_col(width = bar.width) +
-    scale_fill_gradientn(
-      colours = grad_cols,
-      name = "-log10(p.adjust)"
-    ) +
+    scale_fill_manual(values = color, name = "Ontology", drop = FALSE) +
     scale_x_continuous(expand = expansion(mult = c(0, 0.10))) +
     scale_y_discrete(labels = lab_fun) +
     labs(x = "-log10(p.adjust)", y = NULL, title = title) +

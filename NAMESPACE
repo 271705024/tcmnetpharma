@@ -214,10 +214,6 @@ importFrom(igraph,
 )
 importFrom(magrittr,"%>%")
 importFrom(methods,new)
-importFrom(patchwork,
-  plot_annotation,
-  wrap_plots
-)
 importFrom(rlang,
   .data,
   .env

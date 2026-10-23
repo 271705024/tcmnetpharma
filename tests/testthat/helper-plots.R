@@ -1,11 +1,19 @@
 # 绘图测试的公共辅助（testthat 自动 source tests/testthat/helper-*.R）
 #
-# 为什么要有它：`go_barplot(style = "grouped")` 返回的是 **patchwork** 对象
-# （三段各自独立色阶，2026-10-23 按 boss 决策改的），而 patchwork 没有
-# 单一 `$data` —— 直接 `p$data` 只拿到**第一段**的条目。
-# 若测试仍用 `p$data`，就会得出「条目集合与 default 不一致」的**假失败**；
-# 反过来若某天 `$data` 变成 NULL，两边都空又会**假通过**。
-# 故统一走 items_of()：patchwork 穿透到每个子图取并集（铁律 28）。
+# 历史（为什么 helper 里还留着 patchwork 分支）：
+#   2026-10-23 上午 `go_barplot(style="grouped")` 一度返回 **patchwork**
+#   （三段各带独立色阶），而 patchwork 没有单一 `$data` —— `p$data` 只拿到
+#   **第一段**的条目，直接用它断言会得到「条目集合不一致」的**假失败**。
+#   同日下午 boss 决定「柱状图不用色阶，按 BP/CC/MF 给 3 个分类色」，
+#   grouped 改回 facet + scale_fill_manual，**又是普通 ggplot**，`$data` 完整。
+#
+#   那为什么分支还留着：本轮踩的坑是「对象形态变了，测试跟着静默失真」。
+#   分支留着，任何形态下 items_of() 都给出**全量条目**，不会因为哪天再换
+#   实现（patchwork / 嵌套 grob 之类）而退化成"只数到第一段"。这层防御
+#   比删掉它便宜。
+#
+# 另注：断言「能出图」是**不够的**。要锁住「柱状图没有色阶」，必须看 fill
+# 标度的类型（ScaleDiscrete vs ScaleContinuous），见 test-style-presets.R。
 
 # 取一张图里承载的条目集合（Description 列）。
 # 返回排序去重的字符向量；取不到时返回 character(0)。

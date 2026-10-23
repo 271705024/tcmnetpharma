@@ -2,25 +2,32 @@
 
 ## 未发布（2026-10-23）
 
-### 修复：三合一分面图（`grouped`）的色阶改为每本体独立
+### 变更：柱状图不再用色阶，改为按本体三色（气泡图保留色阶）
 
-- **问题**（boss 2026-10-23 截图反馈）：原 `grouped` 用 `facet_grid` + **单个**
-  `scale_fill_gradientn`，色阶整图共用。实测三个本体的 `p.adjust` 量级差 20+ 个
-  数量级（BP 1.3e-35 / CC 1.1e-9 / MF 6.6e-14）→ BP 全挤深蓝端、CC 挤红端、
-  **各分面内部的条目差异完全看不出来**（MF 一组内部只差 1.4 个数量级，几乎同色）
-- **改法**：改为 `patchwork` 上下拼三张独立图，每段有自己的 `scale` 与自己的
-  色条，色条上显示**该本体真实的 `p.adjust`**。宽度不增（三行同宽，色条各在
-  自己那行右侧垂直堆叠）
-- **为什么不用分面独立标度**：ggplot2 原生不支持按分面切 `fill` 标度；
-  `ggnewscale` 三层实测图例与分面错位、颜色不单调；`ggh4x::facetted_pos_scales`
-  只支持 x/y 不支持 fill
-- ⚠️ **返回类型变化**：`grouped` 现在返回 **patchwork** 对象（`inherits("ggplot")`
-  仍为 TRUE，GUI 抓图链路不受影响），但它**没有单一 `$data`** —— `p$data` 只拿到
-  第一段（BP）的条目。外部代码若用 `nrow(p$data)` 统计条数请改用各子图汇总
-  （包内测试已抽到 `tests/testthat/helper-plots.R` 的 `items_of()`）
-- 段标题改为 BP / CC / MF 本体名；用户传的 `title` 不再丢失，改走
-  `patchwork::plot_annotation()` 作为整体标题（`title = NULL` 时不加）
-- 新增 `patchwork` 依赖
+- **决定**（boss 2026-10-23）：「气泡图类用色阶，柱状图不用色阶了，按 BP/CC/MF
+  分类给 3 个颜色」。`go_barplot()` 的 `grouped` 与 `significance` 两个形制
+  原本用 `scale_fill_gradientn` 渐变上色，现全部改为
+  `scale_fill_manual()` —— 颜色只表类别，**柱状图里不再出现任何连续色阶**
+- **为什么**：
+  1. 柱长已经承载主量，再用颜色编码同一/相邻量属**重复编码**。`significance`
+     更极端 —— 长度与颜色是**同一个变量** `-log10(p.adjust)`，纯冗余
+  2. 渐变只能用连续色板，但 GUI 配色下拉里 13 套色板是按 `kind` 分组、**不限制
+     混选**的。选到 `okabe` / `npg` 这类**分类色板**时，插值出的渐变色相不单调
+     （实测成图：橙→黄绿→紫→黑来回跳），"颜色深浅 = p 值"这句话就不成立
+- **形制变化**：
+  - `grouped`：从 `patchwork` 三段独立色阶 **改回 `facet_grid` + 三色离散标度**
+    （三段共用一个离散标度，不需要独立标度）。**返回类型回到普通 ggplot**，
+    `p$data` 重新是完整数据；只有一条图例（三个色块），与文献里最常见的
+    "GO Results of Three Ontologies" 一致
+  - `significance`：横轴仍是 `-log10(p.adjust)` 并按显著性排序，只是颜色改成
+    本体三色。它的独特价值落在"x 轴口径是显著性而非基因数"上
+- **气泡 / 点图（`go_dotplot()` 等）保留色阶**：这类图里颜色编码的是另一个维度
+  （`p.adjust`），与大小（`Count`）不重复，用色阶是对的
+- `go_barplot()` 的 `palette` 形参语义收窄：只取色板前 3 色给 BP/CC/MF，
+  **不再驱动渐变**；对柱状图而言 seq / div 色板与 qual 色板效果等价
+- 移除 `patchwork` 依赖（上一版为分段独立色阶引入，现已不需要）
+- ⚠️ `bar_plot()`（富集柱状图，已从 GUI 下线）**未改动**：它的数据里没有
+  `ONTOLOGY` 列，无法按本体三色；且不在界面上暴露
 
 ### GUI：绘图页下线「富集柱状图」（`bar_plot`）
 
@@ -36,8 +43,8 @@
 
 - **`go_barplot(style = )`** 新增 6 种预设（**只改视觉，条目与统计量完全一致**，见 `tests/testthat/test-style-presets.R`）：
   - `classic`（新增）文献最常见形制：横条长度 = 基因数 `Count`，按本体（BP/CC/MF）三色，条端标注 Count
-  - `grouped`（新增）"三合一图"：BP/CC/MF 分面，长度 = `Count`，颜色 = `p.adjust` 渐变
-  - `significance`（新增）长度与颜色均为 `-log10(p.adjust)`，单图按显著性排序
+  - `grouped`（新增）"三合一图"：BP/CC/MF 分面，长度 = `Count`，颜色 = 本体三色
+  - `significance`（新增）长度 = `-log10(p.adjust)`，单图按显著性排序，颜色 = 本体三色
   - `journal` / `presentation`（新增）通用期刊风 / 演示风
   - `default` 保持原有输出不变
 - **`go_dotplot(style = )`** 新增 `genratio`（横轴 `GeneRatio`，clusterProfiler 经典口径，文献绝大多数气泡图用此口径）、`journal`、`presentation`；`default` 仍为 Rich Factor。GeneRatio 缺失时自动退回 Rich Factor 并给出 message（不静默丢点）

@@ -56,9 +56,10 @@ colour9 <- c("#A40545", "#7FCBA4", "#4B65AF")}
 bars whose length is the gene \code{Count}, filled by ontology
 (BP/CC/MF), with the count printed at the bar end.
 \code{"grouped"} facets BP/CC/MF into separate panels, bar length =
-\code{Count}, fill = \code{p.adjust} gradient ("three-in-one" figure).
+\code{Count}, filled by ontology (BP/CC/MF) — three categorical colours,
+\strong{no colour scale} ("three-in-one" figure).
 \code{"significance"} keeps one panel and uses \code{-log10(p.adjust)}
-as both bar length and fill gradient.
+as the bar length, again filled by ontology.
 \code{"journal"} / \code{"presentation"} apply a publication /
 slide theme on top of the default form.
 \strong{Only the visual form changes} — the selected terms, their counts and
@@ -66,9 +67,11 @@ all statistics are identical across presets.}
 
 \item{palette}{colour scheme key, see \code{\link[=tcm_palette_names]{tcm_palette_names()}}. \code{NULL}
 (default) keeps the colours given by \code{color}. Setting a palette
-overrides \code{color} and also drives the gradient used by the
-\code{"grouped"} / \code{"significance"} forms. Colours only — data and
-statistics are untouched.}
+overrides \code{color} (the first three colours are used for BP/CC/MF).
+Bar charts \strong{never} use a continuous colour scale, so a sequential or
+diverging palette behaves the same as a qualitative one here — the
+colour only marks the ontology. Colours only — data and statistics are
+untouched.}
 
 \item{...}{additional parameters}
 }
