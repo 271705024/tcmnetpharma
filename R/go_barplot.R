@@ -112,6 +112,7 @@ go_barplot <- function(go.diff,
   }
 
   go_enrich <- go.diff %>%
+    .tcm_inject_group_key() %>%
     tidyr::drop_na() %>%
     dplyr::group_by(ONTOLOGY) %>%
     dplyr::slice(1:top)
@@ -145,7 +146,18 @@ go_barplot <- function(go.diff,
   #       p 值"这句话就不成立（2026-10-23 实测成图确认）。
   #    → 气泡/点图（go_dotplot 等）**保留色阶**：那类图里颜色编码的是另一个
   #      维度（p.adjust），与大小（Count）不重复，用色阶是对的。
-  if (!is.null(palette)) color <- tcm_palette(palette, 3L)
+  # ---- 分组键 → 颜色数量（2026-10-23 sources 放宽后动态化）---------------
+  # 原先写死 3 色（BP/CC/MF）。但 .tcm_inject_group_key 会把 KEGG/Reactome/Wiki
+  # 的来源回填进 ONTOLOGY，混合数据可能有 4~5 个分组，写死 3 色会报
+  # "Insufficient values in manual scale. N needed but only 3 provided"。
+  # 故颜色数量 = 实际分组数。
+  n_ont <- length(unique(as.character(go_enrich$ONTOLOGY)))
+  if (!is.null(palette)) {
+    color <- tcm_palette(palette, n_ont)
+  } else {
+    # 默认 3 色（BP/CC/MF）扩展到 n_ont 色（超 3 组时按色相插值补足）
+    color <- grDevices::colorRampPalette(color)(n_ont)
+  }
   if (style %in% c("classic", "grouped", "significance")) {
     return(.go_barplot_literature(go_enrich, style, color, bar.width,
                                   text.size, text.width, title))

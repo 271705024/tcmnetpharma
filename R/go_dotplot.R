@@ -86,6 +86,7 @@ go_dotplot <- function(go.diff,
   }
 
   go_enrich <- go.diff %>%
+    .tcm_inject_group_key() %>%
     tidyr::drop_na() %>%
     dplyr::group_by(ONTOLOGY) %>%
     dplyr::slice_max(Count, n = top) %>%
