@@ -68,7 +68,7 @@ cir_plot <- function(data,
                      p.cex = 0.8,
                      richFactor.color = "RdBu",
                      richFactor.cex = 0.7,
-                     legend.position = c(0.8, 0.45),
+                     legend.position = c(0.85, 0.2),
                      text.width = 35,
                      ...) {
   # data processing
@@ -113,8 +113,14 @@ cir_plot <- function(data,
   circos.clear()
 
   circlize::circos.par(
-    canvas.xlim = c(-0.2, 1.2),
-    canvas.ylim = c(-1.0, 1.2),
+    # ⚠️ 2026-10-23 修复（boss 反馈「富集环形图图片生成异常」）：
+    #    原 canvas.xlim=c(-0.2,1.2) / canvas.ylim=c(-1.0,1.2) 跨度不对称
+    #    （1.4 vs 2.2），装不下五条轨道叠加后的总外径（约 ±1.3）→ 环被映射
+    #    到画布外，表现为整环偏移、部分轨道被裁。用 GUI 同款 9×9 png 设备
+    #    复现并扫描参数，对称画布 c(-1.2,1.2) 下环完整居中（见
+    #    docs/design-enrich-plot-2026-10-23.md §3 与 artifacts/cirplot-sweep-*.png）。
+    canvas.xlim = c(-1.2, 1.2),
+    canvas.ylim = c(-1.2, 1.2),
     points.overflow.warning = FALSE,
     clock.wise = TRUE,
     start.degree = 90,
