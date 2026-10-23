@@ -96,17 +96,38 @@ test_that("配色确实作用到图上（不是被忽略）", {
 test_that("tcm_sankey 配色可复现（原来 sample() 打乱）", {
   data(xfbdf, package = "tcmnetpharma", envir = environment())
   df <- as.data.frame(xfbdf)[1:12, c("herb", "molecule", "target")]
-  fill_of <- function(p) {
+  # ⚠️ 必须比**实际颜色取值**，不能比 `sc$palette` 对象：
+  #    · 默认分支用 cols4all，$palette 是字符向量 -> identical 可用
+  #    · 传 palette 分支用 scale_fill_manual，$palette 是 manual_pal() 闭包，
+  #      其 environment 每次构造都不同 -> identical() 恒 FALSE（假失败）
+  #    2026-10-23 在便携运行时实测踩到：同一个包、同一份数据、同版本 ggplot2，
+  #    只因测试只覆盖了默认分支，带配色的那条路径漏测且写法脆弱。
+  cols_of <- function(p, n = 6L) {
     sc <- p$scales$scales[vapply(p$scales$scales,
                                  function(x) "fill" %in% x$aesthetics, logical(1))]
     if (!length(sc)) return(NULL)
-    sc[[1]]$palette
+    pal <- sc[[1]]$palette
+    if (is.function(pal)) as.character(pal(n)) else as.character(pal)
   }
-  p1 <- tcm_sankey(df)
-  p2 <- tcm_sankey(df)
-  f1 <- fill_of(p1); f2 <- fill_of(p2)
-  testthat::skip_if(is.null(f1) || is.null(f2), "\u586b\u8272\u6807\u5ea6\u4e0d\u53ef\u8bfb")
-  expect_identical(f1, f2)
+
+  # 两条分支都要测：默认（c4a）与指定配色（manual）
+  for (pal in list(NULL, "npg", "tableau")) {
+    lbl <- if (is.null(pal)) "default" else pal
+    p1 <- tcm_sankey(df, palette = pal)
+    p2 <- tcm_sankey(df, palette = pal)
+    c1 <- cols_of(p1); c2 <- cols_of(p2)
+    testthat::skip_if(is.null(c1) || is.null(c2),
+                      "\u586b\u8272\u6807\u5ea6\u4e0d\u53ef\u8bfb")
+    expect_identical(c1, c2, info = lbl)
+    # 取色必须非空且是合法十六进制 —— 否则「两次都返回 NULL」也算"一致"
+    expect_true(length(c1) > 0 && all(grepl("^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$", c1)),
+                info = lbl)
+  }
+
+  # 指定配色时首个颜色必须来自该色板（证明 palette 真的被用上，而非被忽略）
+  first_col <- function(p) cols_of(p, 1)[[1]]
+  expect_identical(first_col(tcm_sankey(df, palette = "npg")), "#E64B35")
+  expect_identical(first_col(tcm_sankey(df, palette = "tableau")), "#1F77B4")
 })
 
 test_that("色板 kind 只有 qual/seq/div（前端分组依赖这三个值）", {
