@@ -91,9 +91,11 @@ test_that("grouped 保留分面：BP/CC/MF 三段，共用一条离散图例", {
   #    `params$facets` 已不存在 —— 直接读会是 NULL，断言恒失败（2026-10-23 实测）。
   #    layout 是渲染结果的真实结构，版本差异小，也更接近"用户看到什么"。
   b <- ggplot2::ggplot_build(p)$layout$layout
-  expect_true("ONTOLOGY" %in% names(b))
+  # 2026-10-24：分面列由 ONTOLOGY 改为 .grp（来源/本体统一的显式分组键，
+  # 见 R/enrich-source.R 的 .tcm_resolve_group()）。GO 数据下 .grp 仍是 BP/CC/MF。
+  expect_true(".grp" %in% names(b))
   expect_equal(nrow(b), 3L)
-  expect_setequal(as.character(b$ONTOLOGY), c("BP", "CC", "MF"))
+  expect_setequal(as.character(b$.grp), c("BP", "CC", "MF"))
 
   # 图例只有一条（离散）。⚠️ 别去读 `sc[[1]]$get_limits()`：
   #   离散标度在 build 之前拿到的是调色板索引 "0"/"1"，不是本体名
@@ -109,7 +111,7 @@ test_that("grouped 保留分面：BP/CC/MF 三段，共用一条离散图例", {
   # （或者 fill 数远超 3），这条立刻失败。
   bar <- bld$data[[1]]
   lay <- bld$layout$layout
-  fill_by_onto <- tapply(bar$fill, lay$ONTOLOGY[match(bar$PANEL, lay$PANEL)],
+  fill_by_onto <- tapply(bar$fill, lay$.grp[match(bar$PANEL, lay$PANEL)],
                          function(x) length(unique(x)))
   # tapply 返回带 dim 的一维数组，unname() 不会去掉 dim -> 断言会因维度不符失败
   expect_equal(as.integer(fill_by_onto[c("BP", "CC", "MF")]), c(1L, 1L, 1L))

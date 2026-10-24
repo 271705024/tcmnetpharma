@@ -1,14 +1,22 @@
-# go_barplot / go_dotplot 对「无 ONTOLOGY / 部分 ONTOLOGY 缺失」数据的退化
-# （2026-10-23，boss 反馈「KEGG 跑通却画不了图」的包层修复）
+# go_barplot / go_dotplot / go_lollipop 的「来源 vs 本体」语义
 #
-# 背景：这两个函数的历史实现假设输入必有 ONTOLOGY 列（GO 的 BP/CC/MF），
-# 用它做 group_by / fill / facet。但 KEGG / Reactome / WikiPathways 的富集
-# 结果没有 ONTOLOGY（只有 source 列），直接喂会在 group_by(ONTOLOGY) 处报
-# "Column `ONTOLOGY` is not found"。修复方式：.tcm_inject_group_key 在 ONTOLOGY
-# 缺失（或用 bind_rows 合并后部分行为 NA）时用 source 回填，退化为「按来源
-# 单色 / 单面」，条目与统计口径不变（设计 doc §2）。
+# 历史（2026-10-23）：这三个函数假设输入必有 ONTOLOGY 列（GO 的 BP/CC/MF），
+# 用它做 group_by / fill / facet。KEGG / Reactome / WikiPathways 的富集结果
+# **没有 ONTOLOGY 列**，直接喂会在 group_by(ONTOLOGY) 处报错。
+# 当时的修法是 .tcm_inject_group_key()：把 source 回填进 ONTOLOGY，
+# 「让下游逻辑完全不用改」。
 #
-# 铁律 41/52：用「KEGG 无 ONTOLOGY」与「GO+KEGG 混合」两类真实缺陷形态证伪。
+# 该妥协已被证伪（2026-10-24 boss 实测）：图例出现 "Ontology: wikipathways"、
+# 标题写 "GO enrichment of cluster"。省下的改动成本最终由用户支付。
+#
+# 现行契约（R/enrich-source.R）：
+#   source       机器键 go/kegg/reactome/wikipathways
+#   source_label 显示名 GO/KEGG/Reactome/WikiPathways
+#   ontology     BP/CC/MF，**仅 GO 行有值**，其余来源一律 NA
+#   .grp         分组键（由 .tcm_resolve_group 决定：单源 GO 用本体，多源用来源）
+#
+# 铁律 41/52：用「KEGG 无 ONTOLOGY」「GO+KEGG 混合」「跨来源撞名」三类真实
+# 缺陷形态证伪，不用「能出图」当判据。
 
 make_enrich_df <- function(has_ontology, n = 12L, src = "kegg", prefix = "id") {
   d <- data.frame(
@@ -32,65 +40,136 @@ make_enrich_df <- function(has_ontology, n = 12L, src = "kegg", prefix = "id") {
   d
 }
 
-test_that("go_barplot 对无 ONTOLOGY 的 KEGG 数据可出图（退化单色）", {
+test_that("go_barplot 对无 ONTOLOGY 的 KEGG 数据可出图，且本体保持 NA", {
   df <- make_enrich_df(has_ontology = FALSE, src = "kegg")
-  # 无 ONTOLOGY 列（模拟 KEGG enricher 直接产出）
-  df$ONTOLOGY <- NULL
+  df$ONTOLOGY <- NULL                       # 模拟 KEGG enricher 直接产出
   p <- go_barplot(df, top = 5, style = "classic")
   expect_s3_class(p, "ggplot")
-  # 注入的 ONTOLOGY = source（单值 kegg），fill 用单色，仍出图
-  expect_true("ONTOLOGY" %in% names(p$data))
-  expect_setequal(as.character(p$data$ONTOLOGY), "kegg")
+  # 来源被正确识别
+  expect_true("source_label" %in% names(p$data))
+  expect_setequal(unique(as.character(p$data$source_label)), "KEGG")
+  # 关键：ontology 必须是 NA —— 不再被 source 回填（修复前这里是 "kegg"）
+  expect_true(all(is.na(p$data$ontology)),
+              info = "KEGG 行 ontology 必须为 NA（修复前被 source 回填成 'kegg'）")
+  # 分组键退化为单一来源
+  expect_setequal(unique(as.character(p$data$.grp)), "KEGG")
 })
 
-test_that("go_dotplot 对无 ONTOLOGY 的 KEGG 数据可出图（退化不分面）", {
+test_that("go_dotplot 对无 ONTOLOGY 的 KEGG 数据可出图，且本体保持 NA", {
   df <- make_enrich_df(has_ontology = FALSE, src = "kegg")
   df$ONTOLOGY <- NULL
   p <- go_dotplot(df, top = 5, style = "genratio")
   expect_s3_class(p, "ggplot")
-  expect_true("ONTOLOGY" %in% names(p$data))
+  expect_setequal(unique(as.character(p$data$source_label)), "KEGG")
+  expect_true(all(is.na(p$data$ontology)))
+})
+
+test_that("go_lollipop 对无 ONTOLOGY 的 KEGG 数据可出图（此前会崩）", {
+  # 缺陷形态：go_lollipop 未接 .tcm_inject_group_key，直接 group_by(ONTOLOGY)
+  # -> KEGG 数据必崩在 "Column `ONTOLOGY` is not found"
+  df <- make_enrich_df(has_ontology = FALSE, src = "reactome", prefix = "RE")
+  df$ONTOLOGY <- NULL
+  expect_error(go_lollipop(df, top = 5), NA)
+  p <- go_lollipop(df, top = 5)
+  expect_s3_class(p, "ggplot")
+  expect_setequal(unique(as.character(p$data$source_label)), "Reactome")
 })
 
 test_that("GO+KEGG 混合（ONTOLOGY 部分 NA）不丢非 GO 行", {
-  # 模拟 flatten_enrich_to_df(bind_rows) 的产物：GO 行有 ONTOLOGY，KEGG 行 NA
   go <- make_enrich_df(has_ontology = TRUE, src = "go", prefix = "GO")
   kegg <- make_enrich_df(has_ontology = FALSE, src = "kegg", prefix = "KEGG")
   mixed <- rbind(go, kegg)
   # 修复前：drop_na() 会把 KEGG 行（ONTOLOGY=NA）整批删掉 -> 只剩 GO
   p <- go_barplot(mixed, top = 5, style = "grouped")
   expect_s3_class(p, "ggplot")
-  ont <- as.character(p$data$ONTOLOGY)
-  # kegg 来源必须保留（修复前会丢）
-  expect_true("kegg" %in% ont,
-              info = "混合数据里 kegg 来源应被保留（修复前被 drop_na 删光）")
-  # GO 三本体也保留
-  expect_true(all(c("BP", "CC", "MF") %in% ont))
+  expect_true("KEGG" %in% as.character(p$data$source_label),
+              info = "混合数据里 KEGG 来源应被保留（修复前被 drop_na 删光）")
+  # GO 三本体仍在，且只有 GO 行有本体
+  expect_true(all(c("BP", "CC", "MF") %in% as.character(p$data$ontology)))
+  expect_true(all(is.na(p$data$ontology[p$data$source == "kegg"])))
 })
 
-test_that("纯 GO 数据（ONTOLOGY 完整）行为不变（向后兼容）", {
+test_that("纯 GO 数据（ONTOLOGY 完整）本体不被来源污染（向后兼容）", {
   go <- make_enrich_df(has_ontology = TRUE, src = "go")
   p <- go_barplot(go, top = 3, style = "grouped")
   expect_s3_class(p, "ggplot")
-  # GO 数据的 ONTOLOGY 保持 BP/CC/MF 三本体，不被 source 覆盖
-  expect_setequal(as.character(p$data$ONTOLOGY), c("BP", "CC", "MF"))
+  expect_setequal(as.character(p$data$ontology), c("BP", "CC", "MF"))
+  expect_false(any(as.character(p$data$ontology) == "go"))
 })
 
-# ---- 2026-10-23 P2.5：Description 跨来源/本体撞名根治 ----
-# 缺陷形态：GO 与 KEGG 各有一条同名 term（如都叫 "cell cycle"），bind_rows
-# 合并后 Description 出现重复值，而 go_barplot/go_dotplot 用
-#   factor(Description, levels = Description)
-# 直接以「含重复的向量」做 levels → 报 "factor level [N] is duplicated"。
-# 修复：levels 一律 unique() 去重，撞名时两条同名 term 仍是两个独立条形（不丢、不崩）。
-test_that("Description 撞名（GO 与 KEGG 同名 term）不崩", {
+# ---- Description 跨来源/本体撞名 ----
+# 缺陷形态：GO 与 KEGG 各有一条同名 term，bind_rows 合并后 Description 重复，
+# 而旧实现用 factor(Description, levels = 含重复的向量) -> "duplicated levels"。
+# 现用「分组 + 控制字符 + 描述」做唯一 level 键，撞名时仍是两条独立条形。
+test_that("Description 撞名（GO 与 KEGG 同名 term）不崩且两条都保留", {
   go <- make_enrich_df(has_ontology = TRUE, src = "go", prefix = "GO")
   kegg <- make_enrich_df(has_ontology = FALSE, src = "kegg", prefix = "KEGG")
-  # 人为制造撞名：让 KEGG 前 3 条 Description 与 GO 前 3 条完全相同
-  kegg$Description[1:3] <- go$Description[1:3]
+  kegg$Description[1:3] <- go$Description[1:3]     # 人为撞名
   mixed <- rbind(go, kegg)
-  # 修复前：factor(levels = 含重复向量) 直接报 duplicated levels
+
   expect_error(go_barplot(mixed, top = 5, style = "grouped"), NA)
   expect_error(go_dotplot(mixed, top = 5, style = "genratio"), NA)
-  # 撞名的 term 仍保留两条（GO 一条 + KEGG 一条），不因去重而丢失
+  expect_error(go_lollipop(mixed, top = 5), NA)
+
   p <- go_barplot(mixed, top = 5, style = "classic")
   expect_s3_class(p, "ggplot")
+  # 撞名的 term 仍是两个独立 y 位置（唯一 level 键含分组前缀）
+  expect_equal(length(unique(as.character(p$data$.ykey))), nrow(p$data))
+})
+
+# ---- 标题：身份信息不来自字面量默认值（2026-10-24 核心修复）----
+test_that("标题从数据派生，非 GO 数据不再写 GO", {
+  kegg <- make_enrich_df(has_ontology = FALSE, src = "kegg")
+  kegg$ONTOLOGY <- NULL
+  p <- go_barplot(kegg, style = "classic")
+  expect_identical(p$labels$title, "KEGG pathway enrichment")
+  expect_false(grepl("GO", p$labels$title))
+
+  reac <- make_enrich_df(has_ontology = FALSE, src = "reactome", prefix = "RE")
+  reac$ONTOLOGY <- NULL
+  expect_identical(go_barplot(reac)$labels$title, "Reactome pathway enrichment")
+  expect_identical(go_dotplot(reac, style = "genratio")$labels$title,
+                   "Reactome pathway enrichment")
+  expect_identical(go_lollipop(reac)$labels$title, "Reactome pathway enrichment")
+})
+
+test_that("legacy_title 恢复旧字面量（兼容已存档脚本）", {
+  go <- make_enrich_df(has_ontology = TRUE, src = "go")
+  for (f in list(go_barplot, go_dotplot, go_lollipop)) {
+    p <- f(go, legacy_title = TRUE)
+    expect_identical(p$labels$title, "GO enrichment of cluster")
+  }
+})
+
+test_that("GO 数据的派生标题带本体范围", {
+  go <- make_enrich_df(has_ontology = TRUE, src = "go")
+  expect_identical(go_barplot(go)$labels$title, "GO enrichment (BP / CC / MF)")
+})
+
+# ---- 不混排（2026-10-24 核心修复）----
+test_that("go_barplot classic 不再把 BP/CC/MF 按数值混排", {
+  # 造一个「Count 与本体强交错」的数据：Count 递增而本体循环，
+  # 旧实现 order(Count, ONTOLOGY) 会得到大量本体切换。
+  n <- 30L
+  d <- data.frame(
+    ID = paste0("T", seq_len(n)),
+    Description = paste0("term ", seq_len(n)),
+    GeneRatio = "5/50", BgRatio = "5/200",
+    pvalue = seq(1e-8, 1e-3, length.out = n),
+    p.adjust = seq(1e-8, 1e-3, length.out = n),
+    qvalue = seq(1e-8, 1e-3, length.out = n),
+    geneID = "TP53/BRCA1",
+    Count = seq_len(n),
+    source = "go",
+    ONTOLOGY = rep(c("BP", "CC", "MF"), length.out = n),
+    stringsAsFactors = FALSE
+  )
+  p <- go_barplot(d, top = 10, style = "classic")
+  grp <- sub("\u0001.*$", "", levels(p$data$.ykey))
+  if (length(grp) >= 2L) {
+    changes <- sum(head(grp, -1) != tail(grp, -1))
+    n_grp <- length(unique(grp))
+    expect_equal(changes, n_grp - 1L,
+                 info = "每组必须只出现一个连续块（修复前按 Count 全局排序会大量交错）")
+  }
 })

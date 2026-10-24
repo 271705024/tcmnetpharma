@@ -2,6 +2,57 @@
 
 ## 未发布（2026-10-24）
 
+### ⚠️ 破坏性重构：富集「来源」升格为一等公民（R1）
+
+> **本节推翻 2026-10-23 的「最小侵入」修法**。当时的做法是把 `source` 回填进
+> `ONTOLOGY` 字段，让下游 `group_by` / `fill` / `facet` 不用改。boss 2026-10-24
+> 实测证伪：数据是 WikiPathways 时，标题仍写 `GO enrichment of cluster`、
+> 图例写 `Ontology: wikipathways`。**省下的改动成本最终由用户支付。**
+> 诊断与调研见 `docs/plot-module-audit-2026-10-24.md`。
+
+#### 新增
+
+- `tcm_enrich_table()`：把 `tcm_enrich()` 的返回（enrichResult 列表）/ 单个
+  enrichResult / data.frame 统一成标准表。`source`（go/kegg/reactome/wikipathways）、
+  `source_label`（GO/KEGG/Reactome/WikiPathways）、`ontology`（BP/CC/MF）
+  **三列相互独立**；非 GO 来源的 `ontology` 一律 `NA`。
+- `enrich_barplot()`：统一富集条形图。形制 / 条目数 / 去冗余 / 外观是**四个正交
+  维度**，不是一个大枚举：
+  - `layout`：`segmented`（默认，单轴按分组分段，段内各自排序）/
+    `facet`（三栏分面）/ `flat`
+  - `measure`：`neglogp` / `count` / `generatio`
+  - `top`：数字或预设 `compact`=5 / `standard`=10 / `full`=20
+  - `title = NULL` 时**从数据派生**（如 `KEGG pathway enrichment`、
+    `GO enrichment (BP / CC / MF)`）
+- 新文件：`R/enrich-source.R`（来源建模）、`R/enrich-order.R`（分组排序正交）、
+  `R/enrich-barplot.R`（统一条形图）
+
+#### 变更（破坏性）
+
+- `go_barplot()` / `go_dotplot()` / `go_lollipop()` 的 `title` 默认值由字面量
+  `"GO enrichment of cluster"` 改为 `NULL`（**从数据派生**）。
+  需要旧行为时显式传 `legacy_title = TRUE`
+- `go_barplot(style = "classic")` / `"significance"` 现在**按本体分段**，
+  不再按数值全局排序（以前 BP/CC/MF 交错）
+- `go_barplot()` 的 `plot.set` 只接受 `"vertical"`；传 `"horizontal"` 给警告
+  并仍按水平条绘制
+- 三个函数的 `...` 现在对未识别参数**发警告**（以前静默吞掉 → 假通过，
+  铁律 28）
+- `go_lollipop()` 的 `top` 语义由「原始行序前 N 条」改为「按 `p.adjust` 最显著的 N 条」
+
+#### 修复
+
+- `go_lollipop()` 换 KEGG / Reactome / WikiPathways 数据即崩（无 `ONTOLOGY` 列）
+- `go_lollipop()` 的 `drop_na()` 会整批删掉非 GO 行
+- `go_lollipop()` 的 `factor(levels = 含重复向量)` 在跨来源撞名时报 duplicated levels
+- BP / CC / MF 混排（`classic` / `significance` 分支的全局 `order()`）
+- 标题身份错标 + 图例 `Ontology: <source>` 语义污染
+
+#### 移除
+
+- `.tcm_inject_group_key()`（内部函数）：把 `source` 回填进 `ONTOLOGY`，是语义
+  污染的源头。原位置保留原因说明注释，避免后来者重复踩坑。
+
 ### 修复：桑基图爆炸 + 弦图标签重叠 + 富集结果按来源拆分（boss 四反馈）
 
 - **桑基图节点爆炸**（boss 反馈）：旧实现 `make_long(colnames(data_sankey))`

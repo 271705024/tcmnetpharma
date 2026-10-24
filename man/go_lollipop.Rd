@@ -2,7 +2,7 @@
 % Please edit documentation in R/go_lollipop.R
 \name{go_lollipop}
 \alias{go_lollipop}
-\title{Lollipop chart showed the results of GO results}
+\title{Lollipop chart showed the results of enrichment analysis}
 \usage{
 go_lollipop(
   go.diff,
@@ -10,39 +10,55 @@ go_lollipop(
   color = "RdBu",
   text.size = 12,
   text.width = 35,
-  title = "GO enrichment of cluster",
+  title = NULL,
+  legacy_title = FALSE,
+  palette = NULL,
   ...
 )
 }
 \arguments{
-\item{go.diff}{R clusterprofiler package for enrichGO results}
+\item{go.diff}{clusterProfiler 的 enrichGO 结果（S4）、\code{tcm_enrich()} 的
+返回，或 data.frame。}
 
-\item{top}{According to the order of p adjust value from small to large
-the number of categories to show}
+\item{top}{\strong{每组}保留的条目数（按 \code{p.adjust} 升序取）。}
 
-\item{color}{color see "RColorBrewer::display.brewer.all()"}
+\item{color}{连续色阶名，见 \code{RColorBrewer::display.brewer.all()}。}
 
-\item{text.size}{text size}
+\item{text.size}{字号。}
 
-\item{text.width}{text width}
+\item{text.width}{条目名换行宽度。}
 
-\item{title}{title}
+\item{title}{图标题。\code{NULL}（默认）时从数据派生。}
 
-\item{...}{additional parameters}
+\item{legacy_title}{设为 \code{TRUE} 时标题强制为旧版字面量
+\code{"GO enrichment of cluster"}。默认 \code{FALSE}。}
+
+\item{palette}{配色方案键，见 \code{\link{tcm_palette_names}()}。}
+
+\item{...}{未识别的参数会触发警告（不静默忽略）。}
 }
 \value{
-lollipop plot
+ggplot 对象
 }
 \description{
-Lollipop chart showed the results of GO results
+2026-10-24 重构。原实现有四个问题：
+\enumerate{
+\item 直接 \code{group_by(ONTOLOGY)}，但只有 GO 结果有该列 —— 换成
+KEGG / Reactome / WikiPathways 数据即在 \code{group_by} 处报错；
+\item \code{title} 是字面量 \code{"GO enrichment of cluster"}，非 GO 数据身份错标；
+\item \code{tidyr::drop_na()} 会把 \code{ONTOLOGY} 为 \code{NA} 的非 GO 行整批删掉；
+\item \code{factor(Description, levels = go_enrich$Description)} 在跨来源撞名时
+直接报 "duplicated levels"。
+}
+现改为 \code{\link{tcm_enrich_table}()} 的 \code{source} / \code{ontology}
+双列模型，形制与 \code{\link{go_barplot}()} 一致。
 }
 \examples{
 \dontrun{
-# 富集结果：GO 离线即可，无需 OrgDb 包（等价 enrichGO(ont = "all")）
 data(xfbdf, package = "tcmnetpharma")
 res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
                   pvalueCutoff = 0.01, qvalueCutoff = 0.05)
-go.diff <- res$go
-go_lollipop(go.diff)
+go_lollipop(res$go)
+go_lollipop(res$reactome)   # 以前这里会崩（无 ONTOLOGY 列）
 }
 }

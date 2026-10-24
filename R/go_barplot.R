@@ -1,91 +1,61 @@
-#' Bar graphs showed the results of GO results
+#' Bar graphs showed the results of enrichment analysis
 #'
-#' @param go.diff R clusterprofiler package for enrichGO results
-#' @param top  According to the order of P adjust value from small to large
-#' the number of categories to show **per ontology**. Because GO terms are
-#' grouped by \code{ONTOLOGY} (BP / CC / MF) before slicing, \code{top = 8}
-#' yields at most \code{8 * 3 = 24} bars (8 from each ontology); ontologies
-#' with fewer significant terms contribute fewer.
-#' @param plot.set "horizontal" or "vertical"
-#' @param facet facet
-#' @param color color, Recommended color:
-#' colour1 <- c("#c0583d", "#daa152", "#b3c6dc")
-#' colour2 <- c("#8fa1c7", "#ef916a", "#7dbfa5")
-#' colour3 <- c("#7dbfa5", "#487eb3", "#d2342b")
-#' colour4 <- c("#6176b5", "#DFC86B", "#87BD5B")
-#' colour5 <- c("#852f88", "#eb990c", "#0f8096")
-#' colour6 <- c("#3c4b8d", "#da2e20", "#3c884c")
-#' colour7 <- c("#7aa354", "#d67d44", "#6594c4")
-#' colour8 <- c("#501d8a", "#e55709", "#1c8041")
-#' colour9 <- c("#A40545", "#7FCBA4", "#4B65AF")
-#' @param bar.width  bar width
-#' @param text.size  text size
-#' @param text.width text width
-#' @param title title
-#' @param style visual preset. \code{"default"} keeps the original look.
-#'   \code{"classic"} is the form most used in the GO literature: horizontal
-#'   bars whose length is the gene \code{Count}, filled by ontology
-#'   (BP/CC/MF), with the count printed at the bar end.
-#'   \code{"grouped"} facets BP/CC/MF into separate panels, bar length =
-#'   \code{Count}, filled by ontology (BP/CC/MF) — three categorical colours,
-#'   **no colour scale** ("three-in-one" figure).
-#'   \code{"significance"} keeps one panel and uses \code{-log10(p.adjust)}
-#'   as the bar length, again filled by ontology.
-#'   \code{"journal"} / \code{"presentation"} apply a publication /
-#'   slide theme on top of the default form.
-#'   **Only the visual form changes** — the selected terms, their counts and
-#'   all statistics are identical across presets.
-#' @param palette colour scheme key, see [tcm_palette_names()]. `NULL`
-#'   (default) keeps the colours given by \code{color}. Setting a palette
-#'   overrides \code{color} (the first three colours are used for BP/CC/MF).
-#'   Bar charts **never** use a continuous colour scale, so a sequential or
-#'   diverging palette behaves the same as a qualitative one here — the
-#'   colour only marks the ontology. Colours only — data and statistics are
-#'   untouched.
-#' @param ... additional parameters
+#' @description
+#' \strong{兼容垫片}：本函数现在转发到 \code{\link{enrich_barplot}()}。
 #'
-#' @return bar plot
+#' 2026-10-24 之前的实现有三个结构性问题（boss 实测反馈）：
+#' \enumerate{
+#'   \item \code{style = "classic"} / \code{"significance"} 两个分支**全局按数值
+#'         排序**（\code{order(Count, ONTOLOGY)} 里 ONTOLOGY 只是第二排序键），
+#'         于是 BP / CC / MF 按 Count 大小交错出现，无法按本体阅读；
+#'   \item \code{title} 的默认值是字面量 \code{"GO enrichment of cluster"}，
+#'         任何非 GO 数据（KEGG / Reactome / WikiPathways）都继承了这个错误身份；
+#'   \item 分组靠 \code{.tcm_inject_group_key()} 把 \code{source} 回填进
+#'         \code{ONTOLOGY}，导致图例出现 \code{"Ontology: wikipathways"}。
+#' }
+#' 新版把「形制 / 条目数 / 外观」拆成正交参数，标题从数据派生，来源与本体
+#' 分列存储。本函数的旧参数仍全部接受，\code{style} 按下表映射到新形制：
+#'
+#' \tabular{lll}{
+#'   \strong{style} \tab \strong{新 layout} \tab \strong{新 measure} \cr
+#'   \code{"default"} \tab 由 \code{facet} 决定 \tab \code{neglogp} \cr
+#'   \code{"classic"} \tab \code{segmented} \tab \code{count} \cr
+#'   \code{"grouped"} \tab \code{facet} \tab \code{count} \cr
+#'   \code{"significance"} \tab \code{segmented} \tab \code{neglogp} \cr
+#'   \code{"journal"} \tab 由 \code{facet} 决定 \tab \code{neglogp} \cr
+#'   \code{"presentation"} \tab 由 \code{facet} 决定 \tab \code{neglogp} \cr
+#' }
+#'
+#' @param go.diff clusterProfiler 的 enrichGO 结果（S4）、\code{tcm_enrich()}
+#'   的返回，或 data.frame。
+#' @param top **每组**保留的条目数（不再全局截断）。
+#' @param plot.set 仅接受 \code{"vertical"}。传 \code{"horizontal"} 会给出
+#'   警告并仍按水平条绘制（新实现只有一种方向）。
+#' @param facet 是否分面。仅当 \code{style} 为 \code{"default"} /
+#'   \code{"journal"} / \code{"presentation"} 时生效：\code{TRUE} -> 三栏分面，
+#'   \code{FALSE} -> 单轴分段。
+#' @param color 分组底色，默认三色对应 BP/CC/MF。
+#' @param bar.width 条宽。
+#' @param text.size 字号。
+#' @param text.width 条目名换行宽度。
+#' @param title 图标题。\code{NULL}（默认）时从数据派生。
+#' @param legacy_title 设为 \code{TRUE} 时标题强制为旧版字面量
+#'   \code{"GO enrichment of cluster"}。默认 \code{FALSE}；仅用于兼容已存档脚本。
+#' @param style 视觉预设，见上表。
+#' @param palette 配色方案键，见 \code{\link{tcm_palette_names}()}。
+#' @param ... 未识别的参数会触发警告（不静默忽略）。
+#'
+#' @return ggplot 对象
 #' @export
-#'
-#' @importFrom ggplot2 ggplot
-#' @importFrom ggplot2 geom_bar
-#' @importFrom ggplot2 scale_color_manual
-#' @importFrom ggplot2 scale_fill_manual
-#' @importFrom ggplot2 scale_y_continuous
-#' @importFrom ggplot2 theme_bw
-#' @importFrom ggplot2 theme
-#' @importFrom ggplot2 aes
-#' @importFrom ggplot2 geom_col
-#' @importFrom ggplot2 ggtitle
-#' @importFrom ggplot2 labs
-#' @importFrom ggplot2 element_text
-#' @importFrom ggplot2 element_rect
-#' @importFrom ggplot2 scale_y_discrete
-#' @importFrom ggplot2 scale_x_discrete
-#' @importFrom ggplot2 scale_x_continuous
-#' @importFrom ggplot2 coord_flip
-#' @importFrom ggplot2 expansion
-#' @importFrom ggplot2 facet_grid
-#' @importFrom ggplot2 geom_text
-#' @importFrom dplyr mutate
-#' @importFrom dplyr group_by
-#' @importFrom dplyr slice
-#' @importFrom tidyr drop_na
-#' @importFrom stats reorder
-#' @importFrom stringr str_wrap
 #'
 #' @examples
 #' \dontrun{
-#' # 富集结果：GO 离线即可，无需 OrgDb 包（等价 enrichGO(ont = "all")）
 #' data(xfbdf, package = "tcmnetpharma")
-#' res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
-#'                   pvalueCutoff = 0.01, qvalueCutoff = 0.05)
-#' go.diff <- res$go
-#' go_barplot(go.diff)
-#' # 文献常用形制（2026-10-22 新增预设）：横条长度 = 基因数，按本体三色
-#' go_barplot(go.diff, top = 10, style = "classic")
-#' # BP/CC/MF 三栏分面 + p 值渐变（"三合一图"）
-#' go_barplot(go.diff, top = 8, style = "grouped")
+#' res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human")
+#' go_barplot(res$go)
+#' go_barplot(res$go, top = 10, style = "classic")   # 现在按本体分段，不混排
+#' go_barplot(res$go, top = 8, style = "grouped")    # 三栏分面
+#' go_barplot(res$kegg, style = "classic")           # 标题自动写 "KEGG pathway enrichment"
 #' }
 go_barplot <- function(go.diff,
                        top = 5,
@@ -95,313 +65,59 @@ go_barplot <- function(go.diff,
                        bar.width = 0.8,
                        text.size = 12,
                        text.width = 30,
-                       title = "GO enrichment of cluster",
+                       title = NULL,
+                       legacy_title = FALSE,
                        style = c("default", "classic", "grouped", "significance",
                                  "journal", "presentation"),
                        palette = NULL,
                        ...) {
   style <- match.arg(style)
   palette <- .tcm_palette_check(palette)
-  # data processing
-  if (isS4(go.diff)) {
-    go.diff <- go.diff@result
-  } else if (is.data.frame(go.diff)) {
-    go.diff <- go.diff
-  } else {
-    print("The data format must be S4 object or data frame.")
+
+  # 未识别参数不静默吞掉（铁律 28：`...` 吞参数会造成"假通过"）
+  dots <- list(...)
+  if (length(dots)) {
+    warning(
+      "go_barplot(): ignoring unrecognised argument(s): ",
+      paste(names(dots), collapse = ", "),
+      call. = FALSE
+    )
   }
 
-  go_enrich <- go.diff %>%
-    .tcm_inject_group_key() %>%
-    tidyr::drop_na() %>%
-    dplyr::group_by(ONTOLOGY) %>%
-    dplyr::slice(1:top)
-  go_enrich <- go_enrich[order(go_enrich$ONTOLOGY,
-    go_enrich$p.adjust,
-    decreasing = TRUE
-  ), ]
-  go_enrich$Description <- factor(go_enrich$Description,
-    levels = unique(go_enrich$Description)
+  if (!identical(plot.set, "vertical")) {
+    warning(
+      "go_barplot(): `plot.set = \"", plot.set,
+      "\"` is no longer supported; drawing horizontal bars instead.",
+      call. = FALSE
+    )
+  }
+
+  # style -> (layout, measure, visual style)
+  map <- switch(style,
+    default      = list(layout = NA_character_, measure = "neglogp", vs = "default"),
+    classic      = list(layout = "segmented",    measure = "count",   vs = "default"),
+    grouped      = list(layout = "facet",        measure = "count",   vs = "default"),
+    significance = list(layout = "segmented",    measure = "neglogp", vs = "default"),
+    journal      = list(layout = NA_character_,  measure = "neglogp", vs = "journal"),
+    presentation = list(layout = NA_character_,  measure = "neglogp", vs = "presentation")
   )
+  layout <- map$layout
+  if (is.na(layout)) layout <- if (isTRUE(facet)) "facet" else "segmented"
 
-  # ---- 文献形制预设（2026-10-22）-------------------------------------------
-  # 文献调研（见 NEWS / 手册）：GO 富集图在中药网络药理学论文里**柱状图是主流**，
-  # 常见三种形制 ——
-  #   classic      x = Count（基因数），按本体三色，条端标 Count
-  #                （clusterProfiler barplot(x="Count", split="ONTOLOGY") 观感）
-  #   grouped      BP/CC/MF 分面，x = Count，fill = 本体三色（"三合一图"）
-  #   significance x = -log10(p.adjust)，fill = 本体三色（单图）
-  # ⚠️ 三者与 default **共用同一份 go_enrich**（同样每本体 top 个条目），
-  #    只改「x 轴口径 / 是否分面」——条目集合与统计量完全一致。
-  # 配色体系（2026-10-22）：ONTOLOGY 是 3 分类 -> 取色板前 3 色。
-  #
-  # ⚠️ 2026-10-23 按 boss 决定：**柱状图一律不用色阶**，颜色只表类别（BP/CC/MF
-  #    三色）。原 grouped / significance 用 scale_fill_gradientn 渐变上色，
-  #    已全部改为 scale_fill_manual。
-  #    理由（boss 原话「气泡图类用色阶，柱状图不用色阶了」）：
-  #    ① 柱长已经承载了主量，再拿颜色编码同一/相邻量属**双重编码**；significance
-  #       更极端 —— 长度与颜色是**同一个变量** -log10(p)，纯冗余。
-  #    ② 渐变只能用「连续色板」，但下拉里 13 套色板不分 kind 全可选，选到
-  #       okabe / npg 这类**分类色板**时插值出的渐变色相不单调，"颜色深浅 =
-  #       p 值"这句话就不成立（2026-10-23 实测成图确认）。
-  #    → 气泡/点图（go_dotplot 等）**保留色阶**：那类图里颜色编码的是另一个
-  #      维度（p.adjust），与大小（Count）不重复，用色阶是对的。
-  # ---- 分组键 → 颜色数量（2026-10-23 sources 放宽后动态化）---------------
-  # 原先写死 3 色（BP/CC/MF）。但 .tcm_inject_group_key 会把 KEGG/Reactome/Wiki
-  # 的来源回填进 ONTOLOGY，混合数据可能有 4~5 个分组，写死 3 色会报
-  # "Insufficient values in manual scale. N needed but only 3 provided"。
-  # 故颜色数量 = 实际分组数。
-  n_ont <- length(unique(as.character(go_enrich$ONTOLOGY)))
-  if (!is.null(palette)) {
-    color <- tcm_palette(palette, n_ont)
-  } else {
-    # 默认 3 色（BP/CC/MF）扩展到 n_ont 色（超 3 组时按色相插值补足）
-    color <- grDevices::colorRampPalette(color)(n_ont)
-  }
-  if (style %in% c("classic", "grouped", "significance")) {
-    return(.go_barplot_literature(go_enrich, style, color, bar.width,
-                                  text.size, text.width, title))
-  }
-
-  # ggplot2 plotting
-  if (plot.set == "vertical" && facet == FALSE) {
-    p1 <- ggplot(go_enrich, aes(Description, -log10(p.adjust))) +
-      geom_bar(aes(fill = ONTOLOGY),
-        width = bar.width,
-        stat = "identity"
-      ) +
-      geom_text(
-        aes(
-          label = round(-log10(p.adjust), digits = 0),
-          y = round(-log10(p.adjust), digits = 0) + 1.5
-        ),
-        size = text.size / 3
-      ) +
-      coord_flip() +
-      labs(x = "", y = "-log10 p.adjust", title = title) +
-      labs(fill = "type") +
-      scale_fill_manual(values = color) +
-      theme_bw() +
-      theme(
-        axis.text.x = element_text(
-          size = text.size,
-          colour = "black"
-        ),
-        axis.text.y = element_text(
-          size = text.size,
-          colour = "black"
-        )
-      ) +
-      theme(axis.title.x = element_text(size = text.size)) +
-      scale_x_discrete(labels = function(x) str_wrap(x, width = text.width)) +
-      scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
-    .tcm_style_apply(p1, style)
-  } else if (plot.set == "vertical" && facet == TRUE) {
-    p2 <- ggplot(go_enrich, aes(Description, -log10(p.adjust))) +
-      geom_bar(aes(fill = ONTOLOGY),
-        width = bar.width,
-        stat = "identity"
-      ) +
-      geom_text(
-        aes(
-          label = round(-log10(p.adjust), digits = 0),
-          y = round(-log10(p.adjust), digits = 0) + 1.5
-        ),
-        size = text.size / 3
-      ) +
-      coord_flip() +
-      labs(x = "", y = "-log10 p.adjust", title = title) +
-      labs(fill = "type") +
-      scale_fill_manual(values = color) +
-      theme_bw() +
-      theme(
-        axis.text.x = element_text(size = text.size, colour = "black"),
-        axis.text.y = element_text(size = text.size, colour = "black")
-      ) +
-      theme(axis.title.x = element_text(size = text.size)) +
-      scale_x_discrete(labels = function(x) str_wrap(x, width = text.width)) +
-      scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-      theme(strip.text = element_text(face = "bold", size = text.size)) +
-      facet_grid(ONTOLOGY ~ ., scales = "free_y", space = "free_y") +
-      theme(legend.position = "none")
-    .tcm_style_apply(p2, style)
-  } else if (plot.set == "horizontal" && facet == FALSE) {
-    p3 <- ggplot(go_enrich, aes(Description, -log10(p.adjust))) +
-      geom_col(aes(fill = ONTOLOGY), width = bar.width) +
-      geom_text(
-        aes(
-          label = round(-log10(p.adjust), digits = 0),
-          y = round(-log10(p.adjust), digits = 0) + 1
-        ),
-        size = text.size / 3
-      ) +
-      scale_fill_manual(values = color) +
-      theme(
-        axis.text.x = element_text(
-          size = text.size,
-          colour = "black",
-          angle = 60,
-          hjust = 1,
-          vjust = 1
-        ),
-        axis.text.y = element_text(
-          size = text.size,
-          colour = "black"
-        )
-      ) +
-      theme(axis.title.y = element_text(size = text.size)) +
-      theme(
-        panel.grid = element_blank(),
-        panel.background = element_rect(
-          color = "black",
-          fill = "transparent"
-        )
-      ) +
-      scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-      labs(x = "", y = "-Log10 p.adjust") +
-      labs(fill = "type") +
-      scale_x_discrete(labels = function(x) str_wrap(x, width = text.width))
-    .tcm_style_apply(p3, style)
-  } else if (plot.set == "horizontal" && facet == TRUE) {
-    p4 <- ggplot(go_enrich, aes(Description, -log10(p.adjust))) +
-      geom_col(aes(fill = ONTOLOGY), width = bar.width) +
-      geom_text(
-        aes(
-          label = round(-log10(p.adjust), digits = 0),
-          y = round(-log10(p.adjust), digits = 0) + 1
-        ),
-        size = text.size / 3
-      ) +
-      scale_fill_manual(values = color) +
-      theme(
-        axis.text.x = element_text(
-          size = text.size,
-          colour = "black",
-          angle = 60,
-          hjust = 1,
-          vjust = 1
-        ),
-        axis.text.y = element_text(size = text.size, colour = "black")
-      ) +
-      theme(axis.title.y = element_text(size = text.size)) +
-      theme(
-        panel.grid = element_blank(),
-        panel.background = element_rect(
-          color = "black",
-          fill = "transparent"
-        )
-      ) +
-      scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-      labs(x = "", y = "-Log10 p.adjust") +
-      labs(fill = "type") +
-      scale_x_discrete(labels = function(x) str_wrap(x, width = text.width)) +
-      facet_grid(. ~ ONTOLOGY, scales = "free_x", space = "free_x") +
-      theme(strip.text = element_text(
-        face = "bold",
-        size = text.size
-      )) +
-      theme(legend.position = "none")
-    .tcm_style_apply(p4, style)
-  } else {
-    print("The plot.set must be 'horizontal' or 'vertical'.")
-  }
-}
-
-
-# ---------------------------------------------------------------------------
-# 文献形制预设（2026-10-22）
-#
-# 为什么单列成函数：三种形制的 x 轴口径不同（Count / Count / -log10 p），
-# 塞进原 if-else 会让「plot.set × facet × style」爆成 3×2×3 = 18 分支，
-# 可读性归零。这里只处理形制，主题统一交给 .tcm_style_apply（风格单一事实源）。
-#
-# ⚠️ 排序口径：classic 按 Count 升序（clusterProfiler 同款），
-#    significance 按 -log10(p) 升序 —— 只改**显示顺序**，不改入选条目。
-# ---------------------------------------------------------------------------
-.go_barplot_literature <- function(go_enrich, style, color, bar.width,
-                                   text.size, text.width, title) {
-  lab_fun <- function(x) str_wrap(x, width = text.width)
-
-  if (identical(style, "classic")) {
-    # 文献最常见：横条 + 长度=基因数 + 本体三色 + 条端标数
-    d <- go_enrich
-    d$Description <- factor(d$Description,
-                            levels = unique(d$Description[order(d$Count, d$ONTOLOGY)]))
-    return(
-      ggplot(d, aes(Count, Description, fill = ONTOLOGY)) +
-        geom_col(width = bar.width) +
-        geom_text(aes(label = Count), hjust = -0.25, size = text.size / 4) +
-        scale_fill_manual(values = color, name = "Ontology") +
-        scale_x_continuous(expand = expansion(mult = c(0, 0.12))) +
-        scale_y_discrete(labels = lab_fun) +
-        labs(x = "Gene count", y = NULL, title = title) +
-        theme_bw() +
-        theme(
-          axis.text = element_text(size = text.size, colour = "black"),
-          axis.title.x = element_text(size = text.size),
-          panel.grid.major.y = element_blank(),
-          panel.grid.minor = element_blank()
-        )
-    )
-  }
-
-  if (identical(style, "grouped")) {
-    # "三合一图"：BP/CC/MF 上下三段，x = Count，fill = **本体三色**。
-    #
-    # ⚠️ 2026-10-23 第二次改（boss 决定：「柱状图不用色阶了，按 BP/CC/MF
-    #    分类给 3 个颜色」）：上一版用 patchwork 拼三张各自带独立色阶的图，
-    #    那是为了修「一条色阶被三个本体共用、片内差异看不出来」；但更彻底的
-    #    做法是**柱状图根本不用色阶** —— 颜色只表类别。
-    #    好处：① 三段共用一个离散标度，facet_grid 就够，**不需要 patchwork**；
-    #          ② 返回类型回到普通 ggplot，没有「$data 只含第一段」的坑；
-    #          ③ 只有一条图例（三个色块），正是 boss 给的那张文献图的形制。
-    #    注：分面用 space = "free_y"，段高按条目数分配（与截图一致）。
-    d <- go_enrich
-    d$Description <- factor(d$Description,
-                            levels = unique(d$Description[order(d$Count, d$ONTOLOGY)]))
-    onto_lv <- sort(unique(as.character(d$ONTOLOGY)))
-    # 图例顺序固定成 BP/CC/MF，不随数据里出现顺序漂移
-    d$ONTOLOGY <- factor(as.character(d$ONTOLOGY), levels = onto_lv)
-    return(
-      ggplot(d, aes(Count, Description, fill = ONTOLOGY)) +
-        geom_col(width = bar.width) +
-        scale_fill_manual(values = color, name = "Ontology",
-                          breaks = onto_lv, drop = FALSE) +
-        scale_x_continuous(expand = expansion(mult = c(0, 0.10))) +
-        scale_y_discrete(labels = lab_fun) +
-        facet_grid(ONTOLOGY ~ ., scales = "free_y", space = "free_y") +
-        labs(x = "Gene count", y = NULL, title = title) +
-        theme_bw() +
-        theme(
-          axis.text = element_text(size = text.size, colour = "black"),
-          axis.title.x = element_text(size = text.size),
-          strip.text = element_text(face = "bold", size = text.size),
-          panel.grid.major.y = element_blank(),
-          panel.grid.minor = element_blank()
-        )
-    )
-  }
-
-  # significance：单图，x = -log10(p.adjust)，fill = 本体三色
-  # ⚠️ 原实现 fill 也是 -log10(p.adjust) 渐变 —— 与 x 轴**同一个变量**，
-  #    纯属重复编码。改成本体三色后，这张图的独特价值落在「x 轴口径是显著性
-  #    而非基因数、条目按显著性排序」上。
-  d <- go_enrich
-  d$neglogp <- -log10(d$p.adjust)
-  d$Description <- factor(d$Description, levels = unique(d$Description[order(d$neglogp)]))
-  d$ONTOLOGY <- factor(as.character(d$ONTOLOGY),
-                       levels = sort(unique(as.character(d$ONTOLOGY))))
-  ggplot(d, aes(neglogp, Description, fill = ONTOLOGY)) +
-    geom_col(width = bar.width) +
-    scale_fill_manual(values = color, name = "Ontology", drop = FALSE) +
-    scale_x_continuous(expand = expansion(mult = c(0, 0.10))) +
-    scale_y_discrete(labels = lab_fun) +
-    labs(x = "-log10(p.adjust)", y = NULL, title = title) +
-    theme_bw() +
-    theme(
-      axis.text = element_text(size = text.size, colour = "black"),
-      axis.title.x = element_text(size = text.size),
-      panel.grid.major.y = element_blank(),
-      panel.grid.minor = element_blank()
-    )
+  enrich_barplot(
+    data         = go.diff,
+    measure      = map$measure,
+    layout       = layout,
+    top          = top,
+    sort_by      = "p.adjust",
+    color        = color,
+    bar.width    = bar.width,
+    text.size    = text.size,
+    text.width   = text.width,
+    show_value   = TRUE,
+    title        = title,
+    legacy_title = legacy_title,
+    style        = map$vs,
+    palette      = palette
+  )
 }

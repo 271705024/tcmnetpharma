@@ -71,41 +71,21 @@
 
 
 # ---------------------------------------------------------------------------
-# 富集图分组键注入（2026-10-23）
+# 【已移除】.tcm_inject_group_key()（2026-10-24）
 #
-# 背景：go_barplot / go_dotplot 的历史实现假设输入必有 ONTOLOGY 列（GO 的
-# BP/CC/MF 三本体），用它做 group_by / fill / facet。但 KEGG / Reactome /
-# WikiPathways 的富集结果**没有 ONTOLOGY 列**（只有 source 列），直接喂进去
-# 会在 group_by(ONTOLOGY) 处静默失效或报错，这正是「KEGG 跑通却画不了图」的
-# 包层根因之一。
+# 该函数曾在这里把 source 列回填进 ONTOLOGY，以「让下游 group_by / fill /
+# facet 逻辑完全不用改」。这个"最小侵入"的妥协在用户界面上以**语义污染**的
+# 形式暴露了出来：
 #
-# 策略（最小侵入）：只在 ONTOLOGY **缺失**时，用 source 列补一个同名列。这样
-# 下游 group_by / fill / facet 逻辑完全不用改，且：
-#   - GO 数据 ONTOLOGY 已存在（BP/CC/MF），本函数不动它 → 三色/三面行为不变；
-#   - KEGG/Reactome/Wiki 数据注入 ONTOLOGY = source → 退化为「按来源单色 /
-#     单面」，条目与统计口径不变（设计 doc §2）。
-# 单值来源时（如只跑 KEGG）fill/facet 退化为单色单面，图仍正确可读。
-.tcm_inject_group_key <- function(df) {
-  if (!is.data.frame(df)) return(df)
-  if (!"ONTOLOGY" %in% names(df)) {
-    # 完全无 ONTOLOGY 列（KEGG/Reactome/Wiki 富集结果，或内置示例 kegg.filter）
-    if ("source" %in% names(df)) {
-      df$ONTOLOGY <- as.character(df$source)
-    } else {
-      df$ONTOLOGY <- rep("\u6240\u6709\u6765\u6e90", nrow(df))
-    }
-  } else {
-    # ONTOLOGY 列存在但部分行为 NA（GO+KEGG 混合经 bind_rows 合并后，KEGG 行
-    # 的 ONTOLOGY 是 NA）。若不清掉，下游 drop_na() 会整批删掉非 GO 行。
-    # 用 source 回填 NA；无 source 时填常量，保证 group_by/fill/facet 可用。
-    miss <- is.na(df$ONTOLOGY)
-    if (any(miss)) {
-      if ("source" %in% names(df)) {
-        df$ONTOLOGY[miss] <- as.character(df$source[miss])
-      } else {
-        df$ONTOLOGY[miss] <- "\u6240\u6709\u6765\u6e90"
-      }
-    }
-  }
-  df
-}
+#   boss 2026-10-24 实测（数据是 WikiPathways）：
+#     标题 -> "GO enrichment of cluster"     （身份错标）
+#     图例 -> "Ontology: wikipathways"        （本体字段装着来源值）
+#
+# 省下的改动成本，最终由用户支付。现已由 R/enrich-source.R 取代：
+#   - tcm_enrich_table()  把 source / source_label / ontology 建成三列独立字段
+#   - .tcm_resolve_group() 显式决定"按来源还是按本体分组"
+# 下游不再需要任何字段复用。
+#
+# 保留这段说明而不是静默删除，是为了让后来者知道为什么这里曾经有个函数。
+# ---------------------------------------------------------------------------
+

@@ -2,7 +2,7 @@
 % Please edit documentation in R/go_barplot.R
 \name{go_barplot}
 \alias{go_barplot}
-\title{Bar graphs showed the results of GO results}
+\title{Bar graphs showed the results of enrichment analysis}
 \usage{
 go_barplot(
   go.diff,
@@ -13,85 +13,81 @@ go_barplot(
   bar.width = 0.8,
   text.size = 12,
   text.width = 30,
-  title = "GO enrichment of cluster",
+  title = NULL,
+  legacy_title = FALSE,
   style = c("default", "classic", "grouped", "significance", "journal", "presentation"),
   palette = NULL,
   ...
 )
 }
 \arguments{
-\item{go.diff}{R clusterprofiler package for enrichGO results}
+\item{go.diff}{clusterProfiler 的 enrichGO 结果（S4）、\code{tcm_enrich()}
+的返回，或 data.frame。}
 
-\item{top}{According to the order of P adjust value from small to large
-the number of categories to show \strong{per ontology}. Because GO terms are
-grouped by \code{ONTOLOGY} (BP / CC / MF) before slicing, \code{top = 8}
-yields at most \code{8 * 3 = 24} bars (8 from each ontology); ontologies
-with fewer significant terms contribute fewer.}
+\item{top}{\strong{每组}保留的条目数（不再全局截断）。}
 
-\item{plot.set}{"horizontal" or "vertical"}
+\item{plot.set}{仅接受 \code{"vertical"}。传 \code{"horizontal"} 会给出
+警告并仍按水平条绘制（新实现只有一种方向）。}
 
-\item{facet}{facet}
+\item{facet}{是否分面。仅当 \code{style} 为 \code{"default"} /
+\code{"journal"} / \code{"presentation"} 时生效：\code{TRUE} -> 三栏分面，
+\code{FALSE} -> 单轴分段。}
 
-\item{color}{color, Recommended color:
-colour1 <- c("#c0583d", "#daa152", "#b3c6dc")
-colour2 <- c("#8fa1c7", "#ef916a", "#7dbfa5")
-colour3 <- c("#7dbfa5", "#487eb3", "#d2342b")
-colour4 <- c("#6176b5", "#DFC86B", "#87BD5B")
-colour5 <- c("#852f88", "#eb990c", "#0f8096")
-colour6 <- c("#3c4b8d", "#da2e20", "#3c884c")
-colour7 <- c("#7aa354", "#d67d44", "#6594c4")
-colour8 <- c("#501d8a", "#e55709", "#1c8041")
-colour9 <- c("#A40545", "#7FCBA4", "#4B65AF")}
+\item{color}{分组底色，默认三色对应 BP/CC/MF。}
 
-\item{bar.width}{bar width}
+\item{bar.width}{条宽。}
 
-\item{text.size}{text size}
+\item{text.size}{字号。}
 
-\item{text.width}{text width}
+\item{text.width}{条目名换行宽度。}
 
-\item{title}{title}
+\item{title}{图标题。\code{NULL}（默认）时从数据派生。}
 
-\item{style}{visual preset. \code{"default"} keeps the original look.
-\code{"classic"} is the form most used in the GO literature: horizontal
-bars whose length is the gene \code{Count}, filled by ontology
-(BP/CC/MF), with the count printed at the bar end.
-\code{"grouped"} facets BP/CC/MF into separate panels, bar length =
-\code{Count}, filled by ontology (BP/CC/MF) — three categorical colours,
-\strong{no colour scale} ("three-in-one" figure).
-\code{"significance"} keeps one panel and uses \code{-log10(p.adjust)}
-as the bar length, again filled by ontology.
-\code{"journal"} / \code{"presentation"} apply a publication /
-slide theme on top of the default form.
-\strong{Only the visual form changes} — the selected terms, their counts and
-all statistics are identical across presets.}
+\item{legacy_title}{设为 \code{TRUE} 时标题强制为旧版字面量
+\code{"GO enrichment of cluster"}。默认 \code{FALSE}；仅用于兼容已存档脚本。}
 
-\item{palette}{colour scheme key, see \code{\link[=tcm_palette_names]{tcm_palette_names()}}. \code{NULL}
-(default) keeps the colours given by \code{color}. Setting a palette
-overrides \code{color} (the first three colours are used for BP/CC/MF).
-Bar charts \strong{never} use a continuous colour scale, so a sequential or
-diverging palette behaves the same as a qualitative one here — the
-colour only marks the ontology. Colours only — data and statistics are
-untouched.}
+\item{style}{视觉预设，见上表。}
 
-\item{...}{additional parameters}
+\item{palette}{配色方案键，见 \code{\link{tcm_palette_names}()}。}
+
+\item{...}{未识别的参数会触发警告（不静默忽略）。}
 }
 \value{
-bar plot
+ggplot 对象
 }
 \description{
-Bar graphs showed the results of GO results
+\strong{兼容垫片}：本函数现在转发到 \code{\link{enrich_barplot}()}。
+
+2026-10-24 之前的实现有三个结构性问题（boss 实测反馈）：
+\enumerate{
+\item \code{style = "classic"} / \code{"significance"} 两个分支\strong{全局按数值
+排序}（\code{order(Count, ONTOLOGY)} 里 ONTOLOGY 只是第二排序键），
+于是 BP / CC / MF 按 Count 大小交错出现，无法按本体阅读；
+\item \code{title} 的默认值是字面量 \code{"GO enrichment of cluster"}，
+任何非 GO 数据（KEGG / Reactome / WikiPathways）都继承了这个错误身份；
+\item 分组靠 \code{.tcm_inject_group_key()} 把 \code{source} 回填进
+\code{ONTOLOGY}，导致图例出现 \code{"Ontology: wikipathways"}。
+}
+新版把「形制 / 条目数 / 外观」拆成正交参数，标题从数据派生，来源与本体
+分列存储。本函数的旧参数仍全部接受，\code{style} 按下表映射到新形制：
+
+\tabular{lll}{
+\strong{style} \tab \strong{新 layout} \tab \strong{新 measure} \cr
+\code{"default"} \tab 由 \code{facet} 决定 \tab \code{neglogp} \cr
+\code{"classic"} \tab \code{segmented} \tab \code{count} \cr
+\code{"grouped"} \tab \code{facet} \tab \code{count} \cr
+\code{"significance"} \tab \code{segmented} \tab \code{neglogp} \cr
+\code{"journal"} \tab 由 \code{facet} 决定 \tab \code{neglogp} \cr
+\code{"presentation"} \tab 由 \code{facet} 决定 \tab \code{neglogp} \cr
+}
 }
 \examples{
 \dontrun{
-# 富集结果：GO 离线即可，无需 OrgDb 包（等价 enrichGO(ont = "all")）
 data(xfbdf, package = "tcmnetpharma")
-res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
-                  pvalueCutoff = 0.01, qvalueCutoff = 0.05)
-go.diff <- res$go
-go_barplot(go.diff)
-# 文献常用形制（2026-10-22 新增预设）：横条长度 = 基因数，按本体三色
-go_barplot(go.diff, top = 10, style = "classic")
-# BP/CC/MF 三栏分面 + p 值渐变（"三合一图"）
-go_barplot(go.diff, top = 8, style = "grouped")
+res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human")
+go_barplot(res$go)
+go_barplot(res$go, top = 10, style = "classic")   # 现在按本体分段，不混排
+go_barplot(res$go, top = 8, style = "grouped")    # 三栏分面
+go_barplot(res$kegg, style = "classic")           # 标题自动写 "KEGG pathway enrichment"
 }
 }

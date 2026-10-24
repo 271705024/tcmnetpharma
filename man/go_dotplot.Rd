@@ -2,7 +2,7 @@
 % Please edit documentation in R/go_dotplot.R
 \name{go_dotplot}
 \alias{go_dotplot}
-\title{Dot plot showed the results of GO results}
+\title{Dot plot showed the results of enrichment analysis}
 \usage{
 go_dotplot(
   go.diff,
@@ -10,56 +10,55 @@ go_dotplot(
   color = "RdBu",
   text.size = 12,
   text.width = 35,
-  title = "GO enrichment of cluster",
+  title = NULL,
+  legacy_title = FALSE,
   style = c("default", "genratio", "journal", "presentation"),
   palette = NULL,
   ...
 )
 }
 \arguments{
-\item{go.diff}{R clusterprofiler package for enrichGO results}
+\item{go.diff}{clusterProfiler 的 enrichGO 结果（S4）、\code{tcm_enrich()} 的
+返回，或 data.frame。}
 
-\item{top}{According to the order of p adjust value from small to large
-the number of categories to show}
+\item{top}{\strong{每组}保留的条目数（按 \code{Count} 降序取）。}
 
-\item{color}{color see "RColorBrewer::display.brewer.all()"}
+\item{color}{连续色阶名，见 \code{RColorBrewer::display.brewer.all()}。}
 
-\item{text.size}{text size}
+\item{text.size}{字号。}
 
-\item{text.width}{text width}
+\item{text.width}{条目名换行宽度。}
 
-\item{title}{title}
+\item{title}{图标题。\code{NULL}（默认）时从数据派生。}
 
-\item{style}{visual preset. \code{"default"} keeps the original look
-(x = Rich Factor). \code{"genratio"} uses the clusterProfiler convention
-most papers follow: x = \code{GeneRatio} (k/n), dot size = \code{Count},
-colour = \code{p.adjust}. \code{"journal"} / \code{"presentation"}
-apply a publication / slide theme on top of the default form.
-\strong{Only the visual form changes} — the selected terms and their
-statistics are identical across presets.}
+\item{legacy_title}{设为 \code{TRUE} 时标题强制为旧版字面量
+\code{"GO enrichment of cluster"}。默认 \code{FALSE}。}
 
-\item{palette}{colour scheme key, see \code{\link[=tcm_palette_names]{tcm_palette_names()}}. \code{NULL}
-(default) keeps the ColorBrewer ramp named by \code{color}; a palette
-key replaces that ramp (interpolated to a continuous scale).
-Colours only — data and statistics are untouched.}
+\item{style}{形制/外观预设：\code{"default"}（x = Rich Factor）、
+\code{"genratio"}（x = \code{GeneRatio}，clusterProfiler 口径）、
+\code{"journal"} / \code{"presentation"}（主题）。
+\strong{只改视觉形制，选中的条目与统计量完全一致}。}
 
-\item{...}{additional parameters}
+\item{palette}{配色方案键，见 \code{\link{tcm_palette_names}()}。}
+
+\item{...}{未识别的参数会触发警告（不静默忽略）。}
 }
 \value{
-dotplot
+ggplot 对象
 }
 \description{
-Dot plot showed the results of GO results
+2026-10-24 重构：不再依赖 \code{.tcm_inject_group_key()} 把 \code{source}
+回填进 \code{ONTOLOGY}，改用 \code{\link{tcm_enrich_table}()} 的
+\code{source} / \code{ontology} 双列模型；\code{title} 默认改为从数据派生
+（旧版是字面量 \code{"GO enrichment of cluster"}，凡非 GO 数据都身份错标）。
 }
 \examples{
 \dontrun{
-# 富集结果：GO 离线即可，无需 OrgDb 包（等价 enrichGO(ont = "all")）
 data(xfbdf, package = "tcmnetpharma")
 res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
                   pvalueCutoff = 0.01, qvalueCutoff = 0.05)
-go.diff <- res$go
-go_dotplot(go.diff, color = "Spectral")
-# 文献标准口径（2026-10-22 新增预设）：横轴 GeneRatio，点大小 = 基因数
-go_dotplot(go.diff, top = 10, style = "genratio")
+go_dotplot(res$go)
+go_dotplot(res$go, top = 10, style = "genratio")   # 文献标准口径
+go_dotplot(res$reactome, style = "genratio")       # 标题自动写 Reactome
 }
 }
