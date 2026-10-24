@@ -12,6 +12,8 @@ venn_plot(
   bar.color = "Set1",
   type = 1,
   vratio = c(0.65, 0.35),
+  gene_col = NULL,
+  source_col = NULL,
   ...
 )
 }
@@ -42,6 +44,12 @@ venn.color9 <- c("#d37a20", "#dbcb09", "#3a9cbc", "#dd7208", "#a30019")}
 2:take the intersection of >= 4 data sets}
 
 \item{vratio}{The ratio of the histogram to the size of the matrix}
+
+\item{gene_col, source_col}{\strong{显式指定列名}（2026-10-24 新增）。
+不传时按列名精确匹配（\code{gene} / \code{source} 及常见别名）；
+匹配不到\strong{直接报错并列出候选列名}，不再按「两列的基数谁大」猜
+—— 后者在「基因数少于来源数」时会静默把两列对调（实测：5 个基因 ×
+8 个来源，ggvenn 的集合名变成 G1..G5，把基因当成了来源）。}
 
 \item{...}{additional parameters}
 }

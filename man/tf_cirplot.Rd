@@ -4,7 +4,15 @@
 \alias{tf_cirplot}
 \title{Display the relationship between transcription factors and target genes}
 \usage{
-tf_cirplot(data, start.degree = 270, text.size = 0.6, color = "RdBu", ...)
+tf_cirplot(
+  data,
+  start.degree = 270,
+  text.size = 0.6,
+  color = "RdBu",
+  tf_col = NULL,
+  target_col = NULL,
+  ...
+)
 }
 \arguments{
 \item{data}{data.frame}
@@ -14,6 +22,10 @@ tf_cirplot(data, start.degree = 270, text.size = 0.6, color = "RdBu", ...)
 \item{text.size}{the font size of each layer circle}
 
 \item{color}{color see "RColorBrewer::display.brewer.all()"}
+
+\item{tf_col, target_col}{\strong{显式指定列名}（2026-10-24 新增）。
+不传时按列名精确匹配（\code{TF} / \code{Target} 及常见别名）；
+匹配不到\strong{直接报错并列出候选列名}，不再按「两列的基数谁大」猜。}
 
 \item{...}{additional parameters}
 }

@@ -57,3 +57,7 @@ Desktop.ini
 #       反而制造「身份不可信」——正是本机制要消灭的问题。
 inst/BUILD-INFO.json
 inst/BUILD-INFO.txt
+
+# --- 测试期 R 默认设备产物（testthat 里 ggplotGrob/绘图未开设备时落盘）---
+Rplots.pdf
+tests/testthat/Rplots.pdf

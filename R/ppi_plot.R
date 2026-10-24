@@ -43,7 +43,7 @@
 #' @return network diagrams
 #' @export
 #' @importFrom ggplot2 scale_color_gradientn
-#' @importFrom ggplot2 scale_linewidth_continuous
+#' @importFrom ggplot2 scale_size_continuous
 #' @importFrom ggplot2 aes
 #' @importFrom ggplot2 scale_fill_manual
 #' @importFrom dplyr distinct
@@ -144,15 +144,28 @@ ppi_plot <- function(data,
     # 不该因为"保持原始行为"就放行。
     net <- .ppi_cap_nodes(net, max_nodes, min_degree, keep, style)
 
-    # Plot with ggraph (default：保持原行为不动)
+    # Plot with ggraph (default：保持原行为，但修掉 3 处静默缺陷)
+    #
+    # ⚠️ 2026-10-24 实测（logs/_probe_r2_decisive.R）三处缺陷：
+    #   ① `aes(colour = score)` 是**死映射**：外层 `color = edge.color` 把
+    #      edge_colour 压成常量（换 lightgrey/red/blue，边的颜色跟着变、
+    #      始终只有 1 个取值）。但 colour 标度仍被注册 → 图上**多出一个
+    #      标题为 "score" 的图例，显示的渐变在图上根本不存在**（图例说谎）。
+    #      → 删掉 colour 映射；边只按 score 变粗细。
+    #   ② `scale_linewidth_continuous(name = "degree", range = node.size)`
+    #      管的是 linewidth 通道，而节点映射的是 **size** 通道 →
+    #      真正生效的是 ggplot2 默认的 scale_size(range = c(1, 6))：
+    #      `node.size = c(1, 10)` 与 `c(6, 30)` 出图的 size 范围**完全相同**
+    #      （实测 1~6），参数被静默忽略。
+    #      → 换成 scale_size_continuous(range = node.size)。
+    #   ③ 上述 linewidth 标度还额外产出一个标题为 "degree" 的**幽灵图例**
+    #      （图上没有任何通道用它）→ 换对标度后自然消失。
+    #    结果：图例从 3 个降到 1 个（只留 degree 色条）。
     ggraph(net, layout = graph.layout) +
       geom_edge_fan(
-        aes(
-          edge_width = score,
-          colour = score
-        ),
-        color = edge.color,
-        show.legend = TRUE
+        aes(edge_width = score),
+        colour = edge.color,
+        show.legend = FALSE
       ) +
       geom_node_point(aes(color = degree, size = size), alpha = 1.0) +
       scale_color_gradientn(colours = node_base) +
@@ -160,8 +173,8 @@ ppi_plot <- function(data,
         size = label.size,
         repel = label.repel
       ) +
-      ggraph::scale_edge_width(range = edge.width) +
-      scale_linewidth_continuous(name = "degree", range = node.size) +
+      ggraph::scale_edge_width(range = edge.width, guide = "none") +
+      scale_size_continuous(name = "degree", range = node.size, guide = "none") +
       theme_graph(base_family = "sans")
   } else if (rem.dis.inter == TRUE) {
     # remove dissociative interactions
@@ -189,16 +202,16 @@ ppi_plot <- function(data,
     igraph::V(net_2)$size <- igraph::degree(net_2)
     igraph::E(net_2)$score <- igraph::E(net_2)$weight
     ggraph(net_2, layout = graph.layout) +
-      geom_edge_fan(aes(edge_width = score, colour = score),
-        color = edge.color, show.legend = TRUE
+      geom_edge_fan(aes(edge_width = score),
+        colour = edge.color, show.legend = FALSE
       ) +
       geom_node_point(aes(color = degree, size = size), alpha = 1.0) +
       scale_color_gradientn(colours = node_base) +
       geom_node_text(aes(filter = degree >= label.degree, label = name),
         size = label.size, repel = label.repel
       ) +
-      ggraph::scale_edge_width(range = edge.width) +
-      scale_linewidth_continuous(name = "degree", range = node.size) +
+      ggraph::scale_edge_width(range = edge.width, guide = "none") +
+      scale_size_continuous(name = "degree", range = node.size, guide = "none") +
       theme_graph(base_family = "sans")
   }
 }
@@ -333,14 +346,23 @@ ppi_plot <- function(data,
     )
   }
 
+  # ⚠️ 2026-10-24 修复：`show.legend = FALSE` 写死后，`pres$legend` 的
+  #    "degree" / "all" 两档**全部失效**（实测：journal 与 presentation 的
+  #    guide-box 都是 0 个子 grob，presentation 声称 legend="all" 却一个图例
+  #    都没有）。改为按预设开关，并让 size 通道在 legend="all" 时才出图例。
+  show_node_lg <- !identical(pres$legend, "none")
   p <- ggraph::ggraph(lay_obj) +
     edge_layer +
     ggraph::geom_node_point(
       fill_aes,
-      shape = 21, colour = "white", stroke = pres$stroke, show.legend = FALSE
+      shape = 21, colour = "white", stroke = pres$stroke,
+      show.legend = show_node_lg
     ) +
     fill_scale +
-    ggplot2::scale_size(range = pres$size_range, guide = "none") +
+    ggplot2::scale_size(
+      range = pres$size_range, name = "degree",
+      guide = if (identical(pres$legend, "all")) "legend" else "none"
+    ) +
     ggraph::scale_edge_width(range = pres$edge_width, guide = "none") +
     (if (pres$n_label > 0L) ggraph::geom_node_label(
       ggplot2::aes(filter = degree >= thr,

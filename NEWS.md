@@ -53,6 +53,61 @@
 - `.tcm_inject_group_key()`（内部函数）：把 `source` 回填进 `ONTOLOGY`，是语义
   污染的源头。原位置保留原因说明注释，避免后来者重复踩坑。
 
+### ⚠️ 破坏性重构：网络图拆成「数据/形状轴 × 外观轴」（R2）
+
+> **动机**：`tcm_net` / `ppi_plot` 各自实现了「构图 → 裁剪 → 配色 → 标签 →
+> 图例」，同一类缺陷在三个函数里各犯一次（双绘边、图例档位失效、size 通道被
+> 错标度接管）。收敛到 `R/net-style-layer.R` 一层后，视觉契约只有一个事实源。
+
+#### 新增
+
+- `tcm_net(view = )` —— **数据/形状轴**，与 `style` 正交：
+  - `"overview"`（**新默认**）：裁到 50 节点、颜色只区分节点类型、只标 top15
+  - `"cluster"`：walktrap 社区着色、**只标簇名**（`M1`/`M2`…，画在质心）
+  - `"hub"`：度数分档着色 + `keep = "ego"` 保留核心节点及一跳邻居、标 top10
+- 裁剪报告挂在返回值上：`attr(p, "cap_report")` = `list(shown_nodes=,
+  total_nodes=, shown_edges=, total_edges=, capped=)`，供 GUI 显示
+  「已显示 49 / 125 个节点」
+- 新文件 `R/net-style-layer.R`（`.tcm_net_plot()` / `.tcm_net_cap()` /
+  `.tcm_net_view_presets()` / `.tcm_net_style_presets()` / `.tcm_resolve_cols()`）
+
+#### 变更（破坏性）
+
+- **`tcm_net` 不再双绘边**：旧 `style = "default"` 同时画 `geom_edge_link0`
+  （直线，按 weight）和 `geom_edge_fan`（弧线，按 score），同一批边画两遍。
+  现在**任何 view / style 都只画一层边**，边宽恒定（边不承载统计信息）
+- **`tcm_net` 图例从 4 个收敛到 1 个**：旧图有 degree(点大小) / weight /
+  class / degree(色条) 四个图例，吃掉约 1/4 画布
+- `tcm_net(max_nodes = )` 默认值由 `150` 改为 `NULL`（= 用 view 自带上限：
+  overview/cluster 50、hub 20）
+- `tcm_net(graph.layout = )` 默认值由 `"kk"` 改为 `"auto"`（= 用 fr + 固定种子）
+- `tcm_net(edge.width = )` **失效**：边宽现由 `style` 决定并恒定。保留形参只为
+  向后兼容，显式传入时给出提示
+- `venn_plot()` / `tf_cirplot()` **不再按「两列的基数谁大」猜列名**。改为
+  「显式参数 > 列名精确匹配 > **报错并列出候选列名**」，新增
+  `gene_col` / `source_col`（venn）与 `tf_col` / `target_col`（tf）参数。
+
+#### 修复
+
+- **`venn_plot()` 静默颠倒基因列与来源列**：旧判据在两列基数反转时（如 3 个
+  基因 × 5 个来源）把两列对调，`ggvenn` 的集合名变成基因名，**不报错**。
+  实测证据见 `logs/_probe_r2_defects.R`
+- **`tf_cirplot()` 同上**（TF 与 Target 可被静默对调）
+- **`ppi_plot()` 的 `node.size` 完全无效**：标度写成
+  `scale_linewidth_continuous(range = node.size)`，管的是 linewidth 通道，
+  而节点映射的是 size 通道 → `c(1, 10)` 与 `c(6, 30)` 出图的点大小**完全相同**
+  （实测都是 1~6）。改为 `scale_size_continuous(range = node.size)`
+- **`ppi_plot()` 有一个「幽灵图例」和一个「说谎图例」**：`linewidth` 标度
+  无人使用却产出一个标题为 `degree` 的图例；`aes(colour = score)` 被外层
+  `color = edge.color` 压成常量，但 colour 标度仍被注册 → 图上出现一个
+  `score` 渐变色条，而没有任何一条边用这个颜色。现在图例从 3 个降到 1 个
+- **`ppi_plot()` 的 `style` 图例档位全部失效**：`geom_node_point(show.legend =
+  FALSE)` 写死，`legend = "degree"` / `"all"` 两档一个图例都出不来。改为按预设
+  开关，`"all"` 会同时出 degree 色条与点大小图例
+- **`venn_plot(type = 2)` 在来源数 > 5 时崩溃**：
+  `colorRampPalette(brewer.pal(n, set.color)(...))` 把十六进制向量当调色板名用，
+  必然报错。改为 `colorRampPalette(set.color)(n)`
+
 ### 修复：桑基图爆炸 + 弦图标签重叠 + 富集结果按来源拆分（boss 四反馈）
 
 - **桑基图节点爆炸**（boss 反馈）：旧实现 `make_long(colnames(data_sankey))`

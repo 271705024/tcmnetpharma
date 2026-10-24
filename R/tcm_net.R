@@ -2,59 +2,62 @@
 #'
 #' @param network.data data frame
 #' must contain herb, molecule, target three columns of data
+#' @param view \strong{数据/形状轴}（2026-10-24 新增，与 \code{style} 正交）：
+#'   \describe{
+#'     \item{\code{"overview"}}{（默认）节点裁到 \code{max_nodes}，颜色只区分
+#'       节点类型（herb / molecule / target），只标度数最高的 15 个名字。看整体形态。}
+#'     \item{\code{"cluster"}}{按 walktrap 社区着色，\strong{只标簇名、不标节点名}，
+#'       质心位置放 \code{M1}/\code{M2} 标签。看结构分组。}
+#'     \item{\code{"hub"}}{按度数分档着色 + 保留核心节点及其一跳邻居
+#'       （\code{keep = "ego"}），标签只给 top 10（即 hub 本身）。
+#'       看关键节点。}
+#'   }
+#'   三者共同点：\strong{只画一层边}、\strong{degree 只控点大小}、
+#'   \strong{只出一个图例}。
 #' @param node.color node color
 #' see "RColorBrewer::display.brewer.all()"
 #' @param node.size  node size
 #' @param label.size label size
-#' @param label.degree
-#' the node degree is the number of connections that
-#' the node has with the other nodes.
-#' Nodes with connections greater than or
-#' equal to degree will be displayed.
-#' @param edge.color edge color
-#' @param edge.width edge width
-#' @param graph.layout etwork Diagram Layout:
-#' @param graph.layout Network Diagram Layout:
-#' "kk", "nicely", "circle", "sphere",
-#' "bipartite", "star", "tree", "randomly",
-#' "gem", "graphopt","lgl", "grid",
-#' "mds", "sugiyama","fr"
+#' @param label.degree 度数阈值：度数 \eqn{\ge} 该值的节点显示标签。
+#'   \code{NULL}（默认）时由 \code{view} 决定（overview 取 top 15）。
+#'   显式给数值时\strong{覆盖} view 的取法 —— 与旧版语义一致（旧版就是绝对阈值）。
+#' @param edge.color edge color。单层边，此参数直接生效。
+#' @param edge.width 已废弃：新实现每层边宽度恒定（由 \code{style} 决定），
+#'   边不再承载统计信息。保留形参只为向后兼容；显式传入时给出提示。
+#' @param graph.layout 布局名。\code{"auto"}（默认）表示用该 \code{style} 的
+#'   推荐布局（fr），固定随机种子保证可复现。
 #' @param rem.dis.inter remove single free unconnected nodes
-#' @param max_nodes 节点数上限。超过时按度数保留核心节点及其连边（`Inf` 表示
-#'   不裁剪）。默认 150。
-#' @param min_degree 度数下限：度数低于此值的节点（及其孤立边）在构图前剔除。
-#'   默认 1（等价于「移除孤立节点」）。
-#' @param keep 超限选点策略：\code{"top_degree"}（保留度数最高者）或
-#'   \code{"ego"}（保留核心节点及其一跳邻居，子网更密）。
-#' @param label.repel label repel
-#' @param style visual preset, same names as \code{\link{ppi_plot}}:
-#'   \code{"default"} keeps the original look (arc edges + three legends);
-#'   \code{"journal"} / \code{"cytoscape"} / \code{"presentation"} draw a
-#'   cleaner single-layer edge set with white-backed labels.
+#' @param style \strong{外观轴}：视觉预设，与 \code{view} 正交 ——
+#'   \code{"default"} / \code{"journal"} / \code{"cytoscape"} / \code{"presentation"}。
+#'   只改边透明度、边宽、标签字号，不改节点集合与颜色通道。
 #' @param palette colour scheme key, see [tcm_palette_names()]. `NULL`
 #'   (default) keeps the ColorBrewer colours named by \code{node.color};
-#'   a palette key replaces that base colour set. Colours only — the node
-#'   set, edges and layout are unaffected.
+#'   a palette key replaces that base colour set.
+#' @param max_nodes 节点数上限。\code{NULL}（默认）表示用 \code{view} 自带上限
+#'   （overview / cluster 50，hub 30）；显式给数值则覆盖；\code{Inf} 不裁剪。
+#' @param min_degree 度数下限（仅在触发裁剪时生效，见 \code{tcm_filter_network}）。
+#' @param keep 超限选点策略。\code{NULL}（默认）由 \code{view} 决定
+#'   （hub 用 \code{"ego"}，其余 \code{"top_degree"}）。
+#' @param label.repel label repel
 #'
-#' @return Network Diagram
+#' @return Network Diagram（ggplot 对象）。裁剪信息挂在
+#'   \code{attr(p, "cap_report")} 上：\code{list(shown_nodes=, total_nodes=,
+#'   shown_edges=, total_edges=, capped=)}，供 GUI 显示
+#'   「已显示 118 / 2,340 个节点」。
 #' @export
 #' @importFrom ggplot2 scale_color_gradientn
 #' @importFrom ggplot2 scale_size_continuous
 #' @importFrom ggplot2 aes
-#' @importFrom ggplot2 scale_fill_manual
-#' @importFrom ggplot2 aes
 #' @importFrom dplyr filter
 #' @importFrom dplyr distinct
 #' @importFrom dplyr select
-#' @importFrom dplyr mutate
 #' @importFrom dplyr rename
 #' @importFrom dplyr count
 #' @importFrom ggraph ggraph
-#' @importFrom ggraph geom_edge_fan
 #' @importFrom ggraph geom_node_point
 #' @importFrom ggraph geom_node_text
 #' @importFrom ggraph scale_edge_width
-#' @importFrom ggraph geom_edge_link0
+#' @importFrom ggraph geom_edge_link
 #' @importFrom ggraph theme_graph
 #' @importFrom grDevices colorRampPalette
 #' @importFrom RColorBrewer brewer.pal
@@ -68,32 +71,42 @@
 #'   dplyr::select(herb, molecule, target) %>%
 #'   dplyr::slice_sample(n = 100) %>%
 #'   as.data.frame()
-#' tcm_net(network.data, node.color= "Spectral",
-#' label.degree = 1, rem.dis.inter = TRUE,graph.layout = "fr",
-#' label.size = 3)
+#' tcm_net(network.data, node.color = "Spectral", label.degree = 1)
+#' tcm_net(network.data, view = "cluster", style = "journal")
 #' }
 tcm_net <- function(network.data,
+                    view = c("overview", "cluster", "hub"),
                     node.color = "RdBu",
                     node.size = c(2, 8),
                     label.size = 4,
-                    label.degree = 3,
+                    label.degree = NULL,
                     label.repel = TRUE,
                     edge.color = "lightgrey",
                     edge.width = c(0.2, 2),
-                    graph.layout = "kk",
+                    graph.layout = "auto",
                     rem.dis.inter = FALSE,
                     style = c("default", "journal", "cytoscape", "presentation"),
                     palette = NULL,
-                    max_nodes = 150,
+                    max_nodes = NULL,
                     min_degree = 1,
-                    keep = c("top_degree", "ego")) {
+                    keep = NULL) {
+  view <- match.arg(view)
   style <- match.arg(style)
-  keep <- match.arg(keep)
+  if (!missing(edge.width)) {
+    message(
+      "tcm_net: `edge.width` \u5df2\u5e9f\u5f03\u2014\u2014R2 \u8d77\u6bcf\u5c42\u8fb9\u5bbd\u6052\u5b9a\uff08\u7531 style \u51b3\u5b9a\uff09\uff0c",
+      "\u56e0\u4e3a\u8fb9\u4e0d\u518d\u627f\u8f7d\u7edf\u8ba1\u4fe1\u606f\u3002\u5df2\u5ffd\u7565\u3002"
+    )
+  }
   palette <- .tcm_palette_check(palette)
-  # 配色体系（2026-10-22）：统一成一组基准色，各分支（含风格模板）都从它插值，
+
+  # 配色体系（2026-10-22）：统一成一组基准色，各分支都从它插值，
   # 保证「同一张图换风格不改配色逻辑」。
-  node_base <- if (is.null(palette)) RColorBrewer::brewer.pal(8, name = node.color) else
+  node_base <- if (is.null(palette)) {
+    RColorBrewer::brewer.pal(8, name = node.color)
+  } else {
     .tcm_palette_ramp(palette, 8L)
+  }
   network.data <- as.data.frame(network.data)
 
   # ★ E5 修复（2026-09-28）——「三元组列」按名取，并按节点名赋 class
@@ -108,7 +121,8 @@ tcm_net <- function(network.data,
   #   （GUI 中四种查询结果全部触发；内置 network_data 恰好三列，故旧测试全绿 ——
   #    典型的「测试没覆盖到真实输入形状」缺陷。）
   # 方案：① 先按名取出三元组（缺列则明确报错，不静默按位置猜）；
-  #       ② class 按**节点名**逐个判定（长度恒等于顶点数），角色优先级 herb > molecule > target。
+  #       ② class 按**节点名**逐个判定（长度恒等于顶点数），角色优先级
+  #          herb > molecule > target。
   need_cols <- c("herb", "molecule", "target")
   if (!all(need_cols %in% names(network.data))) {
     stop(
@@ -141,210 +155,46 @@ tcm_net <- function(network.data,
   ) %>%
     dplyr::distinct()
 
-  # ---- 统一节点容量控制（2026-10-23，P2）----
-  # 原实现**没有任何容量控制**：节点数 = 全量 links 端点并集，数百/上千节点
-  # 时力导向布局糊成一团、标签互相压（boss 反馈「药物-靶点图爆炸」）。
-  # 现接入统一管线 tcm_filter_network（边规则先行 → 节点=边端点 → 过滤后算度数
-  # → 超限 induced subgraph），节点/边口径与 ppi_plot、拓扑页一致（单一事实源）。
-  # max_nodes = Inf 可回退为「不裁剪」（仅供调试/全量导出）。
-  flt <- tcm_filter_network(links, max_nodes = max_nodes,
-                            min_degree = min_degree, keep = keep)
-  links <- flt$links
-  rm(flt)
-  # Create a network graph from links and nodes
-  if (rem.dis.inter == FALSE) {
-    nodes <- links %>%
-      {
-        data.frame(node = c(.$from, .$to))
-      } %>%
-      dplyr::distinct()
-    net <- igraph::graph_from_data_frame(
-      d = links,
-      vertices = nodes,
-      directed = FALSE
-    )
-    # V and E are functions of the igraph package,
-    # which are used to modify the nodes (nodes) and
-    # connections (links) of the network graph respectively.
-    igraph::V(net)$degree <- igraph::degree(net)
-    igraph::V(net)$class <- node_class(igraph::V(net)$name, network.data)
-    igraph::V(net)$size <- igraph::degree(net)
-    igraph::E(net)$score <- igraph::E(net)$weight
-
-    # Plot with ggraph
-    # ggraph is a package based on ggplot2,
-    # the syntax is similar to regular ggplot2
-    col <- node_base
-    colorN <- grDevices::colorRampPalette(colors = col)(nrow(nodes))
-    names(colorN) <- nodes$node
-
-    if (!identical(style, "default")) {
-      return(.tcm_net_style_plot(net, style, node.color, node.size, label.size,
-                                 graph.layout, node_base))
-    }
-
-    ggraph(net, layout = graph.layout) +
-      geom_edge_link0(aes(edge_linewidth = weight), edge_colour = edge.color) +
-      geom_edge_fan(aes(edge_width = score, colour = score),
-        color = edge.color, show.legend = TRUE
-      ) +
-      ggraph::geom_node_point(aes(
-        color = degree,
-        size = degree,
-        shape = class
-      ), alpha = 1.0) +
-      scale_color_gradientn(colours = rev(colorN)) +
-      geom_node_text(aes(
-        filter = degree >= label.degree,
-        label = name
-      ), size = label.size, repel = label.repel) +
-      scale_edge_width(range = edge.width) +
-      scale_size_continuous(name = "degree", range = node.size) +
-      ggraph::theme_graph(base_family = "sans")
-  } else if (rem.dis.inter == TRUE) {
+  # ---- rem.dis.inter：度数 1 的两端互连边（孤立对）先剔除 ----------------
+  if (isTRUE(rem.dis.inter)) {
     links <- links %>%
-      dplyr::mutate(from_c = count(., from)$n[match(from, count(., from)$from)]) %>%
-      dplyr::mutate(to_c = count(., to)$n[match(to, count(., to)$to)]) %>%
-      filter(!(from_c == 1 & to_c == 1)) %>%
+      dplyr::mutate(from_c = dplyr::count(., from)$n[match(from, dplyr::count(., from)$from)]) %>%
+      dplyr::mutate(to_c = dplyr::count(., to)$n[match(to, dplyr::count(., to)$to)]) %>%
+      dplyr::filter(!(from_c == 1 & to_c == 1)) %>%
       dplyr::select(1, 2, 3)
-    nodes <- links %>%
-      {
-        data.frame(node = c(.$from, .$to))
-      } %>%
-      dplyr::distinct()
-    col <- node_base
-    colorN <- grDevices::colorRampPalette(colors = col)(nrow(nodes))
-    names(colorN) <- nodes$node
-
-    # Create a network graph from links and nodes
-    net <- igraph::graph_from_data_frame(
-      d = links,
-      vertices = nodes,
-      directed = FALSE
-    )
-    # V and E are functions of the igraph package,
-    # which are used to modify the nodes (nodes) and
-    # connections (links) of the network graph respectively.
-    igraph::V(net)$degree <- igraph::degree(net)
-    igraph::V(net)$class <- node_class(igraph::V(net)$name, network.data)
-    igraph::V(net)$size <- igraph::degree(net)
-    igraph::E(net)$score <- igraph::E(net)$weight
-
-    # Plot with ggraph
-    ggraph(net, layout = graph.layout) +
-      geom_edge_link0(aes(edge_linewidth = weight),
-        edge_colour = edge.color
-      ) +
-      geom_edge_fan(aes(edge_width = score, colour = score),
-        color = edge.color, show.legend = TRUE
-      ) +
-      ggraph::geom_node_point(aes(
-        color = degree, size = degree,
-        shape = class
-      ), alpha = 1.0) +
-      scale_color_gradientn(colours = rev(colorN)) +
-      geom_node_text(
-        aes(
-          filter = degree >= label.degree,
-          label = name
-        ),
-        size = label.size,
-        repel = label.repel
-      ) +
-      scale_edge_width(range = edge.width) +
-      scale_size_continuous(
-        name = "degree",
-        range = node.size
-      ) +
-      ggraph::theme_graph(base_family = "sans")
   }
-}
 
-
-# ---------------------------------------------------------------------------
-# 三层网络（药材-成分-靶点）风格模板（2026-10-21）
-#
-# 原实现（default）的三个具体缺陷，boss 的截图里都能看到：
-#   1. **画了两层边**：`geom_edge_link0`（直线，按 weight）+ `geom_edge_fan`
-#      （弧线，按 score）—— 同一批边画两遍，视觉上糊成一团；
-#   2. **三个图例**（degree 色条 / size / edge width）挤在右侧，吃掉 1/4 画布；
-#   3. 标签用 `geom_node_text`，没有底色，长分子名直接横穿图面。
-#
-# 注意：三层网络**天然是放射状**（每个成分挂几十个靶点，靶点度数为 1，
-# 布局算法必然把它们推到外圈）。模板只能改善"干净程度"，改变不了骨相。
-# 想要密集的靶点网络，应该走「靶点 → PPI 子网 → ppi_plot」那条路。
-# ---------------------------------------------------------------------------
-.tcm_net_style_plot <- function(net, style, node.color, node.size, label.size,
-                                graph.layout, node_base = NULL) {
-  if (is.null(node_base)) node_base <- RColorBrewer::brewer.pal(8, name = node.color)
-  pres <- switch(
-    style,
-    journal = list(layout = "fr", niter = 3000L, edge_alpha = 0.45,
-                   edge_width = c(0.2, 0.9), n_label = 10L, label_size = 3.0,
-                   legend = "none"),
-    cytoscape = list(layout = "fr", niter = 4000L, edge_alpha = 0.55,
-                     edge_width = c(0.3, 1.4), n_label = 15L, label_size = 3.3,
-                     legend = "class"),
-    presentation = list(layout = "fr", niter = 3500L, edge_alpha = 0.6,
-                        edge_width = c(0.4, 1.8), n_label = 20L, label_size = 4.0,
-                        legend = "all")
+  # ---- 构图（唯一路径：旧版 rem.dis.inter 的 if/else 两个分支已合并）------
+  nodes <- data.frame(node = unique(c(links$from, links$to)))
+  net <- igraph::graph_from_data_frame(
+    d = links, vertices = nodes, directed = FALSE
   )
-  lay <- if (!identical(graph.layout, "kk")) graph.layout else pres$layout
+  igraph::V(net)$degree <- igraph::degree(net)
+  igraph::V(net)$class <- node_class(igraph::V(net)$name, network.data)
 
-  old_seed <- if (exists(".Random.seed", envir = globalenv()))
-    get(".Random.seed", envir = globalenv()) else NULL
-  set.seed(20261021L)
-  on.exit({
-    if (is.null(old_seed)) {
-      if (exists(".Random.seed", envir = globalenv()))
-        rm(".Random.seed", envir = globalenv())
-    } else {
-      assign(".Random.seed", old_seed, envir = globalenv())
-    }
-  }, add = TRUE)
-  lay_obj <- ggraph::create_layout(net, layout = lay, niter = pres$niter)
-
-  deg <- igraph::degree(net)
-  n_lab <- min(pres$n_label, length(deg))
-  thr <- if (n_lab > 0L) sort(as.integer(deg), decreasing = TRUE)[n_lab] else 0L
-
-  col <- node_base
-  colorN <- grDevices::colorRampPalette(colors = col)(max(2L, igraph::vcount(net)))
-
-  # 形状区分三类节点（herb / molecule / target）—— 这是三层网络唯一有信息量的
-  # 视觉编码，任何模板都保留。
-  p <- ggraph::ggraph(lay_obj) +
-    ggraph::geom_edge_link0(
-      ggplot2::aes(edge_linewidth = weight),
-      colour = "grey70", alpha = pres$edge_alpha, show.legend = FALSE
-    ) +
-    ggraph::geom_node_point(
-      ggplot2::aes(colour = degree, size = degree, shape = class),
-      alpha = 1, show.legend = c(size = FALSE, colour = FALSE, shape = TRUE)
-    ) +
-    ggplot2::scale_colour_gradientn(colours = rev(colorN)) +
-    ggraph::scale_edge_width(range = pres$edge_width, guide = "none") +
-    ggplot2::scale_size_continuous(range = node.size, guide = "none") +
-    (if (n_lab > 0L) ggraph::geom_node_label(
-      # 长 IUPAC 分子名（如 5,7-dihydroxy-3-(4-methoxyphenyl)-8-...）会把
-      # 版面横向劈成两半，截到 24 字符。完整名可导出边表查看。
-      ggplot2::aes(filter = degree >= thr,
-                   label = ifelse(nchar(name) > 24,
-                                  paste0(substr(name, 1, 23), "\u2026"), name)),
-      size = pres$label_size, repel = TRUE,
-      label.size = 0.12, label.padding = ggplot2::unit(0.10, "lines"),
-      fill = "white", colour = "grey15", alpha = 0.92
-    ) else NULL) +
-    ggraph::theme_graph(background = "white", base_family = "sans") +
-    ggplot2::theme(
-      legend.position = if (identical(pres$legend, "none")) "none" else "right",
-      legend.key.size = ggplot2::unit(0.9, "lines"),
-      plot.margin = ggplot2::margin(4, 4, 4, 4)
-    )
-
-  if (identical(pres$legend, "class")) {
-    p <- p + ggplot2::guides(shape = ggplot2::guide_legend(
-      title = "type", override.aes = list(size = 3.2)))
+  # ---- view 感知的容量裁剪（2026-10-24 起 view 决定默认上限）------------
+  # 原实现完全没有容量控制时，数百/上千节点在力导向布局下糊成一团
+  # （boss 反馈「药物-靶点图爆炸」）。现走统一管线 tcm_filter_network。
+  capt <- .tcm_net_cap(net, view = view, max_nodes = max_nodes,
+                       min_degree = min_degree, keep = keep)
+  net <- capt$net
+  # 重新挂 class：.tcm_filter_igraph 从边表重建图，顶点属性会丢失
+  igraph::V(net)$class <- node_class(igraph::V(net)$name, network.data)
+  if (isTRUE(capt$report$capped)) {
+    message(sprintf(
+      "tcm_net (view = \"%s\"): %d \u4e2a\u8282\u70b9\u8d85\u8fc7\u663e\u793a\u4e0a\u9650\uff0c\u5df2\u4fdd\u7559 %d \u4e2a\u6838\u5fc3\u8282\u70b9\uff08%d \u6761\u8fb9\uff09\u3002",
+      view, capt$report$total_nodes, capt$report$shown_nodes,
+      capt$report$shown_edges
+    ))
   }
+
+  p <- .tcm_net_plot(
+    net, view = view, style = style,
+    node.size = node.size, label.size = label.size,
+    graph.layout = graph.layout, node_base = node_base,
+    label_degree = label.degree, label_repel = label.repel,
+    edge_color = edge.color
+  )
+  attr(p, "cap_report") <- capt$report
   p
 }

@@ -6,25 +6,39 @@
 \usage{
 tcm_net(
   network.data,
+  view = c("overview", "cluster", "hub"),
   node.color = "RdBu",
   node.size = c(2, 8),
   label.size = 4,
-  label.degree = 3,
+  label.degree = NULL,
   label.repel = TRUE,
   edge.color = "lightgrey",
   edge.width = c(0.2, 2),
-  graph.layout = "kk",
+  graph.layout = "auto",
   rem.dis.inter = FALSE,
   style = c("default", "journal", "cytoscape", "presentation"),
   palette = NULL,
-  max_nodes = 150,
+  max_nodes = NULL,
   min_degree = 1,
-  keep = c("top_degree", "ego")
+  keep = NULL
 )
 }
 \arguments{
 \item{network.data}{data frame
 must contain herb, molecule, target three columns of data}
+
+\item{view}{\strong{数据/形状轴}（2026-10-24 新增，与 \code{style} 正交）：
+\describe{
+\item{\code{"overview"}}{（默认）节点裁到 \code{max_nodes}，颜色只区分
+节点类型（herb / molecule / target），只标度数最高的 15 个名字。看整体形态。}
+\item{\code{"cluster"}}{按 walktrap 社区着色，\strong{只标簇名、不标节点名}，
+质心位置放 \code{M1}/\code{M2} 标签。看结构分组。}
+\item{\code{"hub"}}{按度数分档着色 + 保留核心节点及其一跳邻居
+（\code{keep = "ego"}），标签只给 top 10（即 hub 本身）。
+看关键节点。}
+}
+三者共同点：\strong{只画一层边}、\strong{degree 只控点大小}、
+\strong{只出一个图例}。}
 
 \item{node.color}{node color
 see "RColorBrewer::display.brewer.all()"}
@@ -33,46 +47,43 @@ see "RColorBrewer::display.brewer.all()"}
 
 \item{label.size}{label size}
 
-\item{label.degree}{the node degree is the number of connections that
-the node has with the other nodes.
-Nodes with connections greater than or
-equal to degree will be displayed.}
+\item{label.degree}{度数阈值：度数 \eqn{\ge} 该值的节点显示标签。
+\code{NULL}（默认）时由 \code{view} 决定（overview 取 top 15）。
+显式给数值时\strong{覆盖} view 的取法 —— 与旧版语义一致（旧版就是绝对阈值）。}
 
 \item{label.repel}{label repel}
 
-\item{edge.color}{edge color}
+\item{edge.color}{edge color。单层边，此参数直接生效。}
 
-\item{edge.width}{edge width}
+\item{edge.width}{已废弃：新实现每层边宽度恒定（由 \code{style} 决定），
+边不再承载统计信息。保留形参只为向后兼容；显式传入时给出提示。}
 
-\item{graph.layout}{Network Diagram Layout:
-"kk", "nicely", "circle", "sphere",
-"bipartite", "star", "tree", "randomly",
-"gem", "graphopt","lgl", "grid",
-"mds", "sugiyama","fr"}
+\item{graph.layout}{布局名。\code{"auto"}（默认）表示用该 \code{style} 的
+推荐布局（fr），固定随机种子保证可复现。}
 
 \item{rem.dis.inter}{remove single free unconnected nodes}
 
-\item{style}{visual preset, same names as \code{\link{ppi_plot}}:
-\code{"default"} keeps the original look (arc edges + three legends);
-\code{"journal"} / \code{"cytoscape"} / \code{"presentation"} draw a
-cleaner single-layer edge set with white-backed labels.}
+\item{style}{\strong{外观轴}：视觉预设，与 \code{view} 正交 ——
+\code{"default"} / \code{"journal"} / \code{"cytoscape"} / \code{"presentation"}。
+只改边透明度、边宽、标签字号，不改节点集合与颜色通道。}
 
 \item{palette}{colour scheme key, see \code{\link[=tcm_palette_names]{tcm_palette_names()}}. \code{NULL}
 (default) keeps the ColorBrewer colours named by \code{node.color};
-a palette key replaces that base colour set. Colours only — the node
-set, edges and layout are unaffected.}
+a palette key replaces that base colour set.}
 
-\item{max_nodes}{节点数上限。超过时按度数保留核心节点及其连边（\code{Inf} 表示
-不裁剪）。默认 150。}
+\item{max_nodes}{节点数上限。\code{NULL}（默认）表示用 \code{view} 自带上限
+（overview / cluster 50，hub 30）；显式给数值则覆盖；\code{Inf} 不裁剪。}
 
-\item{min_degree}{度数下限：度数低于此值的节点（及其孤立边）在构图前剔除。
-默认 1（等价于「移除孤立节点」）。}
+\item{min_degree}{度数下限（仅在触发裁剪时生效，见 \code{tcm_filter_network}）。}
 
-\item{keep}{超限选点策略：\code{"top_degree"}（保留度数最高者）或
-\code{"ego"}（保留核心节点及其一跳邻居，子网更密）。}
+\item{keep}{超限选点策略。\code{NULL}（默认）由 \code{view} 决定
+（hub 用 \code{"ego"}，其余 \code{"top_degree"}）。}
 }
 \value{
-Network Diagram
+Network Diagram（ggplot 对象）。裁剪信息挂在
+\code{attr(p, "cap_report")} 上：\code{list(shown_nodes=, total_nodes=,
+  shown_edges=, total_edges=, capped=)}，供 GUI 显示
+「已显示 118 / 2,340 个节点」。
 }
 \description{
 Network interaction diagram of herbs, ingredients, and targets
@@ -84,8 +95,7 @@ network.data <- xfbdf \%>\%
   dplyr::select(herb, molecule, target) \%>\%
   dplyr::slice_sample(n = 100) \%>\%
   as.data.frame()
-tcm_net(network.data, node.color= "Spectral",
-label.degree = 1, rem.dis.inter = TRUE,graph.layout = "fr",
-label.size = 3)
+tcm_net(network.data, node.color = "Spectral", label.degree = 1)
+tcm_net(network.data, view = "cluster", style = "journal")
 }
 }
