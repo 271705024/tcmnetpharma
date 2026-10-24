@@ -69,20 +69,28 @@ tcm_sankey <- function(data_sankey,
   # 大量低频值，或 max_per_level 被显式调大）。此时逐层收紧 max_per_level
   # （每次减半，下限 1），直到过滤后端点总数 <= max_nodes。这是「桑基图爆炸」
   # 的最后一道硬闸：只靠前端滑条/预设不够，包层必须兜底。
+  #
+  # ⚠️ 2026-10-24 实测修正：收紧必须用 **strict 硬截**。宽松模式在「某层频率
+  #   全部相同」的数据上（典型：MOL 编号列每行唯一）`tb >= cutoff` 会保留全部
+  #   取值 → 收紧到 1 也仍是全量，硬闸形同虚设（实测 300 端点纹丝不动）。
+  #   另外每次**从同一份基准重算**，避免层层叠加把行数削到 0。
   if (is.data.frame(data_sankey) && nrow(data_sankey) > 0L) {
     mn <- suppressWarnings(as.numeric(max_nodes)[[1]])
     if (is.na(mn)) mn <- Inf
     if (is.finite(mn) && mn > 0L) {
+      base_df <- data_sankey          # 基准（已按 max_per_level 过滤）
       cur_mpl <- suppressWarnings(as.numeric(max_per_level)[[1]])
-      if (is.na(cur_mpl) || !is.finite(cur_mpl)) cur_mpl <- nrow(data_sankey)
+      if (is.na(cur_mpl) || !is.finite(cur_mpl)) cur_mpl <- nrow(base_df)
       cur_mpl <- max(1L, as.integer(cur_mpl))
-      # 当前过滤后端点总数
-      n_endpoints <- .sankey_endpoint_count(data_sankey)
+      n_endpoints <- .sankey_endpoint_count(base_df)
       while (n_endpoints > mn && cur_mpl > 1L) {
         cur_mpl <- max(1L, floor(cur_mpl / 2L))
-        data_sankey <- .sankey_filter_levels(data_sankey, cur_mpl)
-        n_endpoints <- .sankey_endpoint_count(data_sankey)
-        if (nrow(data_sankey) == 0L) break
+        cand <- .sankey_filter_levels(base_df, cur_mpl, strict = TRUE)
+        if (nrow(cand) == 0L) break   # 再紧就无完整路径：停在上一个可行解
+        n_cand <- .sankey_endpoint_count(cand)
+        if (n_cand == 0L) break
+        data_sankey <- cand
+        n_endpoints <- n_cand
       }
     }
   }
@@ -145,23 +153,37 @@ tcm_sankey <- function(data_sankey,
 
 
 # ---------------------------------------------------------------------------
-# 桑基图分层过滤（2026-10-23，P2）
+# 桑基图分层过滤（2026-10-23，P2；2026-10-24 加 strict 硬截模式）
 #
 # 每一层（列）按出现频率取 top-N 个值，然后保留「整行路径的所有层值都在各自
 # top-N 集合内」的行。关键：**按完整路径过滤**（不截行）—— 旧的按行 head()
 # 会把「药-成分-靶点」路径截成半截，产生大量孤节点（boss 反馈「桑基图爆炸」）。
 # 层名与层数保持数据本来的列（不硬编码 herb/molecule/target）。
+#
+# strict 两个模式的差别（2026-10-24 实测踩到，必须区分）：
+#   strict = FALSE（默认，日常 max_per_level 用）：**并列第 top_n 名的都保留**，
+#     避免随机丢弃并列项。副作用：当某层所有取值频率相同（如全为 1，典型是
+#     MOL 编号列），`tb >= cutoff` 会把**全部**取值放进 top_vals → 过滤完全失效。
+#   strict = TRUE（仅 max_nodes 硬闸收紧循环用）：**按位置硬截前 top_n 个**，
+#     保证层内值个数真的 <= top_n。没有它，max_nodes 在「全并列」数据上
+#     逐层收紧到 1 也仍然是全量，硬闸形同虚设（实测 300 端点纹丝不动）。
 # ---------------------------------------------------------------------------
-.sankey_filter_levels <- function(df, top_n) {
+.sankey_filter_levels <- function(df, top_n, strict = FALSE) {
   keep_mask <- rep(TRUE, nrow(df))
   for (cn in names(df)) {
     vals <- as.character(df[[cn]])
     vals[is.na(vals)] <- ""
-    # 每层按频率取 top_n（并列第 top_n 名的都保留，避免随机丢弃）
+    # 每层按频率取 top_n
     tb <- sort(table(vals[vals != ""]), decreasing = TRUE)
     if (length(tb) > top_n) {
-      cutoff <- as.integer(tb[[top_n]])
-      top_vals <- names(tb)[as.integer(tb) >= cutoff]
+      if (isTRUE(strict)) {
+        # 硬截：按频率降序取前 top_n 个（同名频率时 sort 的次序稳定可复现）
+        top_vals <- names(tb)[seq_len(as.integer(top_n))]
+      } else {
+        # 并列第 top_n 名的都保留，避免随机丢弃（原 P2 语义）
+        cutoff <- as.integer(tb[[top_n]])
+        top_vals <- names(tb)[as.integer(tb) >= cutoff]
+      }
       keep_mask <- keep_mask & (vals %in% top_vals)
     }
   }
