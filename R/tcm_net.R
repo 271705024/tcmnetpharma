@@ -133,16 +133,6 @@ tcm_net <- function(network.data,
   }
   network.data <- network.data[, need_cols, drop = FALSE]
 
-  # 按节点名给 class（恒与顶点数等长；一个名字同时出现在多列时取最先匹配的角色）
-  node_class <- function(vnames, nd) {
-    out <- rep(NA_character_, length(vnames))
-    out[vnames %in% as.character(nd[[3]])] <- colnames(nd)[3]
-    out[vnames %in% as.character(nd[[2]])] <- colnames(nd)[2]
-    out[vnames %in% as.character(nd[[1]])] <- colnames(nd)[1]
-    out[is.na(out)] <- "other"
-    out
-  }
-
   links <- rbind(
     network.data %>%
       dplyr::select(herb, molecule) %>%
@@ -170,16 +160,18 @@ tcm_net <- function(network.data,
     d = links, vertices = nodes, directed = FALSE
   )
   igraph::V(net)$degree <- igraph::degree(net)
-  igraph::V(net)$class <- node_class(igraph::V(net)$name, network.data)
+  igraph::V(net)$class <- .tcm_node_class(igraph::V(net)$name, network.data)
 
   # ---- view 感知的容量裁剪（2026-10-24 起 view 决定默认上限）------------
   # 原实现完全没有容量控制时，数百/上千节点在力导向布局下糊成一团
   # （boss 反馈「药物-靶点图爆炸」）。现走统一管线 tcm_filter_network。
+  # 顶点属性（class）由 .tcm_net_cap 统一保留，这里不再手工重挂。
   capt <- .tcm_net_cap(net, view = view, max_nodes = max_nodes,
                        min_degree = min_degree, keep = keep)
   net <- capt$net
-  # 重新挂 class：.tcm_filter_igraph 从边表重建图，顶点属性会丢失
-  igraph::V(net)$class <- node_class(igraph::V(net)$name, network.data)
+  # degree 必须按**裁剪后的子图**重算：裁剪会重建图并丢掉拓扑相关属性，
+  # 若沿用全图度数，点大小会与标签阈值口径不一致。
+  igraph::V(net)$degree <- igraph::degree(net)
   if (isTRUE(capt$report$capped)) {
     message(sprintf(
       "tcm_net (view = \"%s\"): %d \u4e2a\u8282\u70b9\u8d85\u8fc7\u663e\u793a\u4e0a\u9650\uff0c\u5df2\u4fdd\u7559 %d \u4e2a\u6838\u5fc3\u8282\u70b9\uff08%d \u6761\u8fb9\uff09\u3002",
@@ -191,7 +183,7 @@ tcm_net <- function(network.data,
   p <- .tcm_net_plot(
     net, view = view, style = style,
     node.size = node.size, label.size = label.size,
-    graph.layout = graph.layout, node_base = node_base,
+    graph.layout = graph.layout, node_base = node_base, palette = palette,
     label_degree = label.degree, label_repel = label.repel,
     edge_color = edge.color
   )

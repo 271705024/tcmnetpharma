@@ -194,43 +194,128 @@ enrich_barplot <- function(data,
 }
 
 # ---------------------------------------------------------------------------
-# 内部：y 轴准备（唯一化 + 逆序，使第一行显示在最上方）
+# 内部：y 轴准备（唯一化 + 按标签行数分配槽位）
 #
 # 为什么要唯一化：不同来源可能有同名 term（如 GO 与 Reactome 都有
 # "immune response"），直接拿 Description 当 factor 会串行。
 # 用「分组 + 控制字符 + 描述」做 level 键，显示时再映射回 Description。
+#
+# ★ 为什么要分配槽位（2026-10-24 R2.4）：
+#   ggplot 的**离散** y 位置间距恒为 1 个 level。`str_wrap` 换行后的标签以该
+#   位置**垂直居中**渲染，行数 × 行高 > 1 个 level 时必然压到邻居 —— 画布加高
+#   也救不了（因为间距与行数无关）。实测 24 条 × text.width=34 出图顶部 3 条重叠。
+#
+#   解法：给第 i 条分配 `k_i` 行（k_i = 它的标签行数），在它上下插入空白
+#   placeholder level：上方 ceil((k_i-1)/2) 个、下方 floor((k_i-1)/2) 个。
+#   于是每条占的 level 数 = 行数，标签永远不会压到邻居。
+#
+#   为什么不用连续坐标轴（`scale_y_continuous`）：那样柱宽要按 level 折算，
+#   facet 的 `space="free_y"` 也要重算面板高度。placeholder 方案不动坐标轴类型，
+#   柱宽仍是 0.8 个 level，改动面小得多。
+#
+#   ⚠️ 单轴形制用 `scale_y_discrete(drop = FALSE)`：placeholder level 没有数据行，
+#      `drop = TRUE`（默认）会把它们全部丢掉，槽位就白插了。
+#
+#   ⚠️⚠️ 分面形制（layout="facet"）不能用 `drop = FALSE`：它是**全局**锁 limits，
+#      于是每个面板都会吞进别组的 placeholder —— 实测 8 条/组、3 组的面板
+#      从 16 槽位被撑到 48 槽位（3 倍空白）。补 NA 行也没用（limits 已锁死）。
+#      正确做法：`drop = TRUE` + 给每组补**该组自己区间内** placeholder 的
+#      0 宽柱行（`.value = 0`），让 level 在该面板里"有数据"从而被保留，
+#      而别的面板看不到它。前提是**分组在 level 轨道上连续** —— `.tcm_pick_top`
+#      按 `.grp` 排序保证了这一点（segmented 的分隔线依赖同一前提）。
 # ---------------------------------------------------------------------------
-.enrich_bar_prep_y <- function(d, text.width = 30, desc = TRUE) {
+.enrich_bar_prep_y <- function(d, text.width = 30, desc = TRUE, facet = FALSE) {
   key <- paste0(as.character(d$.grp), "\u0001", as.character(d$Description))
   lv <- unique(key)
   # desc = TRUE 时「第一行显示在最上方」（barplot：最显著的在上）
   # desc = FALSE 时「第一行显示在最下方」（dotplot：richFactor 最大的在上）
+  # 下面的 lv 一律是「从下到上」的 level 顺序。
   if (isTRUE(desc)) lv <- rev(lv)
-  d$.ykey <- factor(key, levels = lv)
 
-  # ⚠️ 不要把「level -> 显示名」存成**带 names 的向量再放进 data.frame**：
-  #    data.frame 的列会剥离 names 属性（2026-10-24 实测踩到）—— 表现为
-  #    y 轴标签全部退化成原始 key（含 \u0001 控制字符），而图仍能出、不报错。
-  #    改为存一列文本（每行都有值），由 .enrich_bar_ylab_fun() 在函数内部
-  #    用 tapply 重建命名映射（那里 names 才不会被剥掉）。
-  lab <- as.character(d$Description)
+  # 每条目的折行文本 + 行数
+  lab_item <- as.character(d$Description)
   w <- suppressWarnings(as.integer(text.width)[1L])
-  if (!is.na(w) && w > 0L) lab <- stringr::str_wrap(lab, width = w)
-  d$.ylab_txt <- lab
+  if (!is.na(w) && w > 0L) lab_item <- stringr::str_wrap(lab_item, width = w)
+  first <- !duplicated(key)
+  lab_item <- lab_item[first][match(lv, key[first])]
+  nl <- vapply(strsplit(lab_item, "\n", fixed = TRUE), length, integer(1))
+  nl[!is.finite(nl) | nl < 1L] <- 1L
 
-  # 位置：level 序号
+  # 从下往上铺设 level 轨道
+  below <- floor((nl - 1L) / 2)
+  above <- ceiling((nl - 1L) / 2)
+  pos <- integer(length(lv))
+  off <- 0L
+  for (i in seq_along(lv)) {
+    off <- off + below[i]          # 本条下方的 placeholder
+    pos[i] <- off + 1L             # 本条自身
+    off <- off + 1L + above[i]     # 越过本条及其上方的 placeholder
+  }
+  n_levels <- as.integer(off)   # ⚠️ floor() 派生的是 double；转整型，
+                                #    否则 n_levels 与 sum(nl)（integer）类型不符
+
+  # level 轨道：真实 key 放在 pos[i]，其余位置是 placeholder
+  # ⚠️ placeholder 的 level 名必须以 \u0002 开头、与真实 key（含 \u0001）不冲突；
+  #    且**不能**用空字符串（factor 的 levels 不能重复）。
+  lev <- sprintf("\u0002sp%04d", seq_len(n_levels))
+  lev[pos] <- lv
+  # 标签映射：先按 lev 建满，再把条目位置填上折行文本。
+  # 必须用 key（lv）而不是值去填，否则 `labs[[key]]` 查不到 → 又退回显示原始 key。
+  lab_full <- stats::setNames(rep("", n_levels), lev)
+  lab_full[lv] <- lab_item
+
+  d$.ykey <- factor(key, levels = lev)
+  # 只存原始文本（供诊断）；真正的 level→显示名映射由
+  # .enrich_bar_ylab_fun(lab_full) 负责（参数里的 names 不会被 data.frame 剥掉）。
+  d$.ylab_txt <- as.character(d$Description)
+  d$.n_lines <- nl[match(key, lv)]
   d$.pos <- as.integer(d$.ykey)
-  d
+
+  # ---- 分面形制：按组补 placeholder 的 0 宽柱行（原因见上方注释）----------
+  # ⚠️ 这些行只喂给**图层**，不进 `p$data`：`p$data` 是"数据"，用户/测试/
+  #    tcm_plot_size 都会读它，塞进来的幽灵行会污染语义
+  #    （2026-10-24 实测：test-style-presets.R 的
+  #      `nrow(p$data) == length(items_of(p))` 立刻失败）。
+  drop <- FALSE
+  d_render <- d
+  if (isTRUE(facet)) {
+    g <- as.character(d$.grp)
+    add <- lapply(unique(g), function(gg) {
+      rng <- range(d$.pos[g == gg])
+      ph <- setdiff(lev[rng[[1L]]:rng[[2L]]], key)
+      if (!length(ph)) return(NULL)
+      out <- d[rep(1L, length(ph)), , drop = FALSE]
+      out$.grp <- gg
+      out$.ykey <- factor(ph, levels = lev)
+      # 0 宽柱 → 几何上不可见；标签用 ""（不是 NA）避免 geom_text 报
+      # "Removed N rows containing missing values" 的噪音。
+      out$.value <- 0
+      out$.label <- ""
+      out$.ylab_txt <- NA_character_
+      out$.n_lines <- NA_integer_
+      out$.pos <- match(ph, lev)
+      out
+    })
+    add <- do.call(rbind, add)
+    if (!is.null(add) && nrow(add)) d_render <- rbind(d, add)
+    drop <- TRUE
+  }
+
+  list(d = d, d_render = d_render, labs = lab_full, breaks = lv,
+       n_levels = n_levels, n_lines_total = sum(nl), n_items = length(lv),
+       drop = drop)
 }
 
 #' y 轴标签函数（按 level 查显示名）
 #'
-#' 在函数内部控制作用域里建映射，避免 data.frame 剥离 names 的问题。
+#' ⚠️ 不要传「带 names 的向量存进 data.frame 再取回来」：data.frame 的列会
+#' **剥离 names 属性**（2026-10-24 实测），于是 `lab[k]` 全部返回 NA、fallback
+#' 返回原始 key，y 轴显示成 `BP\u0001term` 这种字符串，而图仍能出、不报错。
+#' 所以 lab_full 作为**函数参数**传入（参数里的 names 不会被剥）。
 #' @noRd
-.enrich_bar_ylab_fun <- function(d) {
-  lab <- tapply(d$.ylab_txt, as.character(d$.ykey), function(z) z[[1L]])
+.enrich_bar_ylab_fun <- function(labs) {
   function(k) {
-    out <- unname(lab[as.character(k)])
+    out <- unname(labs[as.character(k)])
     out[is.na(out)] <- as.character(k)[is.na(out)]
     out
   }
@@ -256,26 +341,38 @@ enrich_barplot <- function(data,
 # ---------------------------------------------------------------------------
 .enrich_bar_segmented <- function(d, cols, grp_name, xlab, bar.width,
                                   text.size, text.width, show_value, ttl) {
-  d <- .enrich_bar_prep_y(d, text.width)
-  ylab_fun <- .enrich_bar_ylab_fun(d)
+  py <- .enrich_bar_prep_y(d, text.width)
+  d <- py$d
+  ylab_fun <- .enrich_bar_ylab_fun(py$labs)
 
-  # 段边界 -> 水平分隔线（.pos 递减，故边界取 -0.5）
+  # 段边界 -> 水平分隔线。
+  # ⚠️ 不能用 `d$.pos[ends] - 0.5`：插入 placeholder 槽位后 .pos 不再连续，
+  #    减 0.5 会落在某个 placeholder 上、偏离真正的段间空隙。
+  #    取「上一组最后一条」与「下一组第一条」的中点，无槽位时与旧式完全等价。
   runs <- rle(as.character(d$.grp))
   hl <- numeric(0)
   if (length(runs$lengths) > 1L) {
     ends <- cumsum(runs$lengths)[-length(runs$lengths)]
-    hl <- d$.pos[ends] - 0.5
+    hl <- (d$.pos[ends] + d$.pos[ends + 1L]) / 2
   }
 
   p <- ggplot2::ggplot(
     d,
     ggplot2::aes(x = .data$.value, y = .data$.ykey, fill = .data$.grp)
   ) +
-    ggplot2::geom_col(width = bar.width, orientation = "y") +
+    # ⚠️ 图层用 py$d_render（分面形制里含 placeholder 的 0 宽柱行），
+    #    `p$data` 仍是干净的 d —— 见 .enrich_bar_prep_y() 里的说明。
+    ggplot2::geom_col(data = py$d_render, width = bar.width,
+                      orientation = "y") +
     ggplot2::scale_fill_manual(
       values = cols, name = grp_name, breaks = names(cols), drop = FALSE
     ) +
-    ggplot2::scale_y_discrete(labels = ylab_fun) +
+    # ⚠️ drop 由 .enrich_bar_prep_y() 决定，不能写死：
+    #    单轴形制（segmented/flat）用 drop = FALSE 保住 placeholder 槽位；
+    #    分面形制（facet）必须 drop = TRUE，否则全局 limits 会把别组的槽位
+    #    灌进每个面板（实测 16 槽位 → 48 槽位，3 倍空白）。
+    ggplot2::scale_y_discrete(breaks = py$breaks, labels = ylab_fun,
+                                drop = py$drop) +
     ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0, 0.12))) +
     ggplot2::labs(x = xlab, y = NULL, title = ttl) +
     .enrich_bar_theme(text.size)
@@ -299,18 +396,27 @@ enrich_barplot <- function(data,
 # ---------------------------------------------------------------------------
 .enrich_bar_facet <- function(d, cols, grp_name, xlab, bar.width,
                               text.size, text.width, show_value, ttl) {
-  d <- .enrich_bar_prep_y(d, text.width)
-  ylab_fun <- .enrich_bar_ylab_fun(d)
+  py <- .enrich_bar_prep_y(d, text.width, facet = TRUE)
+  d <- py$d
+  ylab_fun <- .enrich_bar_ylab_fun(py$labs)
 
   p <- ggplot2::ggplot(
     d,
     ggplot2::aes(x = .data$.value, y = .data$.ykey, fill = .data$.grp)
   ) +
-    ggplot2::geom_col(width = bar.width, orientation = "y") +
+    # ⚠️ 图层用 py$d_render（分面形制里含 placeholder 的 0 宽柱行），
+    #    `p$data` 仍是干净的 d —— 见 .enrich_bar_prep_y() 里的说明。
+    ggplot2::geom_col(data = py$d_render, width = bar.width,
+                      orientation = "y") +
     ggplot2::scale_fill_manual(
       values = cols, name = grp_name, breaks = names(cols), drop = FALSE
     ) +
-    ggplot2::scale_y_discrete(labels = ylab_fun) +
+    # ⚠️ drop 由 .enrich_bar_prep_y() 决定，不能写死：
+    #    单轴形制（segmented/flat）用 drop = FALSE 保住 placeholder 槽位；
+    #    分面形制（facet）必须 drop = TRUE，否则全局 limits 会把别组的槽位
+    #    灌进每个面板（实测 16 槽位 → 48 槽位，3 倍空白）。
+    ggplot2::scale_y_discrete(breaks = py$breaks, labels = ylab_fun,
+                                drop = py$drop) +
     ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0, 0.12))) +
     ggplot2::facet_grid(
       rows = ggplot2::vars(.data$.grp),
@@ -337,18 +443,27 @@ enrich_barplot <- function(data,
 # ---------------------------------------------------------------------------
 .enrich_bar_flat <- function(d, cols, grp_name, xlab, bar.width,
                              text.size, text.width, show_value, ttl) {
-  d <- .enrich_bar_prep_y(d, text.width)
-  ylab_fun <- .enrich_bar_ylab_fun(d)
+  py <- .enrich_bar_prep_y(d, text.width)
+  d <- py$d
+  ylab_fun <- .enrich_bar_ylab_fun(py$labs)
 
   p <- ggplot2::ggplot(
     d,
     ggplot2::aes(x = .data$.value, y = .data$.ykey, fill = .data$.grp)
   ) +
-    ggplot2::geom_col(width = bar.width, orientation = "y") +
+    # ⚠️ 图层用 py$d_render（分面形制里含 placeholder 的 0 宽柱行），
+    #    `p$data` 仍是干净的 d —— 见 .enrich_bar_prep_y() 里的说明。
+    ggplot2::geom_col(data = py$d_render, width = bar.width,
+                      orientation = "y") +
     ggplot2::scale_fill_manual(
       values = cols, name = grp_name, breaks = names(cols), drop = FALSE
     ) +
-    ggplot2::scale_y_discrete(labels = ylab_fun) +
+    # ⚠️ drop 由 .enrich_bar_prep_y() 决定，不能写死：
+    #    单轴形制（segmented/flat）用 drop = FALSE 保住 placeholder 槽位；
+    #    分面形制（facet）必须 drop = TRUE，否则全局 limits 会把别组的槽位
+    #    灌进每个面板（实测 16 槽位 → 48 槽位，3 倍空白）。
+    ggplot2::scale_y_discrete(breaks = py$breaks, labels = ylab_fun,
+                                drop = py$drop) +
     ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0, 0.12))) +
     ggplot2::labs(x = xlab, y = NULL, title = ttl) +
     .enrich_bar_theme(text.size)

@@ -138,8 +138,9 @@ go_dotplot <- function(go.diff,
 
   # 组内按 x 升序 -> prep_y(desc = FALSE) 让最大者在顶部
   d <- d[order(d$.grp, d$x_value), , drop = FALSE]
-  d <- .enrich_bar_prep_y(d, text.width, desc = FALSE)
-  ylab_fun <- .enrich_bar_ylab_fun(d)
+  py <- .enrich_bar_prep_y(d, text.width, desc = FALSE)
+  d <- py$d
+  ylab_fun <- .enrich_bar_ylab_fun(py$labs)
 
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$x_value, y = .data$.ykey)) +
     ggplot2::geom_point(ggplot2::aes(color = .data$p.adjust, size = .data$Count)) +
@@ -154,7 +155,9 @@ go_dotplot <- function(go.diff,
     ) +
     ggplot2::scale_size_continuous(range = c(2, 8)) +
     ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.04, 0.10))) +
-    ggplot2::scale_y_discrete(labels = ylab_fun) +
+    # drop 由 .enrich_bar_prep_y() 决定（单轴形制为 FALSE，保住 placeholder 槽位）
+    ggplot2::scale_y_discrete(breaks = py$breaks, labels = ylab_fun,
+                                drop = py$drop) +
     ggplot2::theme_bw() +
     ggplot2::theme(
       axis.text = ggplot2::element_text(size = text.size, colour = "black"),

@@ -14,6 +14,32 @@
 
 
 # ---------------------------------------------------------------------------
+# 节点角色（herb / molecule / target）赋值
+#
+# 为什么单列出来：这段闭包在 `tcm_net` 和 `.tcm_build_graph` 里各有一份完全
+# 相同的实现，`module_netplot` 接入新层后是第三处。三份同源 → 按铁律 54 收敛。
+#
+# 关键约束（E5 修复的原意）：**按节点名逐行判定**，长度恒等于顶点数。
+# 旧实现按列位置 `nd[, 2]` 取值，入参含多余列时长度对不上 →
+# igraph 报 "Length of new attribute value must be 1 or 888, ... not 887"。
+# 角色优先级：herb > molecule > target（同一名字出现在多列时取最先匹配的）。
+# ---------------------------------------------------------------------------
+
+#' 按节点名判定角色
+#' @param vnames 顶点名向量
+#' @param nd 含三列的 data.frame（列名必须含 herb/molecule/target）
+#' @noRd
+.tcm_node_class <- function(vnames, nd) {
+  out <- rep(NA_character_, length(vnames))
+  out[vnames %in% as.character(nd[["target"]])] <- "target"
+  out[vnames %in% as.character(nd[["molecule"]])] <- "molecule"
+  out[vnames %in% as.character(nd[["herb"]])] <- "herb"
+  out[is.na(out)] <- "other"
+  out
+}
+
+
+# ---------------------------------------------------------------------------
 # 列解析（供 venn_plot / tf_cirplot 共用）
 #
 # ⚠️ 2026-10-24 实测的缺陷形态：旧实现用「两列的基数谁大」判断谁是基因列
@@ -112,7 +138,9 @@
     ),
     cluster = list(
       max_nodes = 50L, colour = "module", label_mode = "cluster",
-      label_top = 0L, keep = "top_degree"
+      # 这里 label_top 的含义是「最多标几个簇」（不是节点数）：16 个模块全标时
+      # 质心标签会互相压，只标最大的 8 个，其余仍着色。
+      label_top = 8L, keep = "top_degree"
     ),
     hub = list(
       # ⚠️ 与设计稿的偏差（2026-10-24 视觉验收后改）：设计稿写「全标（节点少）」，
@@ -189,8 +217,28 @@
       shown_edges = total_e, total_edges = total_e, capped = FALSE
     )))
   }
+  # ⚠️ `.tcm_filter_igraph` 用 `graph_from_data_frame()` 从**边表重建**图，
+  #    顶点属性（class / module …）会全部丢失。旧代码靠调用方各自手工重挂
+  #    `class`，接第二、第三个调用方时必然漏。这里统一保留：
+  #    只搬「与拓扑无关」的属性；degree / size / score 这类**与图规模有关**的
+  #    必须由调用方在裁剪后的图上重算，否则会静默沿用全图度数
+  #    （表现为「点大小像全图排名、标签阈值却按子图算」）。
+  keep_attrs <- setdiff(
+    igraph::vertex_attr_names(net),
+    c("name", "degree", "size", "module", "degree_bin")
+  )
+  old <- igraph::vertex_attr(net)
   out <- .tcm_filter_igraph(net, max_nodes = cap,
                             min_degree = min_degree, keep = keep)
+  if (length(keep_attrs)) {
+    idx <- match(igraph::V(out)$name, as.character(old$name))
+    for (a in keep_attrs) {
+      # ⚠️ 不能用 `V(out)[[a]] <- ...`：那是在给**顶点序列**做下标赋值
+      #    （`[[<-.igraph.vs` 期待的是顶点索引/名字），会报 "Invalid indexing."
+      #    （2026-10-24 实测）。写属性必须走 set_vertex_attr()。
+      out <- igraph::set_vertex_attr(out, a, value = old[[a]][idx])
+    }
+  }
   list(net = out, report = list(
     shown_nodes = igraph::vcount(out), total_nodes = total_n,
     shown_edges = igraph::ecount(out), total_edges = total_e, capped = TRUE
@@ -205,7 +253,9 @@
 #' @param node.size 节点大小范围（长度 2）
 #' @param label.size 标签字号
 #' @param graph.layout 布局；"auto" 表示用该 style 的推荐布局
-#' @param node_base 基准色向量（供离散/渐变取色）
+#' @param node_base 基准色向量（供**有序**分档取色）
+#' @param palette 配色体系 key（名义类别用它的离散模式）；`NULL` 时用 npg
+#' @param algorithm 社区发现算法（仅 `view = "cluster"` / 颜色通道为 module 时用）
 #' @param label_degree 显式度数阈值；非 NULL 时覆盖 view 的取法（旧版语义）
 #' @param label_repel 标签是否 repel
 #' @param edge_color 边颜色（单层边，直接生效）
@@ -214,6 +264,7 @@
 .tcm_net_plot <- function(net, view = "overview", style = "default",
                           node.size = c(2, 8), label.size = 4,
                           graph.layout = "auto", node_base = NULL,
+                          palette = NULL, algorithm = "walktrap",
                           label_degree = NULL, label_repel = TRUE,
                           edge_color = "lightgrey",
                           seed = 20261024L) {
@@ -228,7 +279,12 @@
 
   # ---- 颜色通道（由 view 决定，只此一个通道）----
   if (identical(vp$colour, "module")) {
-    cl <- igraph::cluster_walktrap(net)
+    cl <- switch(algorithm,
+      louvain  = igraph::cluster_louvain(net),
+      infomap  = igraph::cluster_infomap(net),
+      walktrap = igraph::cluster_walktrap(net),
+      igraph::cluster_walktrap(net)
+    )
     igraph::V(net)$module <- factor(igraph::membership(cl))
   }
   if (identical(vp$colour, "degree_bin")) {
@@ -268,12 +324,19 @@
   lay_obj <- ggraph::create_layout(net, layout = lay, niter = 3000L)
 
   # ---- 色标 ----
+  # ★ 名义 ≠ 有序：`class` / `module` 是无序类别 → 必须用**定性**调色板；
+  #   只有 `degree_bin` 是有序分档才用顺序色阶。旧实现在 cluster 视图上把
+  #   module 画成 RdBu 红→蓝渐变，读者会本能地在模块之间找「大小关系」——
+  #   而那是个假信息（类别编号不代表大小）。
   col_scale <- if (is_disc) {
-    pal <- grDevices::colorRampPalette(node_base)(max(2L, n_lv))
-    ggplot2::scale_colour_manual(
-      values = stats::setNames(pal[seq_len(n_lv)], lv),
-      name = lg_name
-    )
+    vals <- if (identical(ccol, "degree_bin")) {
+      grDevices::colorRampPalette(node_base)(max(2L, n_lv))
+    } else if (!is.null(palette)) {
+      suppressMessages(tcm_palette(palette, n_lv, "discrete"))
+    } else {
+      suppressMessages(tcm_palette("npg", n_lv, "discrete"))
+    }
+    ggplot2::scale_colour_manual(values = stats::setNames(vals, lv), name = lg_name)
   } else {
     ggplot2::scale_colour_gradientn(colours = node_base, name = lg_name)
   }
@@ -336,6 +399,13 @@
   if (identical(vp$label_mode, "cluster")) {
     xy <- as.data.frame(lay_obj)
     xy$module <- as.character(igraph::vertex_attr(net, "module"))
+    # 只标**最大的若干个模块**：实测 16 个模块全标时 M1..M16 的质心标签会互相压
+    # （尤其是小模块挤在大模块边缘）。小模块仍然着色，只是不出名字 —— 与
+    # Cytoscape 的「簇多时只标主簇」一致。
+    top_n <- if (is.null(vp$label_top)) Inf else vp$label_top
+    sz <- sort(table(xy$module), decreasing = TRUE)
+    keep_mod <- names(sz)[seq_len(min(length(sz), top_n))]
+    xy <- xy[xy$module %in% keep_mod, , drop = FALSE]
     cen <- stats::aggregate(cbind(x, y) ~ module, data = xy, FUN = stats::median)
     p <- p + ggplot2::annotate(
       "label", x = cen$x, y = cen$y, label = paste0("M", cen$module),

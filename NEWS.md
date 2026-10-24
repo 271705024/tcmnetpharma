@@ -108,6 +108,46 @@
   `colorRampPalette(brewer.pal(n, set.color)(...))` 把十六进制向量当调色板名用，
   必然报错。改为 `colorRampPalette(set.color)(n)`
 
+### 新增：多行 y 轴标签不再重叠 + 画布尺寸建议（R2.4）
+
+> 长富集条目（如 `GO:0006954 inflammatory response ...`）被 `str_wrap` 折成 2–4 行后，
+> 以离散 y 位置**垂直居中**渲染，行数 × 行高 > 1 个 level 就压到邻居 —— 这是长期
+> 存在的图面缺陷。诊断见 `docs/plot-module-audit-2026-10-24.md` §8.6。
+
+#### 新增
+
+- **`tcm_plot_size(p)`**：按**实际槽位数**（已含多行标签预留的空槽）与折行后
+  单行最长宽度，算出建议的 `ggsave()` 尺寸，返回 `c(width=, height=)`。
+  包层不知道用户最终画布多大，与其猜一个默认值，不如把「该用多大」算出来交还导出环节。
+  ```r
+  p  <- enrich_barplot(tcm_enrich_table(res), top = "full")
+  sz <- tcm_plot_size(p)
+  ggsave("out.png", p, width = sz[["width"]], height = sz[["height"]], dpi = 300)
+  ```
+
+#### 修复
+
+- **多行 y 轴标签与相邻条目重叠**（`enrich_barplot` / `go_barplot` /
+  `go_dotplot` / `go_lollipop` / `enrich_dotplot`）：给第 i 条分配 `k_i` 个 y 位置
+  （`k_i` = 它的标签行数），在其上下插入空白占位行，使「占用位置数 = 行数」。
+  柱宽仍是 0.8 个位置，坐标轴类型不变。同一份 24 条数据所需画布高度
+  **19.20 in → 14.60 in**（省 24%），且间距按每条自身行数分配 ——
+  单行条目不再被多行条目拖着占 3 行的高度
+- **y 轴在占位位置出现无标签的裸刻度线**：改用 `breaks =` 只对真实条目出刻度
+- `layout = "facet"` 下 y 轴占位必须**按组**补（`drop = FALSE` 是全局锁 limits，
+  会把别组的占位灌进每个面板，实测 16 个位置被撑到 48）。这类补行**只喂图层**，
+  `p$data` 仍是真实条目
+
+#### 变更
+
+- `module_netplot()` 接入网络视觉层，转调 `.tcm_net_plot(view = "cluster")`：
+  **首次有簇名标签与图例**（此前无标签、无图例，自带一套绘制代码）；
+  新增 `node.size` / `label.size` / `style` / `palette` 四个参数。
+  默认 `max_nodes = 150`（`tcm_net(view = "cluster")` 的预设是 50，两者渲染路径相同）
+- cluster 视图从「标全部簇」改为「只标最大的 8 个簇」：16 个模块全标时小模块的
+  质心标签会互相压，小模块仍着色、只是不出名字
+
+
 ### 修复：桑基图爆炸 + 弦图标签重叠 + 富集结果按来源拆分（boss 四反馈）
 
 - **桑基图节点爆炸**（boss 反馈）：旧实现 `make_long(colnames(data_sankey))`

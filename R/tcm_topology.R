@@ -198,13 +198,22 @@ module_barplot <- function(modules, title = "module size") {
 #'
 #' 构建 herb-molecule-target 网络并按所属模块着色，直观展示功能团分布。
 #'
+#' 视觉实现走 `R/net-style-layer.R` 的统一层（与 `tcm_net(view = "cluster")`
+#' **同一份代码**）。旧实现自带一套绘制：没有标签、没有图例、模块用 RdBu 连续
+#' 渐变（把无序类别画成有序色阶）、布局不固定种子（同一份数据两次出图不同形）。
+#'
 #' @param network.data 数据框，必须含 `herb` / `molecule` / `target` 三列
 #' @param algorithm 社区发现算法（同 [tcm_modules()]）
 #' @param rem.dis.inter 是否移除孤立节点
-#' @param graph.layout ggraph 布局，默认 `"fr"`
+#' @param graph.layout ggraph 布局，默认 `"fr"`；`"auto"` 也走 fr（与 style 一致）
 #' @param max_nodes 节点数上限（`Inf` 不裁剪），默认 150
 #' @param min_degree 度数下限，默认 1（移除孤立节点）
 #' @param keep 超限选点策略：`"top_degree"` / `"ego"`
+#' @param node.size 节点大小范围（长度 2）
+#' @param label.size 簇名标签字号
+#' @param style 外观预设（同 [tcm_net()]）：`default` / `journal` /
+#'   `cytoscape` / `presentation`
+#' @param palette 配色体系 key（见 [tcm_palette_names()]）；`NULL` 时用 npg
 #' @return ggplot 对象
 #' @export
 #'
@@ -221,6 +230,7 @@ module_barplot <- function(modules, title = "module size") {
 #' \dontrun{
 #' data("network_data", package = "tcmnetpharma")
 #' module_netplot(network_data)
+#' module_netplot(network_data, algorithm = "louvain", style = "journal")
 #' }
 module_netplot <- function(network.data,
                            algorithm = c("louvain", "infomap", "walktrap"),
@@ -228,10 +238,20 @@ module_netplot <- function(network.data,
                            graph.layout = "fr",
                            max_nodes = 150,
                            min_degree = 1,
-                           keep = c("top_degree", "ego")) {
+                           keep = c("top_degree", "ego"),
+                           node.size = c(2, 8),
+                           label.size = 3.4,
+                           style = c("default", "journal", "cytoscape",
+                                     "presentation"),
+                           palette = NULL) {
   algorithm <- match.arg(algorithm)
   keep <- match.arg(keep)
+  style <- match.arg(style)
+  palette <- .tcm_palette_check(palette)
+
+  network.data <- as.data.frame(network.data)
   net <- .tcm_build_graph(network.data, rem.dis.inter = rem.dis.inter)
+
   # ---- 节点容量控制（2026-10-23，P2）----
   # 原来拓扑页靠 GUI 侧 .cap_network_nodes 裁节点（口径与 ppi 不一致），且
   # module_netplot 本身无上限，大数据量糊成球。现统一走 tcm_filter_network 的
@@ -239,23 +259,18 @@ module_netplot <- function(network.data,
   # max_nodes = Inf 回退为不裁剪。
   net <- .tcm_filter_igraph(net, max_nodes = max_nodes,
                             min_degree = min_degree, keep = keep)
-  comm <- switch(algorithm,
-    louvain = igraph::cluster_louvain(net),
-    infomap = igraph::cluster_infomap(net),
-    walktrap = igraph::cluster_walktrap(net)
+  # 裁剪会从边表重建图 → 顶点属性丢失。class 需重挂（community 在裁剪后的
+  # 图上算，所以 module 不能预先挂）；degree 由 .tcm_net_plot 重算。
+  igraph::V(net)$class <- .tcm_node_class(
+    igraph::V(net)$name, network.data[, c("herb", "molecule", "target")]
   )
-  igraph::V(net)$module <- as.integer(igraph::membership(comm))
-  col <- RColorBrewer::brewer.pal(8, "Set2")
-  colorN <- grDevices::colorRampPalette(colors = col)(max(igraph::V(net)$module))
-  ggraph::ggraph(net, layout = graph.layout) +
-    ggraph::geom_edge_link0(aes(edge_linewidth = weight), edge_colour = "lightgrey") +
-    ggraph::geom_node_point(
-      ggplot2::aes(color = factor(module), size = degree),
-      alpha = 1.0
-    ) +
-    ggplot2::scale_color_manual(values = colorN) +
-    ggraph::scale_edge_width(range = c(0.2, 2)) +
-    ggraph::theme_graph(base_family = "sans")
+
+  .tcm_net_plot(
+    net, view = "cluster", style = style,
+    node.size = node.size, label.size = label.size,
+    graph.layout = graph.layout, palette = palette,
+    algorithm = algorithm
+  )
 }
 
 # =============================================================================
@@ -275,14 +290,6 @@ module_netplot <- function(network.data,
     )
   }
   nd <- network.data[, need_cols, drop = FALSE]
-  node_class <- function(vnames, x) {
-    out <- rep(NA_character_, length(vnames))
-    out[vnames %in% as.character(x[[3]])] <- colnames(x)[3]
-    out[vnames %in% as.character(x[[2]])] <- colnames(x)[2]
-    out[vnames %in% as.character(x[[1]])] <- colnames(x)[1]
-    out[is.na(out)] <- "other"
-    out
-  }
   hm <- dplyr::rename(dplyr::select(nd, herb, molecule), from = herb, to = molecule)
   hm$weight <- 1L
   mt <- dplyr::rename(dplyr::select(nd, molecule, target), from = molecule, to = target)
@@ -299,7 +306,7 @@ module_netplot <- function(network.data,
   nodes <- data.frame(node = unique(c(links$from, links$to)), stringsAsFactors = FALSE)
   net <- igraph::graph_from_data_frame(d = links, vertices = nodes, directed = FALSE)
   igraph::V(net)$degree <- igraph::degree(net)
-  igraph::V(net)$class <- node_class(igraph::V(net)$name, nd)
+  igraph::V(net)$class <- .tcm_node_class(igraph::V(net)$name, nd)
   igraph::V(net)$size <- igraph::degree(net)
   igraph::E(net)$score <- igraph::E(net)$weight
   net

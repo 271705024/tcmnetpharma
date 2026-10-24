@@ -24,11 +24,17 @@ make_enrich_df <- function(has_ontology, n = 12L, src = "kegg", prefix = "id") {
     Description = paste0(prefix, " term ", seq_len(n)),
     GeneRatio = paste0(seq_len(n), "/50"),
     BgRatio = paste0(seq_len(n), "/200"),
-    pvalue = runif(n, 1e-6, 0.05),
-    p.adjust = runif(n, 1e-4, 0.05),
-    qvalue = runif(n, 1e-4, 0.05),
+    # ⚠️ 必须是**确定性**序列，不能用 runif/sample（2026-10-24 实测踩到）：
+    #    id 升序 → p 值升序，于是 `top = k` 取到的就是前 k 行，
+    #    ONTOLOGY 是 BP/CC/MF 循环 → k >= 3 时三个本体必然全在。
+    #    原本用 runif 时，「top = 5 取 12 行中的前 5」漏掉某个本体的概率
+    #    是 C(8,5)/C(12,5) = 7.07%，三个本体至少漏一个 = **19.75%**
+    #    → test-go-plot-sources.R:88 是个五分之一概率炸的假失败（铁律 52）。
+    pvalue   = seq(1e-6, 0.05, length.out = n),
+    p.adjust = seq(1e-4, 0.05, length.out = n),
+    qvalue   = seq(1e-4, 0.05, length.out = n),
     geneID = "TP53/BRCA1/EGFR",
-    Count = sample(3:20, n, replace = TRUE),
+    Count = 3L + (seq_len(n) %% 18L),
     source = src,
     stringsAsFactors = FALSE
   )

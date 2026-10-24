@@ -11,7 +11,11 @@ module_netplot(
   graph.layout = "fr",
   max_nodes = 150,
   min_degree = 1,
-  keep = c("top_degree", "ego")
+  keep = c("top_degree", "ego"),
+  node.size = c(2, 8),
+  label.size = 3.4,
+  style = c("default", "journal", "cytoscape", "presentation"),
+  palette = NULL
 )
 }
 \arguments{
@@ -21,13 +25,22 @@ module_netplot(
 
 \item{rem.dis.inter}{是否移除孤立节点}
 
-\item{graph.layout}{ggraph 布局，默认 \code{"fr"}}
+\item{graph.layout}{ggraph 布局，默认 \code{"fr"}；\code{"auto"} 也走 fr（与 style 一致）}
 
 \item{max_nodes}{节点数上限（\code{Inf} 不裁剪），默认 150}
 
 \item{min_degree}{度数下限，默认 1（移除孤立节点）}
 
 \item{keep}{超限选点策略：\code{"top_degree"} / \code{"ego"}}
+
+\item{node.size}{节点大小范围（长度 2）}
+
+\item{label.size}{簇名标签字号}
+
+\item{style}{外观预设（同 \code{\link[=tcm_net]{tcm_net()}}）：\code{default} / \code{journal} /
+\code{cytoscape} / \code{presentation}}
+
+\item{palette}{配色体系 key（见 \code{\link[=tcm_palette_names]{tcm_palette_names()}}）；\code{NULL} 时用 npg}
 }
 \value{
 ggplot 对象
@@ -35,9 +48,15 @@ ggplot 对象
 \description{
 构建 herb-molecule-target 网络并按所属模块着色，直观展示功能团分布。
 }
+\details{
+视觉实现走 \code{R/net-style-layer.R} 的统一层（与 \code{tcm_net(view = "cluster")}
+\strong{同一份代码}）。旧实现自带一套绘制：没有标签、没有图例、模块用 RdBu 连续
+渐变（把无序类别画成有序色阶）、布局不固定种子（同一份数据两次出图不同形）。
+}
 \examples{
 \dontrun{
 data("network_data", package = "tcmnetpharma")
 module_netplot(network_data)
+module_netplot(network_data, algorithm = "louvain", style = "journal")
 }
 }
