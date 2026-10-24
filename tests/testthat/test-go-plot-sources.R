@@ -146,6 +146,25 @@ test_that("GO 数据的派生标题带本体范围", {
   expect_identical(go_barplot(go)$labels$title, "GO enrichment (BP / CC / MF)")
 })
 
+# ---- y 轴标签必须是条目名，不能漏出内部分组键（2026-10-24 实测 bug）----
+# 缺陷形态：曾把「level -> 显示名」存成带 names 的向量放进 data.frame，
+# 而 data.frame 会**剥离 names 属性** -> labels 函数查不到映射、全部走 fallback，
+# 于是 y 轴显示 "BP\u0001term 1" 这种带控制字符的原始 key。
+# 该 bug 不报错、图照出，只能靠断言抓。
+test_that("y 轴标签是条目名，且不含内部分组键控制字符", {
+  go <- make_enrich_df(has_ontology = TRUE, src = "go")
+  for (nm in c("go_barplot", "go_dotplot", "go_lollipop")) {
+    f <- get(nm)
+    p <- f(go, top = 3)
+    b <- ggplot2::ggplot_build(p)
+    ylabs <- b$layout$panel_params[[1]]$y$get_labels()
+    expect_false(any(grepl("\u0001", ylabs, fixed = TRUE)),
+                 info = paste(nm, "的 y 轴漏出了分组键控制字符"))
+    expect_true(any(grepl("term", ylabs)),
+                info = paste(nm, "的 y 轴应显示真实条目名"))
+  }
+})
+
 # ---- 不混排（2026-10-24 核心修复）----
 test_that("go_barplot classic 不再把 BP/CC/MF 按数值混排", {
   # 造一个「Count 与本体强交错」的数据：Count 递增而本体循环，

@@ -207,22 +207,28 @@ enrich_barplot <- function(data,
   # desc = FALSE 时「第一行显示在最下方」（dotplot：richFactor 最大的在上）
   if (isTRUE(desc)) lv <- rev(lv)
   d$.ykey <- factor(key, levels = lv)
-  # level -> 显示名（长条目按 text.width 折行）
-  first <- !duplicated(key)
-  lab <- as.character(d$Description)[first]
+
+  # ⚠️ 不要把「level -> 显示名」存成**带 names 的向量再放进 data.frame**：
+  #    data.frame 的列会剥离 names 属性（2026-10-24 实测踩到）—— 表现为
+  #    y 轴标签全部退化成原始 key（含 \u0001 控制字符），而图仍能出、不报错。
+  #    改为存一列文本（每行都有值），由 .enrich_bar_ylab_fun() 在函数内部
+  #    用 tapply 重建命名映射（那里 names 才不会被剥掉）。
+  lab <- as.character(d$Description)
   w <- suppressWarnings(as.integer(text.width)[1L])
   if (!is.na(w) && w > 0L) lab <- stringr::str_wrap(lab, width = w)
-  names(lab) <- key[first]
-  d$.ylab <- lab
+  d$.ylab_txt <- lab
+
   # 位置：level 序号
   d$.pos <- as.integer(d$.ykey)
   d
 }
 
 #' y 轴标签函数（按 level 查显示名）
+#'
+#' 在函数内部控制作用域里建映射，避免 data.frame 剥离 names 的问题。
 #' @noRd
 .enrich_bar_ylab_fun <- function(d) {
-  lab <- d$.ylab
+  lab <- tapply(d$.ylab_txt, as.character(d$.ykey), function(z) z[[1L]])
   function(k) {
     out <- unname(lab[as.character(k)])
     out[is.na(out)] <- as.character(k)[is.na(out)]
