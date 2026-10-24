@@ -13,6 +13,9 @@
 #' @param text.size text size
 #' (1) first circle text size
 #' (2) Second circle text size
+#' @param max_gene_labels 最外层（leaf，基因）最多标注多少个基因名。基因按
+#'   「出现在多少条通路」（度数）降序，只标注 top N 个，其余基因只画点不标名，
+#'   避免标签互相重叠（boss 反馈「弦图重叠」）。`Inf` 表示全部标注。默认 40。
 #' @param ... additional parameters
 #'
 #' @return figure
@@ -55,6 +58,7 @@ pathway_ccplot <- function(data,
                            color.node = "Paired",
                            color.alpha = 0.5,
                            text.size = c(3, 4),
+                           max_gene_labels = 40,
                            ...) {
   # data processing
   if (isS4(data)) {
@@ -178,6 +182,26 @@ pathway_ccplot <- function(data,
     edges_kegg <- rbind(root_data, newdata2)
   }
   graph <- tidygraph::tbl_graph(nodes_kegg, edges_kegg)
+
+  # ---- 基因标签 top-N 过滤（2026-10-24）----
+  # 弦图最外层（leaf）是基因节点，全量标注会造成标签互相重叠（boss 反馈「弦图
+  # 重叠」）。按基因度数（出现在多少条通路）降序，只标注 top max_gene_labels 个
+  # 基因，其余只画点。字号随标注数自适应：标注越多字号越小，进一步缓解重叠。
+  mgl <- suppressWarnings(as.numeric(max_gene_labels)[[1]])
+  if (is.na(mgl)) mgl <- Inf
+  label_genes <- character(0)
+  if (is.finite(mgl) && mgl > 0L) {
+    # 度数 = 每个 geneID 在 kegg.df（通路×基因）中出现的行数
+    gene_deg <- sort(table(kegg.df$geneID), decreasing = TRUE)
+    label_genes <- names(gene_deg)[seq_len(min(length(gene_deg), as.integer(mgl)))]
+  }
+  # 自适应字号：标注基因越多，leaf 字号越小（但不低于 1.5）
+  n_lab <- if (is.finite(mgl) && mgl > 0L) length(label_genes) else
+    length(unique(kegg.df$geneID))
+  leaf_size <- text.size[1]
+  if (n_lab > 60L) leaf_size <- max(1.5, text.size[1] * 0.7)
+  if (n_lab > 120L) leaf_size <- max(1.2, text.size[1] * 0.5)
+
   # start drawing
   ggraph(graph, layout = "dendrogram", circular = TRUE) +
     ggraph::geom_edge_diagonal(aes(color = node1.node.branch),
@@ -196,9 +220,12 @@ pathway_ccplot <- function(data,
         y = 1.0175 * y,
         label = node.short_name,
         angle = -((-node_angle(x, y) + 90) %% 180) + 90,
-        filter = leaf, color = node.branch
+        filter = leaf &
+          (if (length(label_genes) > 0L) node.short_name %in% label_genes
+           else TRUE),
+        color = node.branch
       ),
-      size = text.size[1], hjust = "outward"
+      size = leaf_size, hjust = "outward"
     ) +
     scale_colour_manual(values = rep(
       RColorBrewer::brewer.pal(8, color.node),

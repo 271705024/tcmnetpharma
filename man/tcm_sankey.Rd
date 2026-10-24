@@ -12,6 +12,7 @@ tcm_sankey(
   style = c("default", "journal", "presentation"),
   palette = NULL,
   max_per_level = 10,
+  max_nodes = 60,
   ...
 )
 }
@@ -31,6 +32,10 @@ tcm_sankey(
 
 \item{max_per_level}{每层（列）保留的出现频率最高的条目数。按完整路径过滤
 （不截行），节点数 = 过滤后路径端点数。\code{Inf} 表示不过滤。默认 10。}
+
+\item{max_nodes}{桑基图节点总数硬上限。分层过滤后若端点总数仍超过该值，
+则逐层收紧 \code{max_per_level}（每次减半，下限 1）直到达标。\code{Inf} 表示不限。
+默认 60。用于防止「桑基图爆炸」（节点过多导致标签重叠、渲染卡死）。}
 
 \item{...}{additional parameters}
 }

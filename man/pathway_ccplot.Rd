@@ -12,6 +12,7 @@ pathway_ccplot(
   color.node = "Paired",
   color.alpha = 0.5,
   text.size = c(3, 4),
+  max_gene_labels = 40,
   ...
 )
 }
@@ -35,6 +36,10 @@ the number of categories to show}
 \item{text.size}{text size
 (1) first circle text size
 (2) Second circle text size}
+
+\item{max_gene_labels}{最外层（leaf，基因）最多标注多少个基因名。基因按
+「出现在多少条通路」（度数）降序，只标注 top N 个，其余基因只画点不标名，
+避免标签互相重叠（boss 反馈「弦图重叠」）。\code{Inf} 表示全部标注。默认 40。}
 
 \item{...}{additional parameters}
 }

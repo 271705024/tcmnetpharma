@@ -9,6 +9,9 @@
 #'   (default) keeps the built-in rainbow palette. Colours only.
 #' @param max_per_level 每层（列）保留的出现频率最高的条目数。按完整路径过滤
 #'   （不截行），节点数 = 过滤后路径端点数。`Inf` 表示不过滤。默认 10。
+#' @param max_nodes 桑基图节点总数硬上限。分层过滤后若端点总数仍超过该值，
+#'   则逐层收紧 `max_per_level`（每次减半，下限 1）直到达标。`Inf` 表示不限。
+#'   默认 60。用于防止「桑基图爆炸」（节点过多导致标签重叠、渲染卡死）。
 #' @param ... additional parameters
 #'
 #' @return figure
@@ -41,6 +44,7 @@ tcm_sankey <- function(data_sankey,
                        style = c("default", "journal", "presentation"),
                        palette = NULL,
                        max_per_level = 10,
+                       max_nodes = 60,
                        ...){
   style <- match.arg(style, .tcm_style_generic)
   palette <- .tcm_palette_check(palette)
@@ -57,6 +61,29 @@ tcm_sankey <- function(data_sankey,
     if (is.na(mpl)) mpl <- Inf
     if (is.finite(mpl) && mpl > 0L) {
       data_sankey <- .sankey_filter_levels(data_sankey, as.integer(mpl))
+    }
+  }
+
+  # ---- 节点总数硬闸（2026-10-24）----
+  # 分层 top-N 过滤后，端点总数仍可能超限（例如某层取值极分散、top-N 内仍有
+  # 大量低频值，或 max_per_level 被显式调大）。此时逐层收紧 max_per_level
+  # （每次减半，下限 1），直到过滤后端点总数 <= max_nodes。这是「桑基图爆炸」
+  # 的最后一道硬闸：只靠前端滑条/预设不够，包层必须兜底。
+  if (is.data.frame(data_sankey) && nrow(data_sankey) > 0L) {
+    mn <- suppressWarnings(as.numeric(max_nodes)[[1]])
+    if (is.na(mn)) mn <- Inf
+    if (is.finite(mn) && mn > 0L) {
+      cur_mpl <- suppressWarnings(as.numeric(max_per_level)[[1]])
+      if (is.na(cur_mpl) || !is.finite(cur_mpl)) cur_mpl <- nrow(data_sankey)
+      cur_mpl <- max(1L, as.integer(cur_mpl))
+      # 当前过滤后端点总数
+      n_endpoints <- .sankey_endpoint_count(data_sankey)
+      while (n_endpoints > mn && cur_mpl > 1L) {
+        cur_mpl <- max(1L, floor(cur_mpl / 2L))
+        data_sankey <- .sankey_filter_levels(data_sankey, cur_mpl)
+        n_endpoints <- .sankey_endpoint_count(data_sankey)
+        if (nrow(data_sankey) == 0L) break
+      }
     }
   }
 
@@ -139,4 +166,20 @@ tcm_sankey <- function(data_sankey,
     }
   }
   df[keep_mask, , drop = FALSE]
+}
+
+# ---------------------------------------------------------------------------
+# 桑基图端点总数（2026-10-24）
+#
+# 节点数 = 各层（列）取值去重后的总数。注意：同一取值出现在不同层（例如
+# 「成分名」既是中间层又是末层）会被当作不同节点各计一次，与 ggsankey 的
+# make_long + unique(node) 语义一致（node 由 layer 位置决定）。
+# ---------------------------------------------------------------------------
+.sankey_endpoint_count <- function(df) {
+  if (!is.data.frame(df) || nrow(df) == 0L) return(0L)
+  sum(vapply(df, function(col) {
+    v <- as.character(col)
+    v <- v[!is.na(v) & v != ""]
+    length(unique(v))
+  }, integer(1)))
 }
