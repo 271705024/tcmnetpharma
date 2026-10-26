@@ -6,62 +6,76 @@
 \usage{
 venn_net(
   data,
-  node.color = "Spectral",
+  node.color = NULL,
   node.size = c(1, 10),
   label.size = 3,
-  label.degree = 1,
+  label.degree = NULL,
   label.repel = TRUE,
-  edge.color = c("#5BAA56", "#f49d98", "#4186B7", "#8679BE", "#F5D18B"),
-  edge.alpha = 0.5,
-  edge.width = 0.5,
-  edge.type = "arc",
-  graph.layout = "kk"
+  edge.color = NULL,
+  edge.alpha = NULL,
+  edge.width = NULL,
+  edge.type = c("arc", "fan", "hive", "link"),
+  graph.layout = "kk",
+  gene_col = NULL,
+  source_col = NULL,
+  palette = NULL,
+  style = c("default", "journal", "cytoscape", "presentation"),
+  max_nodes = 300L,
+  min_degree = 1L,
+  keep = c("top_degree", "ego")
 )
 }
 \arguments{
-\item{data}{data frame}
+\item{data}{两列长表（第一列基因、第二列来源）。列名可用 \code{gene_col} /
+\code{source_col} 显式指定；不指定时先按常见列名（gene / from / source / set …）
+识别，识别不到且恰为两列则按\strong{位置}（第 1 列 = 基因、第 2 列 = 来源）取。}
 
-\item{node.color}{node color: see "RColorBrewer::display.brewer.all()"}
+\item{node.color}{\strong{已废弃}。节点颜色现在由节点角色（gene / source）
+决定，改用 \code{palette} 指定定性色板。传入本参数会给出警告并被忽略。}
 
-\item{node.size}{node size}
+\item{node.size}{节点大小范围（长度 2）}
 
-\item{label.size}{markup text size}
+\item{label.size}{标签字号}
 
-\item{label.degree}{The node degree is the number of connections that
-the node has with the other nodes.
-Nodes with connections greater than or
-equal to degree will be displayed.}
+\item{label.degree}{标签的\strong{绝对度数阈值}（度数 ≥ 该值的节点出标签）。
+默认 \code{NULL} 表示「标 top 15 个高度数节点」—— 二分图里 source 节点的度数
+最高，因此它们必然被标出。旧版默认 \code{1}（= 全标），节点一多会糊成一团。}
 
-\item{label.repel}{label repel: "TRUE" or "FALSE"}
+\item{label.repel}{标签是否 repel}
 
-\item{edge.color}{edge color
-venn.color1 <- c("#b1d1e7", "#f0a4af", "#e5dfae", "#a8e1da", "#f8d068")
-venn.color2 <- c("#d3e2b7", "#fbca50", "#c9d5d4", "#baa28a", "#4caecc")
-venn.color3 <- c("#C1BCBF", "#B1D0A9", "#FFCCC3", "#FFD5AB", "#BCCBE5")
-venn.color4 <- c("#e4c9b2", "#92C2DD", "#f49d98", "#fcd68f", "#629076")
-venn.color5 <- c("#FF8748", "#5BAA56", "#B8BB5B", "#4186B7", "#8679BE")
-venn.color6 <- c("#e6c09e", "#0d5888", "#cb8b3e", "#9cd6d6", "#dbcb09")
-venn.color7 <- c("#E41A1C", "#1E90FF", "#FF8C00", "#4DAF4A", "#75cbdc")
-venn.color8 <- c("#604192", "#139177", "#ed9e08", "#f56f08", "#4caecc")
-venn.color9 <- c("#d37a20", "#dbcb09", "#3a9cbc", "#dd7208", "#a30019")}
+\item{edge.color}{边色板。二分图里边的颜色表示「属于哪个来源」，因此需要
+≥ 来源数的颜色；给少了会自动插值补足（旧版写死 5 色，来源一多就整张图
+渲染失败）。\code{NULL} 时用 \code{palette} 的定性色板。}
 
-\item{edge.alpha}{edge alpha}
+\item{edge.alpha}{边透明度；\code{NULL} 时用 \code{style} 预设}
 
-\item{edge.width}{edge width}
+\item{edge.width}{边线宽；\code{NULL} 时用 \code{style} 预设}
 
-\item{edge.type}{"arc", "fan", "hive"}
+\item{edge.type}{边几何：\code{"arc"}（默认）/ \code{"fan"} / \code{"hive"} / \code{"link"}。
+\strong{只改形状，不改编码语义}。}
 
-\item{graph.layout}{Network Diagram Layout:
-"kk", "nicely", "sphere", "circle",
-"bipartite", "star","tree", "randomly",
-"gem", "graphopt","lgl", "grid",
-"mds", "sugiyama","fr"}
+\item{graph.layout}{布局名（传给 \code{\link[ggraph:create_layout]{ggraph::create_layout()}}）：
+"fr" / "kk" / "nicely" / "circle" / "graphopt" / "lgl" / "mds" / "tree" /
+"star" / "grid" 等}
+
+\item{gene_col, source_col}{显式指定基因列 / 来源列（列名或列号）}
+
+\item{palette}{配色体系 key（见 \code{\link[=tcm_palette]{tcm_palette()}}）；\code{NULL} 时用 \code{"npg"}}
+
+\item{style}{外观轴预设（与节点/边几何正交）}
+
+\item{max_nodes}{节点数上限（默认 300）。二分图靠「哪些基因被多个来源共享」
+传达信息，把小度数基因裁掉会直接改变结论，所以默认给得比 \code{tcm_net} 宽松}
+
+\item{min_degree}{最小度数过滤（默认 1，即不过滤）}
+
+\item{keep}{超限时的保留策略：\code{"top_degree"}（默认）/ \code{"ego"}}
 }
 \value{
-venn network diagrams
+ggraph / ggplot 对象
 }
 \description{
-venn network
+二分图（基因 / 来源）网络图：把「基因 → 所属来源」的长表画成网络。
 }
 \examples{
 \dontrun{
@@ -69,9 +83,7 @@ data(venn_data, package = "tcmnetpharma")
 set.seed(1234)
 gene <- names(sort(table(venn_data$gene), decreasing = TRUE))[1:50]
 data <- venn_data[venn_data$gene \%in\% gene, ]
-data2 <- dplyr::slice_sample(venn_data, n = 100) \%>\%
-  rbind(data)
-venn_net(data2, label.degree = 1,graph.layout = "fr")
-venn_net(data2, edge.type = "hive", label.degree = 4)
+head(venn_net(data))
+head(venn_net(data, edge.type = "hive"))
 }
 }

@@ -173,6 +173,40 @@
   )
 }
 
+#' 边图层：几何由 `edge_geom` 决定，**编码语义不变**
+#'
+#' `edge_geom` 只影响**形状**（直线 / 弧 / 扇形 / hive），不影响「边表示什么」。
+#' 之所以把它做成共享层的一个参数，而不是让各函数自带一套绘制代码：
+#' 旧 `venn_net` 为三种边几何各复制了 30 行完全相同的节点 / 标签 / 色标代码
+#' （三份同源 → 铁律 54），改一处必漏两处。
+#'
+#' @param edge_geom "link" / "arc" / "fan" / "hive"
+#' @param sp style 预设（提供 edge_alpha / edge_lw）
+#' @param edge_color 固定边色（`colour_by` 为 NULL 时使用）
+#' @param net igraph 对象（`colour_by` 非 NULL 时用于校验边属性存在）
+#' @param colour_by 边属性名；非 NULL 时按它给边上色**并出图例**
+#' @noRd
+.tcm_edge_layer <- function(edge_geom = "link", sp, edge_color = "lightgrey",
+                            net = NULL, colour_by = NULL) {
+  edge_geom <- match.arg(edge_geom, c("link", "arc", "fan", "hive"))
+  fn <- switch(edge_geom,
+    link = ggraph::geom_edge_link,
+    arc  = ggraph::geom_edge_arc,
+    fan  = ggraph::geom_edge_fan,
+    hive = ggraph::geom_edge_hive
+  )
+
+  if (is.null(colour_by)) {
+    return(fn(colour = edge_color, alpha = sp$edge_alpha,
+              linewidth = sp$edge_lw, show.legend = FALSE))
+  }
+  # ⚠️ 用 `!!rlang::sym()` 而不是 `.data[[colour_by]]`：与本文件节点图层同一理由
+  #    （`.data[[x]]` 会把图例标题渲染成表达式文本）。`do.call` 已无必要——
+  #    mapping 在这里就构造好，直接位置参数传入。
+  fn(ggplot2::aes(edge_colour = !!rlang::sym(colour_by)),
+     alpha = sp$edge_alpha, linewidth = sp$edge_lw)
+}
+
 #' 把连续 degree 离散分档（用于 hub 视图的 colour 通道）
 #'
 #' 为什么分档而不是连续渐变：hub 视图的标签是**全标**，若 colour 也用连续
@@ -258,7 +292,12 @@
 #' @param algorithm 社区发现算法（仅 `view = "cluster"` / 颜色通道为 module 时用）
 #' @param label_degree 显式度数阈值；非 NULL 时覆盖 view 的取法（旧版语义）
 #' @param label_repel 标签是否 repel
-#' @param edge_color 边颜色（单层边，直接生效）
+#' @param label_extra 始终带标签的节点名（在 view 的标签规则之外并集）
+#' @param edge_color 边颜色（`edge_colour_by` 为 NULL 时使用）
+#' @param edge_geom 边几何："link" / "arc" / "fan" / "hive"（只改形状）
+#' @param edge_colour_by 边属性名；非 NULL 时按它给边上色**并出图例**
+#' @param edge_palette 边色板（按来源着色时用；给少了自动插值补足）
+#' @param edge_alpha,edge_lw 显式覆盖 style 预设的边透明度 / 线宽
 #' @param seed 布局随机种子（可复现）
 #' @noRd
 .tcm_net_plot <- function(net, view = "overview", style = "default",
@@ -266,11 +305,19 @@
                           graph.layout = "auto", node_base = NULL,
                           palette = NULL, algorithm = "walktrap",
                           label_degree = NULL, label_repel = TRUE,
+                          label_extra = NULL,
                           edge_color = "lightgrey",
+                          edge_geom = "link", edge_colour_by = NULL,
+                          edge_palette = NULL,
+                          edge_alpha = NULL, edge_lw = NULL,
                           seed = 20261024L) {
   vp <- .tcm_net_view_presets()[[view]]
   sp <- .tcm_net_style_presets()[[style]]
   if (is.null(sp)) sp <- .tcm_net_style_presets()[["default"]]
+  # 显式覆盖优先于 style 预设：旧调用方（venn_net）有 edge.alpha / edge.width
+  # 参数，语义是「直接调这一个值」，不是「选档位」。
+  if (!is.null(edge_alpha)) sp$edge_alpha <- as.numeric(edge_alpha)[1L]
+  if (!is.null(edge_lw)) sp$edge_lw <- as.numeric(edge_lw)[1L]
   if (is.null(node_base)) node_base <- RColorBrewer::brewer.pal(8, "RdBu")
 
   if (is.null(igraph::V(net)$degree)) {
@@ -321,7 +368,19 @@
       assign(".Random.seed", old_seed, envir = globalenv())
     }
   }, add = TRUE)
-  lay_obj <- ggraph::create_layout(net, layout = lay, niter = 3000L)
+  # ⚠️ `niter` 只对**力导向**布局有意义，且 igraph 里只有 fr / graphopt 接受它。
+  #    R2 集中布局时写死 `niter = 3000L` → `tcm_net(graph.layout = "kk")` 直接报
+  #    "The `niter` argument of `layout_with_kk()` ... is now defunct"，
+  #    而 nicely / circle / lgl / mds / tree / star / grid 会报 "unused argument"
+  #    （2026-10-25 实测 10 种布局：仅 fr / graphopt 通过）。
+  #    这里按**报错文本**精确回退，不用宽泛的 tryCatch 吞掉真错误。
+  lay_obj <- tryCatch(
+    ggraph::create_layout(net, layout = lay, niter = 3000L),
+    error = function(e) {
+      if (!grepl("niter", conditionMessage(e), fixed = TRUE)) stop(e)
+      ggraph::create_layout(net, layout = lay)
+    }
+  )
 
   # ---- 色标 ----
   # ★ 名义 ≠ 有序：`class` / `module` 是无序类别 → 必须用**定性**调色板；
@@ -341,29 +400,80 @@
     ggplot2::scale_colour_gradientn(colours = node_base, name = lg_name)
   }
 
+  # ---- 边色标（只在显式指定「按某条边属性着色」时才生成）------------------
+  # 默认是单色边、无图例：边不承载信息时不该多一个图例（R2 的图例收敛原则）。
+  # venn_net 是唯一需要它的调用方 —— 二分图里「边属于哪个来源」是真实信息，
+  # 且**无法**由节点颜色表达（所有 source 节点的 class 相同）。
+  edge_scale <- NULL
+  if (!is.null(edge_colour_by)) {
+    if (!edge_colour_by %in% igraph::edge_attr_names(net)) {
+      stop(sprintf(
+        paste0("edge_colour_by = \"%s\"\uff0c\u4f46\u56fe\u4e2d\u6ca1\u6709\u8fd9\u4e2a\u8fb9\u5c5e\u6027\u3002\n",
+               "  \u53ef\u7528\u7684\u8fb9\u5c5e\u6027\uff1a%s"),
+        edge_colour_by,
+        paste(igraph::edge_attr_names(net), collapse = ", ")
+      ), call. = FALSE)
+    }
+    ev <- as.character(igraph::edge_attr(net, edge_colour_by))
+    e_lv <- sort(unique(ev))
+    # ⚠️ 色数必须 >= 类别数，否则 build 阶段报
+    #    "Insufficient values in manual scale. N needed but only M provided."
+    #    ——旧 venn_net 的 `scale_edge_color_manual(values = edge.color)` 写死
+    #    5 色，来源一多就整张图渲染失败（2026-10-25 实测：149 个水平直接报错）。
+    e_vals <- if (!is.null(edge_palette)) {
+      if (length(edge_palette) >= length(e_lv)) {
+        edge_palette[seq_along(e_lv)]
+      } else {
+        grDevices::colorRampPalette(edge_palette)(length(e_lv))
+      }
+    } else {
+      suppressMessages(
+        tcm_palette(if (is.null(palette)) "npg" else palette,
+                    length(e_lv), "discrete")
+      )
+    }
+    edge_scale <- ggraph::scale_edge_colour_manual(
+      values = stats::setNames(e_vals, e_lv), name = edge_colour_by
+    )
+  }
+
   # ---- 标签：显式阈值 > view 三档（top / all / cluster）----
   # 为什么显式阈值优先：GUI 侧 server.R 会先算出「前 12 个节点对应的度数阈值」
   # 再作为 label.degree 传进来（固定数量比绝对阈值/分位数稳定，2026-10-20 的结论）。
   # 那个语义正是旧版的「绝对度数阈值」，所以保留它 = 向后兼容，而不是另造一套。
   deg <- igraph::V(net)$degree
-  .lab_layer <- function(thr = NULL) {
-    gg <- if (is.null(thr)) {
+  vname <- igraph::V(net)$name
+  .lab_layer <- function(thr = NULL, keep_names = NULL) {
+    gg <- if (!is.null(keep_names)) {
+      # ★ 「前 N 个」必须按**名字集合**取，不能按度数阈值取：
+      #   度数大量打平时（二分图里 149 个基因多是 degree 1–2），
+      #   第 N 名的阈值会把同分节点**全部**放进來。
+      #   实测 venn_data：label_top = 15 实际标了 ~40 个，中心区域糊成一团。
+      ggplot2::aes(filter = name %in% keep_names,
+                   label = .tcm_net_trunc(name))
+    } else if (is.null(thr)) {
       ggplot2::aes(label = .tcm_net_trunc(name))
     } else {
       ggplot2::aes(filter = degree >= thr, label = .tcm_net_trunc(name))
     }
     ggraph::geom_node_label(
       gg, size = sp$label_size, repel = isTRUE(label_repel),
-      label.size = 0.1, label.padding = ggplot2::unit(0.08, "lines"),
+      # ⚠️ ggplot2 4.0 起 GeomLabel 的边框宽度参数是 `linewidth`；
+      #    旧名 `label.size` 会被**静默忽略**（不报错、不告警）。
+      linewidth = 0.1, label.padding = ggplot2::unit(0.08, "lines"),
       fill = "white", colour = "grey15", alpha = 0.9, show.legend = FALSE
     )
   }
   lab_layer <- if (!is.null(label_degree) && length(label_degree) &&
                    is.finite(as.numeric(label_degree)[1L])) {
-    .lab_layer(as.numeric(label_degree)[1L])
+    .lab_layer(thr = as.numeric(label_degree)[1L])
   } else if (identical(vp$label_mode, "top")) {
-    n_lab <- min(vp$label_top, length(deg))
-    .lab_layer(sort(as.integer(deg), decreasing = TRUE)[max(1L, n_lab)])
+    n_lab <- max(1L, min(as.integer(vp$label_top), length(deg)))
+    ord <- order(-as.numeric(deg), vname)          # 同分时按名字，保证可复现
+    # `label_extra`：必须**始终**带标签的节点名（二分图里就是所有 source 节点 ——
+    # 它们是图的锚，被 top-N 挤掉后整张图读不出「基因属于哪个来源」）。
+    keep <- union(vname[ord[seq_len(n_lab)]], as.character(label_extra))
+    .lab_layer(keep_names = keep)
   } else if (identical(vp$label_mode, "all")) {
     .lab_layer(NULL)
   } else {
@@ -371,12 +481,11 @@
   }
 
   p <- ggraph::ggraph(lay_obj) +
-    # ★ 单层边（R2 硬约束）：只画一次，宽度固定 —— 边不承载统计信息，
+    # ★ 单层边（R2 硬约束）：只画一次，宽度固定 —— 边不承载统计量大小，
     #   避免「同一批边画两遍」糊成一团（旧 default 的双绘边）。
-    ggraph::geom_edge_link(
-      colour = edge_color, alpha = sp$edge_alpha,
-      linewidth = sp$edge_lw, show.legend = FALSE
-    ) +
+    #   `edge_geom` 只改**形状**（直线/弧/扇形/hive），不改编码语义。
+    .tcm_edge_layer(edge_geom, sp, edge_color,
+                    net = net, colour_by = edge_colour_by) +
     ggraph::geom_node_point(
       # ⚠️ 用 `!!rlang::sym(ccol)` 而不是 `.data[[ccol]]`：后者会把图例标题
       #    渲染成 ".data[[ccol]]" 这种表达式文本（因为 aes 的 label 取的是
@@ -385,6 +494,7 @@
       ggplot2::aes(size = degree, colour = !!rlang::sym(ccol)), alpha = 1
     ) +
     col_scale +
+    edge_scale +
     ggplot2::scale_size(range = node.size, name = "degree", guide = "none") +
     lab_layer +
     ggplot2::coord_fixed() +

@@ -161,17 +161,14 @@ importFrom(ggplot2,
   ylim
 )
 importFrom(ggraph,
-  geom_edge_arc,
   geom_edge_diagonal,
   geom_edge_fan,
-  geom_edge_hive,
   geom_edge_link,
   geom_edge_link0,
   geom_node_point,
   geom_node_text,
   ggraph,
   node_angle,
-  scale_edge_color_manual,
   scale_edge_width,
   theme_graph
 )

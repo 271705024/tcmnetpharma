@@ -147,6 +147,56 @@
 - cluster 视图从「标全部簇」改为「只标最大的 8 个簇」：16 个模块全标时小模块的
   质心标签会互相压，小模块仍着色、只是不出名字
 
+### ⚠️ 破坏性变更 + 三个静默错误修复：`venn_net()` 接入网络视觉层
+
+> `venn_net` 此前自带一套绘制代码（三种边几何 = 三份 30 行的重复代码），
+> 且**换个输入类就静默变空白/报错**。本轮接入 `.tcm_net_plot()` 并修掉三个缺陷。
+
+#### 修复（三个静默错误）
+
+- **猜列导致 `as.data.frame()` 后整张图渲染失败**（严重）。旧实现用
+  `length(unique(data[, 1])) > length(unique(data[, 2]))` 猜哪列是 from/to，
+  而这个判据**在 tibble 与 data.frame 上取值不同**：1 列 tibble 的 `length()`
+  是列数 1，data.frame 单列取出来是向量、`length()` 是行数。实测 `venn_data`
+  （gene 149 / source 4）：
+  | 输入 | 判据 | 走的分支 | 结果 |
+  |---|---|---|---|
+  | `tibble` | `1 > 1` = FALSE | `c("from","to")` | ✅ 正确（**纯属侥幸**） |
+  | `as.data.frame()` | `149 > 4` = TRUE | `c("to","from")` | ❌ 边按**基因名**着色 → `Insufficient values in manual scale. 149 needed but only 5 provided.` |
+
+  2026-09-15 的 p42 报告把这归因为「适配层传了 `as.data.frame`」，**归因是错的**：
+  缺陷就在包内这一行。现改为 **显式 `gene_col` / `source_col` > 列名别名 > 位置**
+  三级解析，不再按基数猜
+- **`edge.type` 非法值静默返回 `NULL`**：函数体是三个 `if / else if` 且没有
+  收尾分支，传 `"xxx"` 既不报错也不出图。改为 `match.arg()`，非法值直接报错
+- **来源数 > 5 必定渲染失败**：`scale_edge_color_manual(values = edge.color)`
+  写死 5 色，第 6 个来源开始就 NA，最终报 `Insufficient values`。改为按来源数
+  取足（`edge.color` 给少了自动插值补足，`NULL` 时用定性色板）
+
+#### 变更（破坏性）
+
+- `venn_net()` 的默认外观全部改变：节点颜色由 `degree` 渐变改为**角色**
+  （gene / source）定性两色；边颜色改为**按来源**并**补上图例**（旧实现
+  `show.legend = FALSE` → 上了色却不给图例，读者无法解码）
+- `node.color` **已废弃**（原本是 `RColorBrewer` 色板名，用于 degree 渐变）。
+  传入会警告并被忽略，改用 `palette =`
+- `label.degree` 默认值由 `1`（= **全部**节点都标）改为 `NULL`（= 标 top 15）。
+  153 个节点全标会糊成一团；需要旧行为请显式传 `label.degree = 1`
+- 新增 `style`（外观轴，与 `edge.type` 几何正交）、`palette`、`gene_col` /
+  `source_col`、`max_nodes` / `min_degree` / `keep`、`edge.type = "link"` 选项
+
+#### 共享层同步修复（影响 `tcm_net` / `module_netplot` / `ppi_plot`）
+
+- **`create_layout()` 写死 `niter = 3000`**：igraph 里只有 `fr` / `graphopt`
+  接受该参数，其余 8 种布局（kk / nicely / circle / lgl / mds / tree / star /
+  grid）全部报 `unused argument`。R2 集中布局时引入，`tcm_net(graph.layout="kk")`
+  之前会直接报错。改为按报错文本**精确回退**（不吞真错误）
+- **`label_top` 用度数阈值实现，度数打平时严重超发**：二分图里 149 个基因多是
+  degree 1–2，第 15 名的阈值会把同分节点全部放进 → 实测 `label_top = 15`
+  标了约 **40 个**。改为按**名字集合**精确取 N 个（同分按名字排序，可复现）
+- `geom_node_label(label.size = 0.1)` 在 ggplot2 4.0 起被**静默忽略**
+  （边框参数已改名 `linewidth`），改为 `linewidth`
+
 
 ### 修复：桑基图爆炸 + 弦图标签重叠 + 富集结果按来源拆分（boss 四反馈）
 
