@@ -7,16 +7,17 @@
 ppi_plot(
   data,
   node.color = "RdBu",
-  node.size = c(1, 10),
-  label.size = 4,
-  label.degree = 5,
+  node.size = NULL,
+  label.size = NULL,
+  label.degree = NULL,
   label.repel = TRUE,
   edge.color = "lightgrey",
-  edge.width = c(0.2, 2),
+  edge.width = NULL,
   rem.dis.inter = FALSE,
-  graph.layout = "kk",
-  style = c("default", "journal", "cytoscape", "presentation", "hub30", "module",
-    "minimal"),
+  graph.layout = "auto",
+  style = c("default", "journal", "cytoscape", "presentation", "minimal", "hub30",
+    "module"),
+  view = c("degree", "module", "hub"),
   palette = NULL,
   max_nodes = 150,
   min_degree = 0,
@@ -24,41 +25,44 @@ ppi_plot(
 )
 }
 \arguments{
-\item{data}{Human protein-protein interaction (PPI)
-data were downloaded from the STRING database.}
+\item{data}{Human protein-protein interaction (PPI) data downloaded from the
+STRING database. 三列（node1 / node2 / combined_score）或两列（无分数，
+退化为固定线宽）。}
 
-\item{node.color}{node color: see "RColorBrewer::display.brewer.all()"}
+\item{node.color}{node color: see "RColorBrewer::display.brewer.all()"。
+\strong{仅在 \code{view} 按度数着色（连续色阶）时生效}。}
 
-\item{node.size}{node size}
+\item{node.size}{节点大小范围（长度 2）。\code{NULL}（默认）= 由 \code{style} 决定；
+显式传入则覆盖 style。}
 
-\item{label.size}{markup text size}
+\item{label.size}{标签字号。\code{NULL}（默认）= 由 \code{style} 决定。}
 
-\item{label.degree}{The node degree is the number of connections that
-the node has with the other nodes.
-Nodes with connections greater than or
-equal to degree will be displayed.}
+\item{label.degree}{标签的\strong{绝对度数阈值}（度数 ≥ 该值的节点出标签）。
+默认 \code{NULL} = 由 \code{view} / \code{style} 决定。旧版默认 \code{5}。}
 
-\item{label.repel}{label repel}
+\item{label.repel}{标签是否 repel}
 
-\item{edge.color}{edge color}
+\item{edge.color}{边颜色}
 
-\item{edge.width}{edge width}
+\item{edge.width}{边线宽范围（长度 2）。\code{NULL}（默认）= 由 \code{style} 决定。}
 
-\item{rem.dis.inter}{remove single free unconnected nodes}
+\item{rem.dis.inter}{去掉「两端都只出现一次」的游离互作（数据层过滤）}
 
-\item{graph.layout}{Network Diagram Layout:
-"kk", "nicely", "sphere", "circle",
-"bipartite", "star","tree", "randomly",
-"gem", "graphopt","lgl", "grid",
-"mds", "sugiyama"}
+\item{graph.layout}{布局名。"auto"（默认）= 由 \code{style} 决定；
+显式给名字则覆盖 style。}
 
-\item{style}{visual preset. \code{"default"} keeps the original look;
-\code{"journal"} (thin edges, white-stroked nodes, top-8 white labels,
-no legend) suits manuscript figures; \code{"cytoscape"} mimics Cytoscape
-(more FR iterations, edge width by score, top-15 labels, one colour bar);
-\code{"presentation"} uses a compact stress layout with large labels and
-full legends for slides. Only visual parameters change — data and
-statistics are identical across presets.}
+\item{style}{\strong{外观轴}（与 \code{view} 正交）：
+\code{"default"} / \code{"journal"} / \code{"cytoscape"} / \code{"presentation"} / \code{"minimal"}。
+只改视觉参数，不改数据与统计口径。为向后兼容仍接受旧名
+\code{"hub30"} / \code{"module"}（会被拆成对应的 \code{view} × \code{style} 组合并给出提示，
+见下方“旧名映射”）。}
+
+\item{view}{\strong{数据/形状轴}（与 \code{style} 正交）：
+\describe{
+\item{\code{"degree"}}{按度数连续着色（默认）}
+\item{\code{"module"}}{按 walktrap 社区着色 —— 看模块结构，而不是单个基因}
+\item{\code{"hub"}}{只留 30 个核心节点并\strong{全部}带标签（摘要图用）}
+}}
 
 \item{palette}{colour scheme key, see \code{\link[=tcm_palette_names]{tcm_palette_names()}}. \code{NULL}
 (default) keeps the ColorBrewer palette named by \code{node.color};
@@ -67,7 +71,7 @@ layout and statistics are identical.}
 
 \item{max_nodes}{node count upper bound. When the network exceeds this,
 the highest-degree nodes (and their edges) are kept via the shared
-\code{tcm_filter_network} pipeline. \code{Inf} disables capping. Note: \code{style = "hub30"} overrides this to 30 by design.}
+\code{tcm_filter_network} pipeline. \code{Inf} disables capping.}
 
 \item{min_degree}{degree floor applied by \code{tcm_filter_network} (default 0
 keeps everything up to \code{max_nodes}; raise to drop low-degree fringe nodes
@@ -83,9 +87,25 @@ network diagrams
 \description{
 Protein-protein interaction analysis
 }
+\section{旧名映射（\code{style} 的向后兼容）}{
+
+旧版把「选哪些节点 / 颜色表什么」（数据轴）与「长什么样」（外观轴）塞进了
+一个 7 值枚举。现已拆成 \code{view} × \code{style} 两个正交轴（3 × 5 = 15 种组合）。
+
+其中 5 个旧名本身就是新的 \code{style} 名，配 \code{view = "degree"} 即旧行为、无需转换：
+\code{"default"} / \code{"journal"} / \code{"cytoscape"} / \code{"presentation"} / \code{"minimal"}。
+只有下面两个旧名跨越了两个轴，会被自动拆分并给出提示：\tabular{lll}{
+   旧 \code{style} \tab 等价于 \tab 与旧行为的差异 \cr
+   \code{"hub30"} \tab \code{view="hub"} + \code{style="presentation"} \tab 30 节点仍全标；\strong{会多出图例}（旧版无）。要无图例可再传 \code{style="journal"} \cr
+   \code{"module"} \tab \code{view="module"} + \code{style="default"} \tab 仍按社区着色；标签数 10 → 8、节点大小范围 2–10 → 1–10 \cr
+}
+}
+
 \examples{
 \dontrun{
 data(ppi_data, package = "tcmnetpharma")
 ppi_plot(ppi_data, label.repel = FALSE)
+ppi_plot(ppi_data, view = "module", style = "journal")
+ppi_plot(ppi_data, view = "hub", style = "presentation")
 }
 }

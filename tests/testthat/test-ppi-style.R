@@ -39,7 +39,10 @@ test_that("七个风格都接受，且输出都是 ggplot/ggraph", {
     p <- suppressMessages(ppi_plot(e, style = st))
     expect_true(inherits(p, "ggplot"), info = st)
   }
-  expect_error(ppi_plot(e, style = "no_such_style"), "should be one of")
+  # 2026-10-26：style 拆成 view × style 两轴后，非法值改由显式校验拦截，
+  # 报错文案从 match.arg 的 "should be one of" 改为中文说明 + 可选值清单
+  # （同时列出旧名 hub30 / module）。
+  expect_error(ppi_plot(e, style = "no_such_style"), "style")
 })
 
 test_that("所有风格的节点数都受 max_nodes 约束（default 也不例外）", {

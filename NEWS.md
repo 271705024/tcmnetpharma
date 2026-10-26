@@ -147,6 +147,49 @@
 - cluster 视图从「标全部簇」改为「只标最大的 8 个簇」：16 个模块全标时小模块的
   质心标签会互相压，小模块仍着色、只是不出名字
 
+### ⚠️ 破坏性变更：`ppi_plot()` 的 7 个 style 拆成 `view` × `style` 两轴
+
+> 旧版把「选哪些节点 / 颜色表什么」（数据轴）与「长什么样」（外观轴）塞进了
+> 一个 7 值枚举：`hub30` 偷偷改 `max_nodes`、`module` 偷偷改 colour 通道，
+> 其余 5 个只改外观。于是「module + 大字号」「hub + 无图例」这类组合无法表达。
+> 现拆成 **`view`（3 档）× `style`（5 档）= 15 种组合**。
+
+#### 修复（P0，此前完全不可用）
+
+- **`ppi_plot()` 只要触发节点裁剪就渲染失败**：`.ppi_cap_nodes()` 调
+  `.tcm_filter_igraph()` 从边表重建图 → 顶点属性 `degree` / `size` 全部丢失 →
+  `aes(size = size)` 报 `object 'size' not found`。
+  `ppi_data` 恰好 72 个节点，只有默认 `max_nodes = 150` 因为**不触发裁剪**而侥幸正常；
+  一旦 `max_nodes < 节点数`（含 `style = "hub30"` 的 30）就 100% 崩溃。
+  修法：`.ppi_cap_nodes()` 改走 `.tcm_net_cap()` 并在裁剪后**重算** degree / size
+- **裁剪后边的 `combined_score` 丢失**：同一路径下 `tcm_filter_network()` 只回传
+  from/to 列，`graph_from_data_frame()` 只能从边表恢复属性 → `E(net)$score` 消失，
+  「边宽按 score」静默退化成固定线宽（图能出，信息没了）。
+  修法：`.tcm_filter_igraph()` 按 (from, to) 无序对把边属性跨重建搬回
+  —— 4 个网络函数的调用方都受益
+- **style 的默认标签数超发**：旧实现用「度数 ≥ 第 N 名的度数」当阈值，
+  PPI 里度数大量打平时同分节点全进来 —— 实测 `cytoscape` 声称 15 实标 18、
+  `presentation` 声称 20 实标 29。改为按**名字集合**取精确 N 个
+
+#### 变更（破坏性）
+
+- 新增 `view`：`"degree"`（按度数连续着色，默认）/ `"module"`（按 walktrap 社区着色）/
+  `"hub"`（只留 30 个核心节点且全标）
+- `style` 收敛为外观轴：`"default"` / `"journal"` / `"cytoscape"` / `"presentation"` /
+  `"minimal"`。旧名 `"hub30"` → `view="hub"` + `style="presentation"`、
+  `"module"` → `view="module"` + `style="default"`，调用时给出等价写法提示
+- `node.size` / `label.size` / `edge.width` / `label.degree` 默认改为 `NULL`
+  （= 由 `view`/`style` 决定）；显式传入则**覆盖**预设。旧版这 4 个参数对
+  非 default 风格是静默无效的
+- `graph.layout` 默认改为 `"auto"`（= 用 style 的推荐布局）。旧版把 `"kk"`
+  既当默认值又当「未指定」的哨兵，导致显式传 `"kk"` 反而被忽略
+- 节点渲染统一为**白描边圆点**（`shape = 21`），`default` 也如此 —— 旧 `default`
+  是实心圆点。这是 2026-10-21 boss 反馈「想接近 Cytoscape」时确认的方向
+- 三份基本同构的绘制代码（`default` 内联 / `rem.dis.inter=TRUE` 内联 /
+  `.ppi_style_plot`）收敛为一份 `.ppi_plot_core()`（铁律 54）
+- `style = "module"` 的标签数 10 → 8、节点大小 2–10 → 1–10；
+  `style = "hub30"` 会多出图例（旧版无）
+
 ### ⚠️ 破坏性变更 + 三个静默错误修复：`venn_net()` 接入网络视觉层
 
 > `venn_net` 此前自带一套绘制代码（三种边几何 = 三份 30 行的重复代码），

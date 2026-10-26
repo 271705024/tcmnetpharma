@@ -160,7 +160,26 @@ tcm_filter_network <- function(links, max_nodes = 150L, min_degree = 1L,
   keep <- match.arg(keep)
   if (!is.finite(max_nodes) || igraph::vcount(net) <= max_nodes) return(net)
   edges <- igraph::as_data_frame(net, what = "edges")
+  # ★ 边属性必须跨重建保留（2026-10-26 实测）：
+  #   `tcm_filter_network()` 只回传 from/to 等结构列（第 64 行 `keep_cols`），
+  #   其余列被丢掉；而 `graph_from_data_frame()` 只能从边表恢复属性 ——
+  #   两件事叠加的后果是「裁剪后边的业务属性全部消失」。
+  #   实测 ppi_plot：72 节点裁到 30 时 `E(net)$score` 消失 →
+  #   `aes(edge_width = score)` 静默退化成固定线宽（图能出，但信息没了）。
+  #   这里按 (from, to) 无序对把属性搬回来。
+  extra <- setdiff(names(edges), c("from", "to"))
   flt <- tcm_filter_network(edges, max_nodes = max_nodes,
                             min_degree = min_degree, keep = keep)
-  igraph::graph_from_data_frame(d = flt$links, directed = FALSE)
+  out <- igraph::graph_from_data_frame(d = flt$links, directed = FALSE)
+  if (length(extra) && igraph::ecount(out) && nrow(edges)) {
+    # 无向图 → 用无序对的键匹配（A→B 与 B→A 视为同一条）
+    pairwise_key <- function(a, b) paste(pmin(a, b), pmax(a, b), sep = "\u0001")
+    oe <- igraph::as_data_frame(out, what = "edges")
+    idx <- match(pairwise_key(oe$from, oe$to),
+                 pairwise_key(edges$from, edges$to))
+    for (a in extra) {
+      out <- igraph::set_edge_attr(out, a, value = edges[[a]][idx])
+    }
+  }
+  out
 }
