@@ -8,7 +8,7 @@
 | 项 | 值 |
 |---|---|
 | 分支 | `main`（已自 `master` 改名） |
-| 提交数 | 74（SHA 已因历史重写而全部更新） |
+| 提交数 | 75（SHA 已因历史重写而全部更新） |
 | tracked 文件体积 | 9.3 MB（约 210 个文件） |
 | `.git` 体积 | 15 MB（重写前 1.1 GB） |
 | 许可证 | GPL-3（`DESCRIPTION` + `LICENSE`） |
@@ -16,29 +16,30 @@
 | 回滚点 | `D:/update new R/backups/TCMNP-main-pre-rewrite-2026-10-22.bundle`（全量历史） |
 | 外置数据文件 | `D:/update new R/backups/tcmnp-inst-extdata-2026-10-22/*.parquet`（19 个，共 183 MB） |
 
-## 1. 在 Gitee 建空仓库
+## 1. 在 Gitee 建空仓库 ✅ 已完成（2026-10-26）
 
-1. 登录 https://gitee.com → 右上角 **+ → 新建仓库**。
-2. 仓库名：`tcmnetpharma`；路径建议 `tcmnetpharma`。
-3. **不要**勾选「初始化 README」「添加 .gitignore」「选择开源许可证」——保持**空仓库**。
-4. 创建后，仓库默认分支设为 `main`（设置 → 仓库信息 → 默认分支）。
-5. 复制仓库 HTTPS 地址，形如 `https://gitee.com/<你的账号>/tcmnetpharma.git`。
+- 仓库地址：`https://gitee.com/ZJX261/tcmnetpharma`（账号 `ZJX261`）
+- 已建为**空仓库**（未初始化 README/.gitignore/许可证，避免推本地 75 提交时 non-fast-forward）。
 
-## 2. 本机 push 到 Gitee（凭证由你手动输入）
+## 2. 本机 push 到 Gitee ✅ 已完成（2026-10-26，SSH 免密）
+
+- 已生成本机 SSH 密钥（`~/.ssh/id_ed25519`），公钥已加入 Gitee。
+- remote 已设为 SSH：`git@gitee.com:ZJX261/tcmnetpharma.git`
+- 已推送 `main`（`git push -u gitee main`），75 个提交全部上链，0 parquet 入库，`.git` 15 MB。
 
 ```bash
 cd "D:/update new R/TCMNP-main"
 
-# 添加远程（把 URL 换成第 1 步复制的地址）
-git remote add gitee https://gitee.com/<你的账号>/tcmnetpharma.git
+# 已配置好的 remote（SSH）
+git remote -v
+# gitee   git@gitee.com:ZJX261/tcmnetpharma.git (fetch/push)
 
-# 推送 main 分支（-u 建立跟踪）
-git push -u gitee main
+# 后续增量推送只需：
+git push gitee main
 ```
 
-- 推送时会要求输入 Gitee 账号/密码（或已配置 SSH key 则免密）。
+- 改用 SSH 的原因：HTTPS 推报 `Incorrect username or password`，本机无凭证助手；SSH 一次性配置、免密、对不稳网络更稳。
 - 仓库仅 9.3 MB，国内网络下几秒完成；即便校园网抖动也无碍。
-- 推荐改用 SSH：在 Gitee 添加本机公钥后，用 `git@gitee.com:<账号>/tcmnetpharma.git` 作 remote，免输密码、更稳。
 
 ## 3. Gitee 自动镜像到 GitHub（跨境同步交给 Gitee 服务器）
 
