@@ -279,6 +279,24 @@ ppi_plot <- function(data,
 # 旧实现有三份基本同构的绘制代码（`default` 内联一份、`rem.dis.inter=TRUE`
 # 内联又一份、`.ppi_style_plot` 一份）—— 改一处必漏两处（铁律 54）。
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 渲染核心：**薄适配器**（2026-10-26 第二轮）
+#
+# 第一轮把 ppi_plot 内部三份同构绘制代码收敛成一份 `.ppi_plot_core()`，
+# 但它仍是**独立渲染器**：`net-style-layer.R` 里还有另一份。两套渲染器的
+# 代价是真实的 —— 上一轮修的 `niter` 写死、`label.size` 静默失效、图例档位
+# 失效，都是「同一个坑要在两个地方各修一次」。
+#
+# 本轮给共享层补了三项能力，ppi 不再需要自己的渲染器：
+#   ① `node_style = "ringed"`（fill + 白描边，Cytoscape 观感）
+#   ② `edge_width_by`（按边属性定宽 —— PPI 的 combined_score 是真实统计量）
+#   ③ `colour_by = "degree"`（连续 degree 作为 colour/fill 通道）
+# 外加 `label_top` / `legend` / `niter` / `palette_colours` 四个外观旋钮，
+# 让「ppi 的 style 表」仍由 ppi 自己拥有，共享层只负责画。
+#
+# 语义归属：ppi 的 5 个 style 名与它们的 layout/niter/size/edge/label/legend
+# **仍然只此一份**（`.ppi_style_presets()`），共享层不认识 ppi 的档位名。
+# ---------------------------------------------------------------------------
 .ppi_plot_core <- function(net, view, style, node.size, label.size,
                            label.degree, label.repel, edge.color, edge.width,
                            graph.layout, node_base, palette) {
@@ -286,143 +304,65 @@ ppi_plot <- function(data,
   pres <- .ppi_style_presets()[[style]]
   if (is.null(pres)) pres <- .ppi_style_presets()[["default"]]
 
-  # 用户显式给的外观参数优先于 style 预设
+  # 用户显式给的外观参数优先于 style 预设（旧版对非 default 风格静默无效）
   size_range <- if (is.null(node.size)) pres$size_range else node.size
   lab_size <- if (is.null(label.size)) pres$label_size else label.size
   ew <- if (is.null(edge.width)) pres$edge_width else edge.width
 
-  # ---- 着色通道（由 view 决定，只此一个通道）-----------------------------
-  if (identical(vp$colour, "module")) {
-    igraph::V(net)$module <- factor(
-      igraph::membership(igraph::cluster_walktrap(net))
-    )
-    n_mod <- nlevels(igraph::V(net)$module)
-    fill_aes <- ggplot2::aes(fill = module, size = size)
-    fill_scale <- if (is.null(palette)) {
-      ggplot2::scale_fill_brewer(palette = "Set2", name = "module")
-    } else {
-      ggplot2::scale_fill_manual(
-        values = tcm_palette(palette, max(2L, n_mod)), name = "module"
-      )
-    }
-  } else {
-    fill_aes <- ggplot2::aes(fill = degree, size = size)
-    fill_scale <- ggplot2::scale_fill_gradientn(
-      colours = node_base, name = "degree"
-    )
-  }
-
-  # ---- 布局（固定种子，可复现）-----------------------------------------
-  lay <- if (identical(graph.layout, "auto")) pres$layout else graph.layout
-  old_seed <- if (exists(".Random.seed", envir = globalenv())) {
-    get(".Random.seed", envir = globalenv())
-  } else {
-    NULL
-  }
-  set.seed(20261021L)
-  on.exit({
-    if (is.null(old_seed)) {
-      if (exists(".Random.seed", envir = globalenv())) {
-        rm(".Random.seed", envir = globalenv())
-      }
-    } else {
-      assign(".Random.seed", old_seed, envir = globalenv())
-    }
-  }, add = TRUE)
-  # ⚠️ niter 只对力导向布局有意义（fr / graphopt）。写死会废掉 kk/circle/grid
-  #    等布局（2026-10-25 实测 10 种布局仅 fr / graphopt 通过）。
-  lay_obj <- if (!is.null(pres$niter) && identical(lay, "fr")) {
-    ggraph::create_layout(net, layout = lay, niter = pres$niter)
-  } else {
-    ggraph::create_layout(net, layout = lay)
-  }
-
-  # ---- 标签策略 ---------------------------------------------------------
-  # 优先级：显式绝对阈值 > view 的「全标」> style 的默认条数
-  # ⚠️ 「前 N 个」必须按**名字集合**取，不能按度数阈值取：度数打平时
-  #    （PPI 里大量节点 degree 相同）阈值会把同分节点全放进来（铁律 97）。
-  deg <- igraph::V(net)$degree
-  vname <- igraph::V(net)$name
-  # 优先级（从高到低）：style 显式「0 条」> 显式绝对阈值 > view 的全标 > style 默认条数。
-  # 「0 条」必须最高：`minimal` 的语义就是"不要标签"，不该被 view=hub 的全标推翻。
-  lab_layer <- if (identical(as.integer(pres$n_label), 0L) &&
-                  is.null(label.degree)) {
-    NULL
-  } else if (!is.null(label.degree) && length(label.degree) &&
-             is.finite(as.numeric(label.degree)[1L])) {
-    ggraph::geom_node_label(
-      ggplot2::aes(filter = degree >= as.numeric(label.degree)[1L],
-                   label = .tcm_net_trunc(name)),
-      size = lab_size, repel = isTRUE(label.repel),
-      linewidth = 0.12, label.padding = ggplot2::unit(0.10, "lines"),
-      fill = "white", colour = "grey15", alpha = 0.92
-    )
+  # ---- 标签条数 -----------------------------------------------------------
+  # 优先级：**style 的 0 条** > 显式 `label_degree` > view 全标 > style 的 N。
+  # ⚠️ 「0 条」必须最高：`minimal` 的语义就是"不要标签"，不该被 `view="hub"`
+  #    的全标推翻（2026-10-26 第一轮已定，合并进共享层时差点丢掉）。
+  #    `label_degree` 由共享层内部判优先级（阈值最高），这里不用管。
+  lab_top <- if (identical(as.integer(pres$n_label), 0L)) {
+    0
   } else if (isTRUE(vp$label_all)) {
-    ggraph::geom_node_label(
-      ggplot2::aes(label = .tcm_net_trunc(name)),
-      size = lab_size, repel = isTRUE(label.repel),
-      linewidth = 0.12, label.padding = ggplot2::unit(0.10, "lines"),
-      fill = "white", colour = "grey15", alpha = 0.92
-    )
+    Inf
   } else {
-    n_lab <- max(1L, min(as.integer(pres$n_label), length(deg)))
-    ord <- order(-as.numeric(deg), vname)
-    keep_names <- vname[ord[seq_len(n_lab)]]
-    ggraph::geom_node_label(
-      ggplot2::aes(filter = name %in% keep_names,
-                   label = .tcm_net_trunc(name)),
-      size = lab_size, repel = isTRUE(label.repel),
-      linewidth = 0.12, label.padding = ggplot2::unit(0.10, "lines"),
-      fill = "white", colour = "grey15", alpha = 0.92
-    )
+    as.numeric(pres$n_label)
   }
 
-  # ---- 边：单层，宽度按 score（有分数时）--------------------------------
-  # 边宽兜底：边表若没有 combined_score（或全 NA），`aes(edge_width = score)`
-  # 会映射成 NA → **整片边消失**，只剩一堆散点。没有分数就用固定线宽。
+  # ---- 边宽：有 score 就按 score 映射，否则固定线宽 ------------------------
   has_score <- !is.null(igraph::E(net)$score) &&
     any(!is.na(igraph::E(net)$score))
-  edge_layer <- if (has_score) {
-    ggraph::geom_edge_link(
-      ggplot2::aes(edge_width = score),
-      colour = edge.color, alpha = pres$edge_alpha, show.legend = FALSE
-    )
-  } else {
-    ggraph::geom_edge_link(
-      colour = edge.color, alpha = pres$edge_alpha, linewidth = 0.45,
-      show.legend = FALSE
-    )
+
+  # ---- 名义色板：ppi 的 module 视图沿用 ColorBrewer Set2 -------------------
+  mod_colours <- NULL
+  if (identical(vp$colour, "module")) {
+    n_mod <- nlevels(factor(igraph::membership(
+      igraph::cluster_walktrap(net)
+    )))
+    mod_colours <- if (is.null(palette)) {
+      RColorBrewer::brewer.pal(8, "Set2")
+    } else {
+      suppressMessages(tcm_palette(palette, max(2L, n_mod), "discrete"))
+    }
   }
 
-  show_node_lg <- !identical(pres$legend, "none")
-  p <- ggraph::ggraph(lay_obj) +
-    edge_layer +
-    ggraph::geom_node_point(
-      fill_aes, shape = 21, colour = "white", stroke = pres$stroke,
-      show.legend = show_node_lg
-    ) +
-    fill_scale +
-    ggplot2::scale_size(
-      range = size_range, name = "degree",
-      guide = if (identical(pres$legend, "all")) "legend" else "none"
-    ) +
-    ggraph::scale_edge_width(range = ew, guide = "none") +
-    lab_layer +
-    ggplot2::coord_fixed() +
-    ggraph::theme_graph(background = "white", base_family = "sans") +
-    ggplot2::theme(
-      legend.position = if (identical(pres$legend, "none")) "none" else "right",
-      legend.key.size = ggplot2::unit(0.9, "lines"),
-      plot.margin = ggplot2::margin(4, 4, 4, 4)
-    )
+  # 布局："auto" = 用 style 的推荐布局；只有力导向布局才带 niter
+  # （共享层会按报错文本回退，但能提前判掉就不该让它报一次错）
+  lay <- if (identical(graph.layout, "auto")) pres$layout else graph.layout
+  nit <- if (identical(lay, "fr")) pres$niter else NULL
 
-  if (identical(pres$legend, "degree") && !identical(vp$colour, "module")) {
-    p <- p + ggplot2::guides(fill = ggplot2::guide_colourbar(
-      barheight = ggplot2::unit(3.2, "lines"),
-      barwidth = ggplot2::unit(0.6, "lines")
-    ))
-  }
-  p
+  .tcm_net_plot(
+    net, view = "overview", style = "default",
+    node.size = size_range, label.size = lab_size,
+    graph.layout = lay,
+    node_base = node_base,
+    label_degree = label.degree, label_repel = label.repel,
+    label_top = lab_top,
+    colour_by = vp$colour,
+    palette_colours = mod_colours,
+    node_style = "ringed", node_stroke = pres$stroke,
+    edge_color = edge.color,
+    edge_width_by = if (has_score) "score" else NULL,
+    edge_width_range = ew,
+    edge_alpha = pres$edge_alpha,
+    edge_lw = if (has_score) NULL else 0.45,
+    legend = if (identical(pres$legend, "none")) "none" else
+      if (identical(pres$legend, "all")) "all" else "auto",
+    niter = nit
+  )
 }
 
 

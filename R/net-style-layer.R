@@ -187,7 +187,8 @@
 #' @param colour_by 边属性名；非 NULL 时按它给边上色**并出图例**
 #' @noRd
 .tcm_edge_layer <- function(edge_geom = "link", sp, edge_color = "lightgrey",
-                            net = NULL, colour_by = NULL) {
+                            net = NULL, colour_by = NULL,
+                            width_by = NULL, width_range = c(0.2, 2)) {
   edge_geom <- match.arg(edge_geom, c("link", "arc", "fan", "hive"))
   fn <- switch(edge_geom,
     link = ggraph::geom_edge_link,
@@ -196,15 +197,40 @@
     hive = ggraph::geom_edge_hive
   )
 
+  # ---- 宽度通道：默认固定线宽；给了 width_by 就按边属性映射 ----
+  # ⚠️ 固定宽度必须用 `linewidth`，映射宽度必须走 `aes(edge_width =)`；
+  #    两者混用会得到一个「有图例但没有标度」的假通道。
+  # 只在映射时补标度；色标由调用方另行添加（edge_scale）。
+  # ⚠️ 返回 `list(layer, scale)` 是安全的：ggplot2 的 `+.gg` 会展开列表。
+  w_scale <- if (is.null(width_by)) {
+    NULL
+  } else {
+    ggraph::scale_edge_width(range = width_range, guide = "none")
+  }
+
   if (is.null(colour_by)) {
-    return(fn(colour = edge_color, alpha = sp$edge_alpha,
-              linewidth = sp$edge_lw, show.legend = FALSE))
+    if (is.null(width_by)) {
+      return(fn(colour = edge_color, alpha = sp$edge_alpha,
+                linewidth = sp$edge_lw, show.legend = FALSE))
+    }
+    return(list(
+      fn(ggplot2::aes(edge_width = !!rlang::sym(width_by)),
+         colour = edge_color, alpha = sp$edge_alpha, show.legend = FALSE),
+      w_scale
+    ))
   }
   # ⚠️ 用 `!!rlang::sym()` 而不是 `.data[[colour_by]]`：与本文件节点图层同一理由
-  #    （`.data[[x]]` 会把图例标题渲染成表达式文本）。`do.call` 已无必要——
-  #    mapping 在这里就构造好，直接位置参数传入。
-  fn(ggplot2::aes(edge_colour = !!rlang::sym(colour_by)),
-     alpha = sp$edge_alpha, linewidth = sp$edge_lw)
+  #    （`.data[[x]]` 会把图例标题渲染成表达式文本）。
+  if (is.null(width_by)) {
+    return(fn(ggplot2::aes(edge_colour = !!rlang::sym(colour_by)),
+              alpha = sp$edge_alpha, linewidth = sp$edge_lw))
+  }
+  list(
+    fn(ggplot2::aes(edge_colour = !!rlang::sym(colour_by),
+                    edge_width = !!rlang::sym(width_by)),
+       alpha = sp$edge_alpha),
+    w_scale
+  )
 }
 
 #' 把连续 degree 离散分档（用于 hub 视图的 colour 通道）
@@ -310,10 +336,23 @@
                           edge_geom = "link", edge_colour_by = NULL,
                           edge_palette = NULL,
                           edge_alpha = NULL, edge_lw = NULL,
+                          node_style = c("solid", "ringed"), node_stroke = 0.5,
+                          edge_width_by = NULL,
+                          edge_width_range = c(0.2, 2),
+                          colour_by = NULL, label_top = NULL,
+                          legend = c("auto", "none", "all"),
+                          palette_colours = NULL, niter = NULL,
                           seed = 20261024L) {
+  node_style <- match.arg(node_style)
+  legend <- match.arg(legend)
   vp <- .tcm_net_view_presets()[[view]]
   sp <- .tcm_net_style_presets()[[style]]
   if (is.null(sp)) sp <- .tcm_net_style_presets()[["default"]]
+  # ---- 调用方覆盖 view 预设的两个字段 -----------------------------------
+  # ppi_plot 自带一套 style 表（它有自己的 layout / size 范围 / 图例档位），
+  # 需要在不新造 view 预设的前提下指定「颜色表什么」与「标几条」。
+  if (!is.null(colour_by)) vp$colour <- colour_by
+  if (!is.null(label_top)) vp$label_top <- label_top
   # 显式覆盖优先于 style 预设：旧调用方（venn_net）有 edge.alpha / edge.width
   # 参数，语义是「直接调这一个值」，不是「选档位」。
   if (!is.null(edge_alpha)) sp$edge_alpha <- as.numeric(edge_alpha)[1L]
@@ -337,9 +376,17 @@
   if (identical(vp$colour, "degree_bin")) {
     igraph::V(net)$degree_bin <- .tcm_degree_bins(igraph::V(net)$degree)
   }
+  # ⚠️ `switch()` 无匹配时**静默返回 NULL**（不是报错）：漏一个档位会让
+  #    `ccol` 变成 NULL，随后 `!ccol %in% ...` 报出难以理解的错误。
+  #    这里显式列出四档并加守卫（2026-10-26 加 degree 时踩到）。
   ccol <- switch(vp$colour,
-    class = "class", module = "module", degree_bin = "degree_bin"
+    class = "class", module = "module", degree_bin = "degree_bin",
+    degree = "degree"
   )
+  if (is.null(ccol)) {
+    stop(sprintf("\u672a\u77e5\u7684 colour \u901a\u9053\uff1a%s\uff08\u53ef\u7528\uff1aclass / module / degree_bin / degree\uff09",
+                 as.character(vp$colour)), call. = FALSE)
+  }
   if (!ccol %in% igraph::vertex_attr_names(net)) {
     # 数据没给 class（如 ppi_plot 的单类型网络）时退回 degree 分档，
     # 保证 colour 通道永远有可用信息（而不是画成单色却留个空图例）。
@@ -352,7 +399,8 @@
   n_lv <- length(lv)
   # 图例标题用**人能读的语义名**，而不是内部列名
   lg_name <- switch(ccol,
-    class = "type", module = "module", degree_bin = "degree", ccol
+    class = "type", module = "module",
+    degree_bin = "degree", degree = "degree", ccol
   )
 
   # ---- 布局（固定种子，可复现）----
@@ -374,8 +422,10 @@
   #    而 nicely / circle / lgl / mds / tree / star / grid 会报 "unused argument"
   #    （2026-10-25 实测 10 种布局：仅 fr / graphopt 通过）。
   #    这里按**报错文本**精确回退，不用宽泛的 tryCatch 吞掉真错误。
+  # `niter` 可由调用方指定（ppi_plot 的 style 表带自己的迭代数）；默认沿用 3000
+  niter_use <- if (is.null(niter)) 3000L else as.integer(niter)[1L]
   lay_obj <- tryCatch(
-    ggraph::create_layout(net, layout = lay, niter = 3000L),
+    ggraph::create_layout(net, layout = lay, niter = niter_use),
     error = function(e) {
       if (!grepl("niter", conditionMessage(e), fixed = TRUE)) stop(e)
       ggraph::create_layout(net, layout = lay)
@@ -387,17 +437,30 @@
   #   只有 `degree_bin` 是有序分档才用顺序色阶。旧实现在 cluster 视图上把
   #   module 画成 RdBu 红→蓝渐变，读者会本能地在模块之间找「大小关系」——
   #   而那是个假信息（类别编号不代表大小）。
+  # ⚠️ `node_style = "ringed"` 用 **fill** 上色（shape 21 才有填充），
+  #    "solid" 用 colour（shape 19 只有描边色）。标度函数必须跟着换 ——
+  #    写 `scale_colour_*` 配 fill 映射的结果是「节点全灰、图例空白」。
+  sc_fun <- if (identical(node_style, "ringed")) {
+    list(manual = ggplot2::scale_fill_manual,
+         grad = ggplot2::scale_fill_gradientn)
+  } else {
+    list(manual = ggplot2::scale_colour_manual,
+         grad = ggplot2::scale_colour_gradientn)
+  }
   col_scale <- if (is_disc) {
-    vals <- if (identical(ccol, "degree_bin")) {
+    vals <- if (!is.null(palette_colours)) {
+      # 调用方给显式色板（ppi 的 module 视图沿用 ColorBrewer Set2）
+      rep_len(as.character(palette_colours), n_lv)
+    } else if (identical(ccol, "degree_bin")) {
       grDevices::colorRampPalette(node_base)(max(2L, n_lv))
     } else if (!is.null(palette)) {
       suppressMessages(tcm_palette(palette, n_lv, "discrete"))
     } else {
       suppressMessages(tcm_palette("npg", n_lv, "discrete"))
     }
-    ggplot2::scale_colour_manual(values = stats::setNames(vals, lv), name = lg_name)
+    sc_fun$manual(values = stats::setNames(vals, lv), name = lg_name)
   } else {
-    ggplot2::scale_colour_gradientn(colours = node_base, name = lg_name)
+    sc_fun$grad(colours = node_base, name = lg_name)
   }
 
   # ---- 边色标（只在显式指定「按某条边属性着色」时才生成）------------------
@@ -468,16 +531,47 @@
                    is.finite(as.numeric(label_degree)[1L])) {
     .lab_layer(thr = as.numeric(label_degree)[1L])
   } else if (identical(vp$label_mode, "top")) {
-    n_lab <- max(1L, min(as.integer(vp$label_top), length(deg)))
-    ord <- order(-as.numeric(deg), vname)          # 同分时按名字，保证可复现
-    # `label_extra`：必须**始终**带标签的节点名（二分图里就是所有 source 节点 ——
-    # 它们是图的锚，被 top-N 挤掉后整张图读不出「基因属于哪个来源」）。
-    keep <- union(vname[ord[seq_len(n_lab)]], as.character(label_extra))
-    .lab_layer(keep_names = keep)
+    # 调用方可以把 label_top 覆盖成 Inf（全标）或 <= 0（不标）——
+    # `as.integer(Inf)` 会得到 NA 并在 `seq_len()` 处炸，这里先归一化。
+    # ⚠️ 这里**不能写 `return(NULL)`**：这段代码在 `.tcm_net_plot` 的函数体里，
+    #    `return()` 会结束整个函数（图变成 NULL），2026-10-26 差点这样写。
+    lt <- suppressWarnings(as.numeric(vp$label_top)[1L])
+    if (is.null(vp$label_top) || is.na(lt) || lt <= 0) {
+      NULL
+    } else {
+      n_lab <- if (is.finite(lt)) {
+        max(1L, min(as.integer(lt), length(deg)))
+      } else {
+        length(deg)
+      }
+      ord <- order(-as.numeric(deg), vname)        # 同分时按名字，保证可复现
+      # `label_extra`：必须**始终**带标签的节点名（二分图里就是所有 source 节点 ——
+      # 它们是图的锚，被 top-N 挤掉后整张图读不出「基因属于哪个来源」）。
+      keep <- union(vname[ord[seq_len(n_lab)]], as.character(label_extra))
+      .lab_layer(keep_names = keep)
+    }
   } else if (identical(vp$label_mode, "all")) {
     .lab_layer(NULL)
   } else {
     NULL  # cluster 视图另走 annotate（簇名画在质心）
+  }
+
+  # ---- 节点层：实心 or 白描边 ------------------------------------------
+  # ⚠️ 用 `!!rlang::sym(ccol)` 而不是 `.data[[ccol]]`：后者会把图例标题
+  #    渲染成 ".data[[ccol]]" 这种表达式文本（因为 aes 的 label 取的是
+  #    未求值的表达式）。sym 注入后标题就是真实列名。
+  node_layer <- if (identical(node_style, "ringed")) {
+    # shape 21 = 有填充的圆：fill 上色 + 白色描边（Cytoscape 观感）
+    ggraph::geom_node_point(
+      ggplot2::aes(fill = !!rlang::sym(ccol), size = degree),
+      shape = 21, colour = "white", stroke = node_stroke,
+      show.legend = !identical(legend, "none")
+    )
+  } else {
+    ggraph::geom_node_point(
+      ggplot2::aes(colour = !!rlang::sym(ccol), size = degree),
+      alpha = 1, show.legend = !identical(legend, "none")
+    )
   }
 
   p <- ggraph::ggraph(lay_obj) +
@@ -485,22 +579,21 @@
     #   避免「同一批边画两遍」糊成一团（旧 default 的双绘边）。
     #   `edge_geom` 只改**形状**（直线/弧/扇形/hive），不改编码语义。
     .tcm_edge_layer(edge_geom, sp, edge_color,
-                    net = net, colour_by = edge_colour_by) +
-    ggraph::geom_node_point(
-      # ⚠️ 用 `!!rlang::sym(ccol)` 而不是 `.data[[ccol]]`：后者会把图例标题
-      #    渲染成 ".data[[ccol]]" 这种表达式文本（因为 aes 的 label 取的是
-      #    未求值的表达式）。sym 注入后标题就是真实列名（class / module /
-      #    degree 分档），且不会因为中文而崩。
-      ggplot2::aes(size = degree, colour = !!rlang::sym(ccol)), alpha = 1
-    ) +
+                    net = net, colour_by = edge_colour_by,
+                    width_by = edge_width_by,
+                    width_range = edge_width_range) +
+    node_layer +
     col_scale +
     edge_scale +
-    ggplot2::scale_size(range = node.size, name = "degree", guide = "none") +
+    ggplot2::scale_size(
+      range = node.size, name = "degree",
+      guide = if (identical(legend, "all")) "legend" else "none"
+    ) +
     lab_layer +
     ggplot2::coord_fixed() +
     ggraph::theme_graph(background = "white", base_family = "sans") +
     ggplot2::theme(
-      legend.position = "right",
+      legend.position = if (identical(legend, "none")) "none" else "right",
       legend.key.size = ggplot2::unit(0.9, "lines"),
       plot.margin = ggplot2::margin(4, 4, 4, 4)
     )

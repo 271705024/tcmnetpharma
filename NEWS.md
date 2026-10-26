@@ -147,6 +147,26 @@
 - cluster 视图从「标全部簇」改为「只标最大的 8 个簇」：16 个模块全标时小模块的
   质心标签会互相压，小模块仍着色、只是不出名字
 
+### 重构：`ppi_plot()` 并入共享网络视觉层（不再自带渲染器）
+
+> 上一节把 `ppi_plot` 的 style 拆成了两轴，但它仍保留自己的渲染核心
+> `.ppi_plot_core()`，而 `net-style-layer.R` 里还有一份 `.tcm_net_plot()`。
+> **两套渲染器的代价是已经在付的** —— `niter` 写死、`label.size` 静默失效、
+> 图例档位失效，本质上都是「同一个坑要在两处各修一次」。
+> 本轮给共享层补齐三项能力后，`ppi_plot` 变成薄适配器。
+
+- 共享层（`.tcm_net_plot()`，内部函数）新增 9 个旋钮，默认值**全部等于老行为**：
+  `node_style`（`"solid"` / `"ringed"` 白描边）、`node_stroke`、`edge_width_by`、
+  `edge_width_range`、`colour_by`（新增连续 `"degree"` 通道）、`label_top`
+  （`Inf` 全标 / `<= 0` 不标）、`legend`（`"auto"` / `"none"` / `"all"`）、
+  `niter`、`palette_colours`
+- `ppi_plot()` 不再包含任何 ggplot 图层代码；它的 5 个 style 名仍由自己的
+  `.ppi_style_presets()` 拥有（共享层不认识 ppi 的档位名）
+- 对外行为**逐项不变**：旧 7 个 style 名 + 新 15 种组合的节点数 / 标签数 /
+  图例数 / size 范围 / 边宽范围与合并前完全一致
+- 共享层顺带修掉两处：colour 通道的 `switch()` 补全四档并加守卫（无匹配时
+  `switch` **静默返回 NULL**）；`label_top = Inf` 不再因 `as.integer(Inf)` 得到 NA 而崩
+
 ### ⚠️ 破坏性变更：`ppi_plot()` 的 7 个 style 拆成 `view` × `style` 两轴
 
 > 旧版把「选哪些节点 / 颜色表什么」（数据轴）与「长什么样」（外观轴）塞进了
