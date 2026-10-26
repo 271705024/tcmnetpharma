@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# TCMNP 外部化数据拉取脚本
+# tcmnetpharma 外部化数据拉取脚本
 # ---------------------------------------------------------------------------
 # 背景：inst/extdata/*.parquet（19 个运行时数据文件，共 ~183 MB）按 1b 决策
 #       已从 git 历史中移除、不入库。数据通过 GitHub Releases 或 Zenodo(DOI)
@@ -7,7 +7,7 @@
 #
 # 用法：
 #   Rscript tools/fetch-data.R <BASE_URL>
-#   或先 export TCMNP_DATA_URL=<BASE_URL> 再 Rscript tools/fetch-data.R
+#   或先 export TCMNETPHARMA_DATA_URL=<BASE_URL> 再 Rscript tools/fetch-data.R
 # 其中 <BASE_URL> 是包含这 19 个 *.parquet 的目录 URL，例如：
 #   https://github.com/<owner>/<repo>/releases/download/data-v1
 #   https://zenodo.org/records/<id>/files
@@ -17,13 +17,13 @@
 # ---------------------------------------------------------------------------
 
 args <- commandArgs(trailingOnly = TRUE)
-data_url <- Sys.getenv("TCMNP_DATA_URL", unset = "")
+data_url <- Sys.getenv("TCMNETPHARMA_DATA_URL", unset = "")
 if (length(args) >= 1) data_url <- args[1]
 if (data_url == "") {
   stop(
     "未指定数据基础 URL。请二选一：\n",
     "  1) Rscript tools/fetch-data.R <BASE_URL>\n",
-    "  2) 设置环境变量 TCMNP_DATA_URL 后运行 Rscript tools/fetch-data.R\n",
+    "  2) 设置环境变量 TCMNETPHARMA_DATA_URL 后运行 Rscript tools/fetch-data.R\n",
     "BASE_URL 是包含 19 个 *.parquet 的目录地址（GitHub Release / Zenodo）。"
   )
 }

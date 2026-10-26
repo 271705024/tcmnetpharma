@@ -1,4 +1,4 @@
-# TCMNP 发布交接手册（GitHub 上传 · 不稳定网络方案）
+# tcmnetpharma 发布交接手册（GitHub 上传 · 不稳定网络方案）
 
 > 决策：**1b 数据外置 + A Gitee 桥接**。本机只 push 到 Gitee（国内快稳），
 > 由 Gitee 的「仓库镜像管理」自动跨境同步到 GitHub，彻底绕开校园网不稳。
@@ -8,9 +8,9 @@
 | 项 | 值 |
 |---|---|
 | 分支 | `main`（已自 `master` 改名） |
-| 提交数 | 53（SHA 已因历史重写而全部更新） |
-| tracked 文件体积 | 9.3 MB |
-| `.git` 体积 | 14 MB（重写前 1.1 GB） |
+| 提交数 | 74（SHA 已因历史重写而全部更新） |
+| tracked 文件体积 | 9.3 MB（约 210 个文件） |
+| `.git` 体积 | 15 MB（重写前 1.1 GB） |
 | 许可证 | GPL-3（`DESCRIPTION` + `LICENSE`） |
 | 数据外置 | `inst/extdata/*.parquet` 已移出 git，改由 `tools/fetch-data.R` 拉取 |
 | 回滚点 | `D:/update new R/backups/TCMNP-main-pre-rewrite-2026-10-22.bundle`（全量历史） |
@@ -19,10 +19,10 @@
 ## 1. 在 Gitee 建空仓库
 
 1. 登录 https://gitee.com → 右上角 **+ → 新建仓库**。
-2. 仓库名：`TCMNP`；路径建议 `tcmnp`。
+2. 仓库名：`tcmnetpharma`；路径建议 `tcmnetpharma`。
 3. **不要**勾选「初始化 README」「添加 .gitignore」「选择开源许可证」——保持**空仓库**。
 4. 创建后，仓库默认分支设为 `main`（设置 → 仓库信息 → 默认分支）。
-5. 复制仓库 HTTPS 地址，形如 `https://gitee.com/<你的账号>/TCMNP.git`。
+5. 复制仓库 HTTPS 地址，形如 `https://gitee.com/<你的账号>/tcmnetpharma.git`。
 
 ## 2. 本机 push 到 Gitee（凭证由你手动输入）
 
@@ -30,7 +30,7 @@
 cd "D:/update new R/TCMNP-main"
 
 # 添加远程（把 URL 换成第 1 步复制的地址）
-git remote add gitee https://gitee.com/<你的账号>/TCMNP.git
+git remote add gitee https://gitee.com/<你的账号>/tcmnetpharma.git
 
 # 推送 main 分支（-u 建立跟踪）
 git push -u gitee main
@@ -38,14 +38,14 @@ git push -u gitee main
 
 - 推送时会要求输入 Gitee 账号/密码（或已配置 SSH key 则免密）。
 - 仓库仅 9.3 MB，国内网络下几秒完成；即便校园网抖动也无碍。
-- 推荐改用 SSH：在 Gitee 添加本机公钥后，用 `git@gitee.com:<账号>/TCMNP.git` 作 remote，免输密码、更稳。
+- 推荐改用 SSH：在 Gitee 添加本机公钥后，用 `git@gitee.com:<账号>/tcmnetpharma.git` 作 remote，免输密码、更稳。
 
 ## 3. Gitee 自动镜像到 GitHub（跨境同步交给 Gitee 服务器）
 
-1. 先在 https://github.com → New repository 建同名空仓库 `TCMNP`（默认分支也设 `main`，空仓库）。
+1. 先在 https://github.com → New repository 建空仓库 `tcmnetpharma`（默认分支也设 `main`，空仓库）。
 2. 回到 Gitee 仓库：**管理 → 仓库镜像管理 → 镜像推送到 GitHub**。
 3. 填写：
-   - 目标仓库地址：`https://github.com/<你的GitHub账号>/TCMNP.git`
+   - 目标仓库地址：`https://github.com/<你的GitHub账号>/tcmnetpharma.git`
    - 私人令牌：GitHub 生成的 **PAT**（勾 `repo` 权限）
 4. 开启「自动同步」并**立即同步一次**。
 5. 此后本机只要 `git push gitee main`，Gitee 会自动把更新推到 GitHub。
@@ -63,12 +63,12 @@ git push -u gitee main
 
 **方案 B（便捷）：GitHub Release**
 - 在 GitHub 仓库建 Release，tag `data-v1`，上传那 19 个 parquet。
-- 基础 URL 形如 `https://github.com/<账号>/TCMNP/releases/download/data-v1`。
+- 基础 URL 形如 `https://github.com/<账号>/tcmnetpharma/releases/download/data-v1`。
 - 可用 CLI 续传上传：`gh release upload data-v1 backups/tcmnp-inst-extdata-2026-10-22/*.parquet`
 
 **本地构建/测试前拉取数据：**
 ```bash
-export TCMNP_DATA_URL="<上面的基础 URL>"
+export TCMNETPHARMA_DATA_URL="<上面的基础 URL>"
 Rscript tools/fetch-data.R      # 或 Rscript tools/fetch-data.R <URL>
 ```
 `fetch-data.R` 优先用 `curl -C -` 断点续传，适配不稳定网络。
@@ -81,9 +81,9 @@ Rscript tools/fetch-data.R      # 或 Rscript tools/fetch-data.R <URL>
 
 ```bash
 # 本机生成单文件
-git bundle create tcmnp.bundle --all
+git bundle create tcmnetpharma.bundle --all
 # 稳网机器上：
-git clone tcmnp.bundle TCMNP && cd TCMNP
+git clone tcmnetpharma.bundle tcmnetpharma && cd tcmnetpharma
 git remote add origin <github-or-gitee url>
 git push -u origin main
 ```
@@ -93,7 +93,7 @@ git push -u origin main
 若历史重写后发现问题，可从 bundle 整体恢复：
 ```bash
 cd "D:/update new R"
-git clone backups/TCMNP-main-pre-rewrite-2026-10-22.bundle TCMNP-rollback
+git clone backups/TCMNP-main-pre-rewrite-2026-10-22.bundle tcmnetpharma-rollback
 ```
 （bundle 含重写前全部 55 个提交，可逐文件取回。）
 

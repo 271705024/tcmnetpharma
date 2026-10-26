@@ -357,7 +357,7 @@
 - **`go_barplot(top = )` 的口径**：`top` 是「**每个本体**各取 top 条」，不是全局 top。因为入选前先按 `ONTOLOGY`（BP/CC/MF）分组再切片，`top = 8` 最多给出 `8 × 3 = 24` 条（某本体显著条目不足时更少）。原文档只写 "the number of categories to show"，易被读成全局条数 → 已补明，并加断言锁定（`test-style-presets.R`），防止未来被"顺手改成全局 top"。
 
 
-## TCMNP 0.2.0（数据修订 2026-10-21，数据版本 TCMNP_1.3.0_2026-10-21）
+## tcmnetpharma 0.2.0（数据修订 2026-10-21，数据版本 TCMNP_1.3.0_2026-10-21）
 
 ### CID 桥接假阴性修复（2026-10-21）
 详见 `docs/xuanfuhua-uc-precheck/CID桥接假阴性_缺陷归属分析.md` 及其补记、R3 决策文档。
@@ -382,7 +382,7 @@
 - **文档纠错**：修正 `DATA-README.md` 中 TTD 版本/许可/用途三项失实、ETCM2 用途不全；`DESCRIPTION`/`TCMNP-package.Rd` 源列表移除 TTD、补 ChEMBL
 - 数据版本统一 `_2026-10-12` → `_2026-10-21`（`verify_data_readme` 版本比对稳健化）
 
-## TCMNP 0.2.0（数据修订 2026-10-14，数据版本 TCMNP_1.3.0_2026-10-21）
+## tcmnetpharma 0.2.0（数据修订 2026-10-14，数据版本 TCMNP_1.3.0_2026-10-21）
 
 ### Layer A 一次源融合（去依赖重建）
 - 一次性独立源 **Open Targets 25.06（CC0, EBI FTP）** 与 **SymMap V2.0** 全量接入；关系层 herb-mol-target 由 HERB 2.0 / BATMAN 2.0（已冻结、开放许可）兜底，形成「半一次依赖」骨架（合规底线：DrugBank / TTD / 药典不进对外分发产物）
@@ -433,7 +433,7 @@
   - 背景：富集耗时几乎全是**固定开销**（实测 8 / 30 / 100 / 200 个基因均为 20–24 秒，
     主要花在加载 `clusterProfiler`/`DOSE` + 基因集），没有阶段反馈时用户无法区分「在算」与「卡死」
 
-## TCMNP 0.2.0（数据修订 2026-09-28）
+## tcmnetpharma 0.2.0（数据修订 2026-09-28）
 
 ### 数据质量修复（B1/B2/B3/B5）
 - **B1 名称守卫**：`mol_name`/`iupac_name` 不再接受 `CID <数字>` 占位符与 CAS 号（原致 11,649 行成分名污染）；守卫收敛到 `cleaning/common.py`，构建器与回填表共用同一实现
@@ -449,7 +449,7 @@
 - 传 `include_missing = FALSE` 可回退旧口径
 - `tcm_net()` 改为按**列名**取三元组（原先按列位置，遇查询结果的第 4 列 `molecule_id` 会错位报错）
 
-## TCMNP 0.2.0（数据修订 2026-09-15）
+## tcmnetpharma 0.2.0（数据修订 2026-09-15）
 
 ### 数据质量修复（L3）
 - `iupac_name`/`mol_name` 中的 CAS 号迁入独立 `cas` 列（`standard` 表新增第 23 列；`compat` 表扩为 10 列，新增 `CAS`）
@@ -458,7 +458,7 @@
 - `herb_cn_source` 溯源加守卫；数据版本升至 `TCMNP_1.1.0_2026-09-15`
 - 详见 `docs/l3-data-defect-fix-report-2026-09-15.md`
 
-## TCMNP 0.2.0 (2026-08-22)
+## tcmnetpharma 0.2.0 (2026-08-22)
 
 ### 数据（重大更新：单一 TCMSP → 多源整合）
 - 新增 HERB 2.0（6,892 药/44,595 成分/15,515 靶点）与 BATMAN-TCM 2.0（成分-靶点 known/predicted）关系数据

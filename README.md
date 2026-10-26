@@ -1,10 +1,10 @@
-# TCMNP
+# tcmnetpharma
 
 **Traditional Chinese Medicine Network Pharmacology** — 中药网络药理学可视化分析工具包。
 
 ## 简介
 
-TCMNP 提供中药复方/单药的网络药理学分析可视化功能（成分-靶点网络、富集分析、PPI、韦恩图、桑基图等 38 个绘图与查询函数），内置多数据库整合的知识库快照。
+tcmnetpharma 提供中药复方/单药的网络药理学分析可视化功能（成分-靶点网络、富集分析、PPI、韦恩图、桑基图等 38 个绘图与查询函数），内置多数据库整合的知识库快照。
 
 ## 数据来源（均开源，按来源许可标注）
 
@@ -23,10 +23,10 @@ TCMNP 提供中药复方/单药的网络药理学分析可视化功能（成分-
 
 ```r
 # 1) 拉取外部化运行时数据（19 个 parquet，~183 MB；首次或数据缺失时执行）
-Rscript tools/fetch-data.R <DATA_BASE_URL>   # 或 export TCMNP_DATA_URL=... 后运行
+Rscript tools/fetch-data.R <DATA_BASE_URL>   # 或 export TCMNETPHARMA_DATA_URL=... 后运行
 # 2) 本地构建
 R CMD build .
-R CMD INSTALL TCMNP_*.tar.gz
+R CMD INSTALL tcmnetpharma_*.tar.gz
 ```
 
 > 运行时数据（inst/extdata/*.parquet）已**外置、不入库**，详见文末「运行时数据（外部化）」。
@@ -46,7 +46,7 @@ R CMD INSTALL TCMNP_*.tar.gz
 
 ## 运行时数据（外部化）
 
-`inst/extdata/*.parquet`（19 个文件，约 183 MB）是 TCMNP 的运行时知识库快照，**不随 git 分发**，原因：
+`inst/extdata/*.parquet`（19 个文件，约 183 MB）是 tcmnetpharma 的运行时知识库快照，**不随 git 分发**，原因：
 
 - 单文件 `standard_herb_mol_target.parquet` 约 102 MB，超过 GitHub 单文件 100 MB 硬上限；
 - 多次版本迭代曾使仓库历史膨胀至 1.1 GB，外置后仓库降至约 14 MB，推送更稳更快。
@@ -58,7 +58,7 @@ R CMD INSTALL TCMNP_*.tar.gz
 
 ```bash
 # 设置基础 URL 后拉取（curl 支持断点续传，适配不稳定网络）
-export TCMNP_DATA_URL="https://github.com/<owner>/<repo>/releases/download/data-v1"
+export TCMNETPHARMA_DATA_URL="https://github.com/<owner>/<repo>/releases/download/data-v1"
 Rscript tools/fetch-data.R
 ```
 
