@@ -23,7 +23,7 @@ tcmnetpharma 提供中药复方/单药的网络药理学分析可视化功能（
 
 ```r
 # 1) 拉取外部化运行时数据（19 个 parquet，~183 MB；首次或数据缺失时执行）
-Rscript tools/fetch-data.R <DATA_BASE_URL>   # 或 export TCMNETPHARMA_DATA_URL=... 后运行
+Rscript tools/fetch-data.R   # 默认从 Zenodo（DOI 10.5281/zenodo.23681367）拉取，可传参覆盖
 # 2) 本地构建
 R CMD build .
 R CMD INSTALL tcmnetpharma_*.tar.gz
@@ -37,7 +37,9 @@ R CMD INSTALL tcmnetpharma_*.tar.gz
 
 ## 引用
 
-论文写作中，请按开源惯例引用本项目及各数据源原始论文。
+论文写作中，请按开源惯例引用本项目、**数据集 DOI** 及各数据源原始论文。
+
+- **数据集**：Zheng, JianXiao. (2026). *tcmnetpharma runtime dataset: multi-source Traditional Chinese Medicine network pharmacology data (TCMNP v1.3.0)* [Data set]. Zenodo. https://doi.org/10.5281/zenodo.23681367
 
 ## 版本
 
@@ -51,14 +53,21 @@ R CMD INSTALL tcmnetpharma_*.tar.gz
 - 单文件 `standard_herb_mol_target.parquet` 约 102 MB，超过 GitHub 单文件 100 MB 硬上限；
 - 多次版本迭代曾使仓库历史膨胀至 1.1 GB，外置后仓库降至约 14 MB，推送更稳更快。
 
-获取方式（URL 由发布页 / 论文提供）：
+数据已发布至 Zenodo（带 DOI，论文可直接引用）：
 
-- **GitHub Releases**：`https://github.com/<owner>/<repo>/releases/download/data-v1`
-- **Zenodo(DOI)**：`https://zenodo.org/records/<id>/files`（推荐用于论文引用）
+| 项 | 值 |
+|---|---|
+| **DOI（本版本 v1.3.0）** | [`10.5281/zenodo.23681367`](https://doi.org/10.5281/zenodo.23681367) |
+| **发布页** | https://zenodo.org/records/23681367 |
+| **下载基础 URL** | `https://zenodo.org/records/23681367/files` |
+| 许可证 | CC BY-SA 4.0 |
 
 ```bash
-# 设置基础 URL 后拉取（curl 支持断点续传，适配不稳定网络）
-export TCMNETPHARMA_DATA_URL="https://github.com/<owner>/<repo>/releases/download/data-v1"
+# 默认即从上面的 Zenodo 地址拉取（curl 支持断点续传，适配不稳定网络）
+Rscript tools/fetch-data.R
+
+# 或显式指定其他源（如 GitHub Release 备用通道）
+export TCMNETPHARMA_DATA_URL="https://github.com/271705024/tcmnetpharma/releases/download/data-v1"
 Rscript tools/fetch-data.R
 ```
 

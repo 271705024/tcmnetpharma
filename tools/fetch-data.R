@@ -6,27 +6,27 @@
 #       分发，本脚本将其下载到 inst/extdata/ 供本地构建 / 测试 / exe 打包使用。
 #
 # 用法：
-#   Rscript tools/fetch-data.R <BASE_URL>
-#   或先 export TCMNETPHARMA_DATA_URL=<BASE_URL> 再 Rscript tools/fetch-data.R
-# 其中 <BASE_URL> 是包含这 19 个 *.parquet 的目录 URL，例如：
-#   https://github.com/<owner>/<repo>/releases/download/data-v1
-#   https://zenodo.org/records/<id>/files
+#   Rscript tools/fetch-data.R                    # 默认从 Zenodo 拉取（推荐）
+#   Rscript tools/fetch-data.R <BASE_URL>         # 覆盖数据源
+#   或 export TCMNETPHARMA_DATA_URL=<BASE_URL> 再 Rscript tools/fetch-data.R
+# 默认 <BASE_URL> = https://zenodo.org/records/23681367/files
+#        （DOI 10.5281/zenodo.23681367，数据版本 TCMNP_1.3.0，许可 CC BY-SA 4.0）
+# 备用源示例：https://github.com/271705024/tcmnetpharma/releases/download/data-v1
 #
 # 注意：优先使用 curl（支持 -C - 断点续传，适配不稳定网络）；
 #       无 curl 时回退 download.file。
 # ---------------------------------------------------------------------------
 
 args <- commandArgs(trailingOnly = TRUE)
+
+# 默认数据源：Zenodo（DOI 10.5281/zenodo.23681367，数据版本 TCMNP_1.3.0）
+default_data_url <- "https://zenodo.org/records/23681367/files"
+
 data_url <- Sys.getenv("TCMNETPHARMA_DATA_URL", unset = "")
 if (length(args) >= 1) data_url <- args[1]
-if (data_url == "") {
-  stop(
-    "未指定数据基础 URL。请二选一：\n",
-    "  1) Rscript tools/fetch-data.R <BASE_URL>\n",
-    "  2) 设置环境变量 TCMNETPHARMA_DATA_URL 后运行 Rscript tools/fetch-data.R\n",
-    "BASE_URL 是包含 19 个 *.parquet 的目录地址（GitHub Release / Zenodo）。"
-  )
-}
+if (data_url == "") data_url <- default_data_url
+
+message("数据源: ", data_url)
 
 files <- c(
   "disease_main.parquet", "disease_target.parquet",

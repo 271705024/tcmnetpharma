@@ -12,6 +12,7 @@
 | 数据集名 | `tcmnetpharma` 运行时数据集（中医药网络药理学多源整合） |
 | 数据版本 | `TCMNP_1.3.0_2026-10-21`（命名空间前缀 `TCMNP_` 为包内数据版本体系，刻意保留，不删） |
 | 关联代码 | https://github.com/271705024/tcmnetpharma （Gitee 镜像：https://gitee.com/ZJX261/tcmnetpharma） |
+| **发布状态** | ✅ **已发布 2026-10-27**，DOI `10.5281/zenodo.23681367`，记录页 https://zenodo.org/records/23681367 |
 | 文件数 | 19 个 `.parquet` |
 | 总体积 | 182.3 MB（单文件最大 `standard_herb_mol_target.parquet` = 101.62 MB） |
 | Zenodo 限制 | 单文件 ≤ 50 GB、总计 ≤ 100 GB → 182 MB 远在限制内 |
@@ -200,7 +201,11 @@ boss 拍板走**保守路线**，尊重上游「相同方式共享」义务：
 
 ---
 
-## 8. 上传后回填（闭环最后一步）
+## 8. 上传后回填（✅ 已完成 2026-10-27）
+
+实际回填值：
+- `README.md` → 「运行时数据（外部化）」+「引用」：DOI `10.5281/zenodo.23681367`、发布页、基础 URL `https://zenodo.org/records/23681367/files`
+- `tools/fetch-data.R` → `default_data_url` 默认即上述 Zenodo 地址（不传参直接可用）
 
 1. **README.md「运行时数据（外部化）」一节**：把 `<owner>/<repo>` 占位替换为 Zenodo 基础 URL，例如：
    ```
