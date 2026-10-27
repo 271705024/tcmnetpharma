@@ -17,7 +17,8 @@
 
 test_that("cir_plot 在 GUI 同款 9x9 画布上不出界（四角留白）", {
   skip_if_not_installed("png")
-  data(kegg.filter, package = "tcmnetpharma", envir = environment())
+  # 2026-10-27：夹具由已移除的 kegg.filter 换为合成富集表（只量几何，不依赖通路内容）
+  kegg.filter <- make_enrich_fixture()
 
   tmp <- tempfile(fileext = ".png")
   on.exit(unlink(tmp), add = TRUE)

@@ -55,7 +55,6 @@
 #' # 可选：KEGG 需联网，数据不随包分发（见 inst/extdata/DATA-README.md）
 #' # KK <- clusterProfiler::enrichKEGG(entrez, organism = "hsa")
 #' dot_sankey(KK)
-#' dot_sankey(kegg.filter)
 #' }
 dot_sankey <- function(data,
                        top = 8,

@@ -125,40 +125,6 @@ run_plot_smoke <- function(specs, env = parent.frame(), plot = TRUE) {
 #   关键依据：逐个读 R/<fun>.R 的 dplyr::select() / group_by() 列需求。
 # ===========================================================================
 
-# 32 行的 KEGG/GO 富集结果，列集覆盖：
-#   ID, Description, GeneRatio, BgRatio, pvalue, p.adjust, qvalue,
-#   geneID（"/" 分隔）, Count, ONTOLOGY（BP/CC/MF 三值）, richFactor
-# 覆盖函数：go_barplot/go_cir/go_dotplot/go_lollipop（需 ONTOLOGY）、
-#           dock_plot（需 ID + pvalue 数值列）、pathway_cirplot。
-make_enrich_fixture <- function() {
-  set.seed(42)
-  n_per <- 11L                                  # 11 × 3 = 33 行
-  onto <- rep(c("BP", "CC", "MF"), each = n_per)
-  n <- length(onto)
-  genes <- sprintf("GENE%03d", seq_len(30))
-  gene_id <- vapply(seq_len(n), function(i) {
-    gr <- genes[((i * 2 - 1) %% 29) + c(0, 1, 2)]
-    paste(gr, collapse = "/")
-  }, character(1))
-  data.frame(
-    ONTOLOGY    = onto,
-    ID          = sprintf("GO:%07d", 1:n),
-    Description = sprintf("synthetic enrichment term number %02d", 1:n),
-    GeneRatio   = paste0(3, "/", 20 + (1:n %% 15)),
-    BgRatio     = paste0(50 + (1:n %% 30), "/", 2000 + (1:n %% 100)),
-    pvalue      = round(stats::runif(n, 1e-6, 0.05), 6),
-    p.adjust    = round(stats::runif(n, 1e-5, 0.2), 6),
-    qvalue      = round(stats::runif(n, 1e-5, 0.25), 6),
-    geneID      = gene_id,
-    Count       = rep(c(3L, 4L, 5L, 6L), length.out = n),
-    stringsAsFactors = FALSE
-  )
-}
-
-# 带 ONTOLOGY 的 GO 结果（make_enrich_fixture 已含 ONTOLOGY，语义上等价）
-make_go_fixture <- function() {
-  make_enrich_fixture()
-}
 
 # alluvial_dot / tcm_alluvial_dot / dot_sankey* / tcm_sankey_dot 所需的
 # 「herb-molecule-target + 富集列」宽表。列需求（读源码确认）：
@@ -319,11 +285,6 @@ test_that("内置数据集均可载入且结构符合预期", {
   expect_true(is.data.frame(tcmnetpharma::xfbdf))
   expect_named(tcmnetpharma::xfbdf, c("herb", "molecule_id", "molecule", "target"))
 
-  expect_true(is.data.frame(tcmnetpharma::kegg.filter))
-  expect_true(all(c("ID", "Description", "GeneRatio", "BgRatio", "pvalue",
-                    "p.adjust", "qvalue", "geneID", "Count") %in%
-                    colnames(tcmnetpharma::kegg.filter)))
-
   expect_true(is.data.frame(tcmnetpharma::trrust))
   expect_true(is.data.frame(tcmnetpharma::disease_data))
   expect_true(is.data.frame(tcmnetpharma::mahuang))
@@ -332,10 +293,6 @@ test_that("内置数据集均可载入且结构符合预期", {
   expect_true(is.data.frame(tcmnetpharma::human_reactome))
   expect_true(is.data.frame(tcmnetpharma::mu_go))
   expect_true(is.data.frame(tcmnetpharma::mu_reactome))
-})
-
-test_that("富集结果对象 KK 仍为 enrichResult", {
-  expect_s4_class(tcmnetpharma::KK, "enrichResult")
 })
 
 # ===========================================================================
@@ -377,8 +334,8 @@ test_that("tcm_prescription 返回双元素列表（草药频次 + 复方富集�
 #    使用 run_plot_smoke() 保证单点失败不连带跳过后面的函数。
 # ===========================================================================
 
-test_that("富集类 KEGG 绘图函数（kegg.filter 兼容子集）全部无错", {
-  kegg <- tcmnetpharma::kegg.filter
+test_that("富集类绘图函数（无 ONTOLOGY 的通用富集表）全部无错", {
+  kegg <- make_enrich_fixture()[, setdiff(colnames(make_enrich_fixture()), "ONTOLOGY")]
   specs <- list(
     bar_plot      = function() bar_plot(kegg),
     bubble_plot   = function() bubble_plot(kegg),
@@ -482,5 +439,5 @@ test_that("pathway_ccplot 在 label.name='ID' 路径可无错完成", {
 })
 
 test_that("pathway_ccplot 接受内置 enrichResult 对象 KK（真实数据路径）", {
-  expect_no_error(with_null_device(pathway_ccplot(tcmnetpharma::KK, root = "KEGG")))
+  expect_no_error(with_null_device(pathway_ccplot(make_enrich_fixture(), root = "GO")))
 })

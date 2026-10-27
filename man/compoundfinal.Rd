@@ -11,7 +11,7 @@ An object of class \code{data.frame} with 441860 rows and 7 columns.
 compoundfinal
 }
 \description{
-A data frame with 3397rows and 5 variables
+A data frame with 441860 rows and 7 variables
 }
 \examples{
 head(compoundfinal)

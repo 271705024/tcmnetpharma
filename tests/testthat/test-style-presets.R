@@ -161,7 +161,8 @@ test_that("genratio 用的是 GeneRatio 口径（x 值 = k/n，落在 0-1）", {
 })
 
 test_that("bar_plot / degree_plot 的 journal、presentation 出图且条目数不变", {
-  data("kegg.filter", package = "tcmnetpharma", envir = environment())
+  # 2026-10-27：夹具由已移除的 kegg.filter 换为合成富集表
+  kegg.filter <- make_enrich_fixture()
   n_def <- nrow(bar_plot(kegg.filter, top = 5, style = "default")$data)
   for (st in c("journal", "presentation")) {
     p <- bar_plot(kegg.filter, top = 5, style = st)

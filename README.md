@@ -21,7 +21,7 @@ tcmnetpharma 提供中药复方/单药的网络药理学分析可视化功能（
 | **SymMap** | V2.0 | 疾病本体映射、拉丁药名交叉引用 | **未明示**（原文 CC BY-NC 4.0）；仅限学术使用 | 派生数据随包 |
 | WikiPathways / Reactome / GO | 20261010 / 2026-09-05 / 3.23.x | 通路与功能富集基因集 | CC0 / CC BY 4.0 / CC BY 4.0 | 随包离线 |
 | TTD | 2024.01.10 冻结版 | 靶点-疾病关联 | **All rights reserved** | **不随包分发**（仅内部交叉校验） |
-| KEGG | —— | 通路富集 | 专有（Kanehisa Labs） | **不随包分发**；历史示例结果对象的现状见 DATA-README |
+| KEGG | —— | 通路富集 | 专有（Kanehisa Labs） | **不随包分发**（2026-10-27 已删除历史示例结果对象） |
 
 数据版本、逐表行数与清洗口径见 `inst/extdata/DATA-README.md`。
 
@@ -56,12 +56,14 @@ tcm_net(network.data, view = "cluster", style = "journal")
 ```
 
 数据本身不必先联网：装好包即含知识库快照。想换成自建/镜像数据源，见下文 `TCMNETPHARMA_DATA_URL`。
+完整四步流程（含常见坑与参数说明）见 [`docs/QUICKSTART.md`](docs/QUICKSTART.md)。
 
 ## 文档
 
 | 文档 | 面向 | 内容 |
 |---|---|---|
-| [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md) | 非技术用户 | 图形界面手册：怎么打开、七个功能页、四步分析流程、常见图怎么读、FAQ |
+| [`docs/QUICKSTART.md`](docs/QUICKSTART.md) | R 用户 | 5 分钟跑通四步分析（取数 → 交集 → 富集 → 拓扑），含常见坑 |
+| [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md) | 非技术用户 | Windows 图形界面手册：怎么打开、七个功能页、四步流程、常见图怎么读、FAQ |
 | [`inst/extdata/DATA-README.md`](inst/extdata/DATA-README.md) | 数据分析者 | 逐表行数、列语义、QC 分层、已知数据特征、来源与许可 |
 | [`NEWS.md`](NEWS.md) | 所有用户 | 版本变更记录 |
 | 函数参考 | R 用户 | `?tcm_net` / `help(package = "tcmnetpharma")` |

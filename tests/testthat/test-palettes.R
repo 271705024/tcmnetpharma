@@ -157,6 +157,6 @@ test_that("色板 kind 只有 qual/seq/div（前端分组依赖这三个值）",
 })
 
 test_that("非法配色值必须报错", {
-  data("kegg.filter", package = "tcmnetpharma", envir = environment())
-  expect_error(bar_plot(kegg.filter, palette = "no_such_palette"), "unknown palette")
+  # 2026-10-27：夹具由已移除的 kegg.filter 换为合成富集表
+  expect_error(bar_plot(make_enrich_fixture(), palette = "no_such_palette"), "unknown palette")
 })

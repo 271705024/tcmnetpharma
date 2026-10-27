@@ -11,7 +11,8 @@ An object of class \code{spec_tbl_df} (inherits from \code{tbl_df}, \code{tbl}, 
 trrust
 }
 \description{
-A data frame with 7189 rows and 2 variables
+The datasets was from TRRUST v2 database (CC BY-SA 4.0; Han et al. 2018)
+A data frame with 16453 rows and 6 variables
 }
 \examples{
 head(trrust)

@@ -8,13 +8,13 @@
 An object of class \code{data.frame} with 790 rows and 1 columns.
 }
 \source{
-KEGG & GSEA
+作者早期 KEGG/GSEA 分析所得的基因符号列表；仅含符号，不含通路数据
 }
 \usage{
 disease_data
 }
 \description{
-A character with 790 genes
+A data frame with 790 rows and 1 variable (示例基因符号列表，测试用)
 }
 \examples{
 head(disease_data)

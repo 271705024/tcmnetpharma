@@ -14,7 +14,7 @@ xfbdf
 sankey_data
 }
 \description{
-A data frame with 100 rows and 4 variables
+A data frame with 30 rows and 4 variables
 }
 \examples{
 head(sankey_data)

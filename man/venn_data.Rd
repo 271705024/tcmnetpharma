@@ -15,7 +15,7 @@ venn_data
 }
 \description{
 The datasets was from xfbdf and https://doi.org/10.1038/s41556-021-00796-6.
-A data frame with 6439 rows and 2 variables
+A data frame with 259 rows and 2 variables
 }
 \examples{
 head(venn_data)

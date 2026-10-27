@@ -8,15 +8,16 @@
 An object of class \code{data.frame} with 6860 rows and 7 columns.
 }
 \source{
-\url{https://db.ouryao.com/yd2020/index.php?cid=1}
+\url{http://herb.ac.cn/}
 }
 \usage{
 herb_pm
 }
 \description{
-Chinese Pharmacopoeia commonly used herbs property and flavor, tropism
-The datasets was from Chinese Pharmacopoeia
-A data frame with 409 rows and 5 variables
+中药性味归经表：取自 HERB 2.0 的 herb 表，按 herb 实体键对齐；
+共 6,860 行（HERB 6,892 味去空后）。
+2025 版《中国药典》仅作口径参照，不打包、不重分发。
+A data frame with 6860 rows and 7 variables
 }
 \examples{
 head(herb_pm)

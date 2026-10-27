@@ -60,7 +60,9 @@ after KEGG/GO screening of pathways and genes
 }
 \examples{
 \dontrun{
-data(kegg.filter, package = "tcmnetpharma")
-dot_sankey2 (kegg.filter)
+data(xfbdf, package = "tcmnetpharma")
+res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
+                  pvalueCutoff = 0.05, qvalueCutoff = 1)
+dot_sankey2(res$wikipathways@result)
 }
 }

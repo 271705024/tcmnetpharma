@@ -15,7 +15,7 @@ ppi_data
 }
 \description{
 Protein-protein interaction analysis was performed using STRING database.
-A data frame with 2234 rows and 3 variables
+A data frame with 100 rows and 3 variables
 }
 \examples{
 ppi_data<- data(ppi_data)

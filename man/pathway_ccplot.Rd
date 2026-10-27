@@ -51,9 +51,10 @@ circle chart showed the results of GO and KEGG analysis
 }
 \examples{
 \dontrun{
-data("KK", package = "tcmnetpharma")
-library(dplyr)
-pathway_ccplot(KK, root = "KEGG")
+data(xfbdf, package = "tcmnetpharma")
+res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
+                  pvalueCutoff = 0.05, qvalueCutoff = 1)
+pathway_ccplot(res$wikipathways, root = "WikiPathways")
 }
 
 }

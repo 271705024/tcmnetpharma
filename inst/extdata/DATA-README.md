@@ -136,7 +136,8 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 
 ## 可再分发基因集（data/，P3.3，2026-09-05 生成）
 
-> 替代原 human/mu_kegg（KEGG）与 human/mu_gsea（MSigDB Hallmark）——两者下载均不可再分发，已从包内移除（kegg.filter 作为既往分析示例保留并注明来源）。
+> 替代原 human/mu_kegg（KEGG）与 human/mu_gsea（MSigDB Hallmark）——两者下载均不可再分发，已从包内移除。
+> 2026-10-27 起，历史 KEGG 示例结果对象 `KK` / `kegg.filter` 也已删除（详见来源表 KEGG 行）。
 > 2026-10-17 起补入 **WikiPathways（CC0）** 作为通路维度的可分发方案：WikiPathways + Reactome 覆盖通路富集，
 > KEGG 改为**联网增强项**（不内置），理由与条款见下方说明与 `docs/licensing-kegg-go-2026-10-19.md`。
 
@@ -182,7 +183,7 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 | WikiPathways | 20261010（GMT） | **CC0（公有领域）** | 通路富集（随包离线） |
 | Reactome | 2026-09-05（NCBI2Reactome） | CC BY 4.0 | 通路富集（随包离线） |
 | GO | org.Hs/Mm.eg.db 3.23.x + GO.db | CC BY 4.0 | 功能富集（随包离线） |
-| **KEGG** | —— | 专有（Kanehisa Labs）；**不可再分发** | ⚠️ **现状与处置待定**：包内仍含 `data/KK.rda`（193 条富集结果）与 `data/kegg.filter.rda`（8 条）作为**图型示例对象**，`network_data` 的 `@source` 亦标注 KEGG & GSEA。日常分析请用 WikiPathways/Reactome/GO 离线替代；需要 KEGG 时联网自取，见下方说明。**删留待 boss 决策**（2026-10-27 发布审查提出） |
+| **KEGG** | —— | 专有（Kanehisa Labs）；**不可再分发** | **不随包分发**。历史示例结果对象 `data/KK.rda`（193 条）与 `data/kegg.filter.rda`（8 条）已于 **2026-10-27 删除**，包内现无任何 KEGG 派生数据；日常分析用 WikiPathways/Reactome/GO 离线替代，需要 KEGG 时联网自取（见下方说明） |
 
 ## 清洗参数（S0-S6）
 

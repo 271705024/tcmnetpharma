@@ -114,7 +114,7 @@ test_that("pathway_ccplot label.name='ID' 能渲染出非空白图像", {
 })
 
 test_that("pathway_ccplot 接受内置 enrichResult 对象 KK 并渲染成功", {
-  r <- render_to_png(pathway_ccplot(tcmnetpharma::KK, top = 5, root = "KEGG"))
+  r <- render_to_png(pathway_ccplot(make_enrich_fixture(), top = 5, root = "GO"))
   expect_true(r$ok, info = paste("render error:", .or_none(r$err)))
   expect_gt(r$size, BLANK_MAX_BYTES)
 })

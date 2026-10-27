@@ -31,8 +31,10 @@
 #' @importFrom stats reorder
 #' @examples
 #' \dontrun{
-#' data(kegg.filter, package = "tcmnetpharma")
-#' dot_sankey2 (kegg.filter)
+#' data(xfbdf, package = "tcmnetpharma")
+#' res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
+#'                   pvalueCutoff = 0.05, qvalueCutoff = 1)
+#' dot_sankey2(res$wikipathways@result)
 #' }
 dot_sankey2 <- function(data,
                        sankey.text.size = 3,

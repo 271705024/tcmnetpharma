@@ -19,8 +19,8 @@
 
 #' ppi_data
 #'
-#' Protein-protein interaction analysis was performed using STRING database.
-#' A data frame with 2234 rows and 3 variables
+#' @description Protein-protein interaction analysis was performed using STRING database.
+#' A data frame with 100 rows and 3 variables
 #' @source \url{https://string-db.org/}
 #' @examples
 #' ppi_data<- data(ppi_data)
@@ -38,30 +38,18 @@
 #'
 "mahuang"
 
-#' KK
-#'
-#' The results of R clusterprofiler package for KEGG results
-#' S4 object of class enrich results
-#' @source R clusterprofiler package for KEGG results
-#' @examples
-#' head(KK@result)
-#'
-"KK"
-
-#' kegg.filter
-#'
-#' The results after KEGG/GO screening of pathways and genes
-#' A data frame with 8 rows and 9 variables
-#' @source example data from the KEGG results
-#' @examples
-#' head(kegg.filter)
-#'
-"kegg.filter"
+# ── 已移除的数据对象（2026-10-27）────────────────────────────────────────────
+# KK / kegg.filter 均为 KEGG 富集结果（clusterProfiler 输出），属内部测试用数据。
+# KEGG 数据版权归 Kanehisa Laboratories，条款不允许随软件再分发，故删除，
+# 与本包「KEGG 不随包分发」的声明保持一致（见 inst/extdata/DATA-README.md）。
+# 需要 KEGG 富集：联网自行调用 clusterProfiler::enrichKEGG()，返回值可直接
+# 喂给本包可视化函数；离线替代见 tcm_enrich() 的 WikiPathways/Reactome/GO。
+# 原测试夹具 test-cirplot-canvas.R 已改用合成富集表（只量几何，不依赖通路内容）。
 
 #' Venn diagram example data
 #'
 #' The datasets was from xfbdf and https://doi.org/10.1038/s41556-021-00796-6.
-#' A data frame with 6439 rows and 2 variables
+#' A data frame with 259 rows and 2 variables
 #' @source \url{https://www.nature.com/articles/s41556-021-00796-6#Sec47}
 #' @examples
 #' head(venn_data)
@@ -76,10 +64,11 @@
 "tf_data"
 
 #' Herbal Properties and Meridians
-#' @description Chinese Pharmacopoeia commonly used herbs property and flavor, tropism
-#' The datasets was from Chinese Pharmacopoeia
-#' A data frame with 409 rows and 5 variables
-#' @source \url{https://db.ouryao.com/yd2020/index.php?cid=1}
+#' @description 中药性味归经表：取自 HERB 2.0 的 herb 表，按 herb 实体键对齐；
+#' 共 6,860 行（HERB 6,892 味去空后）。
+#' 2025 版《中国药典》仅作口径参照，**不打包、不重分发**。
+#' A data frame with 6860 rows and 7 variables
+#' @source \url{http://herb.ac.cn/}
 #' @examples
 #' head(herb_pm)
 "herb_pm"
@@ -97,8 +86,8 @@
 
 #' disease_data
 #'
-#' A character with 790 genes
-#' @source  KEGG & GSEA
+#' A data frame with 790 rows and 1 variable (示例基因符号列表，测试用)
+#' @source 作者早期 KEGG/GSEA 分析所得的基因符号列表；仅含符号，不含通路数据
 #' @examples
 #' head(disease_data)
 #'
@@ -106,7 +95,7 @@
 
 #' sankey_data
 #'
-#' A data frame with 100 rows and 4 variables
+#' A data frame with 30 rows and 4 variables
 #' @source  xfbdf
 #' @examples
 #' head(sankey_data)
@@ -115,7 +104,7 @@
 
 #' compoundfinal
 #'
-#' A data frame with 3397rows and 5 variables
+#' A data frame with 441860 rows and 7 variables
 #' @examples
 #' head(compoundfinal)
 #'
@@ -123,7 +112,8 @@
 
 #' trrust
 #'
-#' A data frame with 7189 rows and 2 variables
+#' The datasets was from TRRUST v2 database (CC BY-SA 4.0; Han et al. 2018)
+#' A data frame with 16453 rows and 6 variables
 #' @examples
 #' head(trrust)
 #'
