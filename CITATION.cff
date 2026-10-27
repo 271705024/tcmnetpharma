@@ -7,9 +7,12 @@ title: >-
   analysis toolkit
 abstract: >-
   An R package for Traditional Chinese Medicine (TCM) network pharmacology
-  analysis. It integrates six upstream sources (TCMSP, HERB 2.0, BATMAN-TCM 2.0,
-  ETCM2, ChEMBL 37, and SymMap/OpenTargets) calibrated against the 2025 edition
-  of the Chinese Pharmacopoeia, and provides network, enrichment and module
+  analysis. It integrates ten upstream sources into a single herb-molecule-target
+  knowledge base: TCMSP, HERB 2.0, BATMAN-TCM 2.0, ETCM2, ChEMBL 37, STRING 12,
+  TRRUST v2, Open Targets Platform 25.06 and SymMap V2, plus offline gene sets
+  from WikiPathways, Reactome and Gene Ontology. The 2025 edition of the Chinese
+  Pharmacopoeia is used as a nomenclature and property reference only and is not
+  redistributed. The package provides network, enrichment and module
   visualisation modules.
 type: software
 version: 0.2.0

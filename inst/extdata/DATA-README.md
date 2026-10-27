@@ -175,10 +175,14 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 | ETCM2 | 2.0（2026-08-22 下载；target/disease 2026-10-09 补爬） | 注册使用（引用 Zhang et al. 2023） | 复方/中成药 + 性味归经补缺 + 成分 ADME + 药材靶点/疾病基因参考表 |
 | TTD | 10.1.01（2024.01.10 冻结；2026-08-22 下载） | **All rights reserved（非开放，仅内部校验，不随包分发）** | 内部交叉验证基准（靶点-疾病/药靶比对；MOA 改由 ChEMBL 提供） |
 | ChEMBL | 37（2026-05，2026-08-22 下载） | CC BY-SA 3.0 | 交叉验证 + ID 补充映射 |
+| **STRING** | v12.0（2026 下载） | **CC BY 4.0**（须署名 Szklarczyk et al. 2023） | **PPI 网络**（随包：`string_ppi_human.parquet`，human physical、combined score ≥ 700、蛋白 ID→HGNC 符号，属派生表） |
+| **TRRUST** | v2（2018 发布） | **CC BY-SA 4.0**（须署名 Han et al. 2018） | **转录因子调控**（随包：`data/trrust.rda` 16,453 行 TF-Target-Mode-PMID-Species） |
+| **Open Targets Platform** | 25.06 | **CC0 1.0**（Terms 期望学术署名 Ochoa et al. 2023） | **疾病→靶点**（随包：`disease_target.parquet` 3,134,397 行，`association_overall_direct`） |
+| **SymMap** | V2.0 | ⚠️ **未明示**（原文 NAR 2019 为 CC BY-NC 4.0；站点无 Terms of use）→ **仅限学术使用，商用须联系原作者** | 疾病本体映射 + 拉丁药名交叉引用（随包：`layer_a_disease_ontology_map.parquet`、`standard` 的 `layer_a_latin`/`layer_a_hit_id` 两列） |
 | WikiPathways | 20261010（GMT） | **CC0（公有领域）** | 通路富集（随包离线） |
 | Reactome | 2026-09-05（NCBI2Reactome） | CC BY 4.0 | 通路富集（随包离线） |
 | GO | org.Hs/Mm.eg.db 3.23.x + GO.db | CC BY 4.0 | 功能富集（随包离线） |
-| **KEGG** | —— | 专有（Kanehisa Labs）；**不随包分发** | **仅联网使用**（`clusterProfiler::enrichKEGG`），见上方说明 |
+| **KEGG** | —— | 专有（Kanehisa Labs）；**不可再分发** | ⚠️ **现状与处置待定**：包内仍含 `data/KK.rda`（193 条富集结果）与 `data/kegg.filter.rda`（8 条）作为**图型示例对象**，`network_data` 的 `@source` 亦标注 KEGG & GSEA。日常分析请用 WikiPathways/Reactome/GO 离线替代；需要 KEGG 时联网自取，见下方说明。**删留待 boss 决策**（2026-10-27 发布审查提出） |
 
 ## 清洗参数（S0-S6）
 

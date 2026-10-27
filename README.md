@@ -4,20 +4,26 @@
 
 ## 简介
 
-tcmnetpharma 提供中药复方/单药的网络药理学分析可视化功能（成分-靶点网络、富集分析、PPI、韦恩图、桑基图等 38 个绘图与查询函数），内置多数据库整合的知识库快照。
+tcmnetpharma 提供中药复方/单药的网络药理学分析可视化功能（成分-靶点网络、富集分析、PPI、韦恩图、桑基图等，共 **56 个导出函数**），内置多数据库整合的知识库快照。
 
-## 数据来源（均开源，按来源许可标注）
+## 数据来源（按各源许可署名，详见 `inst/extdata/DATA-README.md`）
 
-| 数据源 | 版本 | 内容 | 许可 |
-|---|---|---|---|
-| TCMSP | 2026-08 抓取（502 药/13,729 成分/3,339 靶点） | 中药-成分-靶点 + ADME | ODbL |
-| HERB 2.0 | 2.0（2024-11 更新） | 6,892 药/44,595 成分/15,515 靶点 + 性味归经 | 公开下载（引用论文） |
-| BATMAN-TCM 2.0 | 2.0 | 成分-靶点（known/predicted） | 公开下载 |
-| ETCM2 | 2.0 | 48,442 方/38,298 成分 | 注册使用 |
-| TTD | 2026 (v9.0) | 靶点-疾病关联 30 万+ | 公开下载 |
-| ChEMBL | 37 (2026-05) | 成分-靶点交叉验证 | CC BY-SA 3.0 |
+| 数据源 | 版本 | 内容 | 许可 | 分发方式 |
+|---|---|---|---|---|
+| TCMSP | 2026-08 抓取（502 药/13,729 成分/3,339 靶点） | 中药-成分-靶点 + ADME | ODbL | 派生数据随包 |
+| HERB 2.0 | 2.0（2024-11 更新） | 6,892 药/44,595 成分/15,515 靶点 + 性味归经 | 公开下载（引用 Fang et al. 2021） | 派生数据随包 |
+| BATMAN-TCM 2.0 | 2.0 | 成分-靶点（known/predicted） | 公开下载（引用 Liu et al. 2024） | 派生数据随包 |
+| ETCM2 | 2.0 | 48,442 方/38,298 成分 + 性味归经、成分 ADME、药材靶点 | 注册使用（引用 Zhang et al. 2023） | 派生数据随包 |
+| ChEMBL | 37（2026-05） | 成分-靶点交叉验证 + 作用机制（MOA）/ 适应症 | CC BY-SA 3.0 | 派生数据随包 |
+| **STRING** | v12.0 | 人类 PPI 物理互作子集（combined score ≥ 700） | **CC BY 4.0**（引用 Szklarczyk et al. 2023） | 派生数据随包 |
+| **TRRUST** | v2 | 人/鼠转录因子-靶点调控关系 | **CC BY-SA 4.0**（引用 Han et al. 2018） | 派生数据随包 |
+| **Open Targets Platform** | 25.06 | 疾病→靶点关联（association_overall_direct） | **CC0 1.0**（引用 Ochoa et al. 2023） | 派生数据随包 |
+| **SymMap** | V2.0 | 疾病本体映射、拉丁药名交叉引用 | **未明示**（原文 CC BY-NC 4.0）；仅限学术使用 | 派生数据随包 |
+| WikiPathways / Reactome / GO | 20261010 / 2026-09-05 / 3.23.x | 通路与功能富集基因集 | CC0 / CC BY 4.0 / CC BY 4.0 | 随包离线 |
+| TTD | 2024.01.10 冻结版 | 靶点-疾病关联 | **All rights reserved** | **不随包分发**（仅内部交叉校验） |
+| KEGG | —— | 通路富集 | 专有（Kanehisa Labs） | **不随包分发**；历史示例结果对象的现状见 DATA-README |
 
-数据版本与清洗细节见 `inst/extdata/DATA-README.md`。
+数据版本、逐表行数与清洗口径见 `inst/extdata/DATA-README.md`。
 
 ## 安装
 
@@ -31,9 +37,42 @@ R CMD INSTALL tcmnetpharma_*.tar.gz
 
 > 运行时数据（inst/extdata/*.parquet）已**外置、不入库**，详见文末「运行时数据（外部化）」。
 
-## 开源声明
+## 快速开始
 
-本项目数据来源与教程均为开源资源，成果将以开源协议发布。代码与数据遵守各来源的许可条款（详见 DATA-README）。
+```r
+library(tcmnetpharma)
+
+# 1) 查两味药的成分-靶点（拼音键检索）
+fufang <- herb_target(c("ma huang", "ku xing ren"), type = "Herb_name_pin_yin")
+head(fufang)
+
+# 2) 画成分-靶点网络（view 选数据轴，style 选外观）
+data("xfbdf", package = "tcmnetpharma")
+network.data <- xfbdf |>
+  dplyr::select(herb, molecule, target) |>
+  dplyr::slice_sample(n = 100) |>
+  as.data.frame()
+tcm_net(network.data, view = "cluster", style = "journal")
+```
+
+数据本身不必先联网：装好包即含知识库快照。想换成自建/镜像数据源，见下文 `TCMNETPHARMA_DATA_URL`。
+
+## 文档
+
+| 文档 | 面向 | 内容 |
+|---|---|---|
+| [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md) | 非技术用户 | 图形界面手册：怎么打开、七个功能页、四步分析流程、常见图怎么读、FAQ |
+| [`inst/extdata/DATA-README.md`](inst/extdata/DATA-README.md) | 数据分析者 | 逐表行数、列语义、QC 分层、已知数据特征、来源与许可 |
+| [`NEWS.md`](NEWS.md) | 所有用户 | 版本变更记录 |
+| 函数参考 | R 用户 | `?tcm_net` / `help(package = "tcmnetpharma")` |
+
+## 许可与免责声明
+
+**代码**：GPL-3　**运行时数据**：CC BY-SA 4.0（DOI 见下文）
+
+⚠️ **并非所有上游源都是开放许可**：ETCM2 需注册后使用；TTD 保留所有权利（All rights reserved），**不随包分发**；KEGG 专有，**不随包分发**；SymMap 未明示许可，仅限学术使用。本包分发的是经筛选、键化与合并的**派生数据**，不包含上述来源的原始文件。各源许可、署名要求与 CC BY-SA 4.0 的「相同方式共享」义务详见 `inst/extdata/DATA-README.md` §来源与许可。
+
+**免责声明**：本软件与随附数据仅供科学研究与教学使用，**不构成任何医疗、诊断或用药建议**；数据按「现状」提供，不对完整性、准确性作明示或默示担保，不得作为临床决策依据。
 
 ## 引用
 
@@ -66,8 +105,8 @@ R CMD INSTALL tcmnetpharma_*.tar.gz
 # 默认即从上面的 Zenodo 地址拉取（curl 支持断点续传，适配不稳定网络）
 Rscript tools/fetch-data.R
 
-# 或显式指定其他源（如 GitHub Release 备用通道）
-export TCMNETPHARMA_DATA_URL="https://github.com/271705024/tcmnetpharma/releases/download/data-v1"
+# 或显式指定其他数据源（任何提供同名文件的 HTTP 目录 / 对象存储镜像均可）
+export TCMNETPHARMA_DATA_URL="https://<your-mirror>/tcmnetpharma-data"
 Rscript tools/fetch-data.R
 ```
 
