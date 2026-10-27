@@ -7,3 +7,5 @@
 ^\.git$
 ^CITATION\.cff$
 ^LICENSE$
+^\.zenodo\.json$
+^dist$

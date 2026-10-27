@@ -18,6 +18,7 @@ renv/.gitignore
 *.Rcheck/
 *.tar.gz
 *.zip
+dist/
 src/*.o
 src/*.so
 src/*.dll

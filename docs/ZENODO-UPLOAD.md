@@ -97,6 +97,15 @@ repository and retrieved at build/runtime via tools/fetch-data.R.
 
 **合计：19 文件，182.3 MB。** 机器可读版见 `backups/tcmnp-inst-extdata-2026-10-22/ZENODO_MANIFEST_DATA.json`。
 
+> **可复现校验（2026-10-27 起）**：上表不再依赖 backup 目录里那份 JSON——随时可用仓库内脚本重算并直接校验：
+>
+> ```bash
+> python tools/make-manifest.py inst/extdata -g '*.parquet' -o MANIFEST-dataset.txt
+> cd inst/extdata && sha256sum -c ../../MANIFEST-dataset.txt   # 19/19 OK 即一致
+> ```
+>
+> 2026-10-27 实测：脚本产出与上表 **19/19 逐条一致**。
+
 ---
 
 ## 4. Related identifiers（Zenodo 元数据「Related identifiers」区）
