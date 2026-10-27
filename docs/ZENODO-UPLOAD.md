@@ -25,8 +25,8 @@
 - [x] 19 个 parquet 已置于 `backups/tcmnp-inst-extdata-2026-10-22/`
 - [x] 每个文件 sha256 已算（见 `backups/.../ZENODO_MANIFEST_DATA.json` 与 §3）
 - [x] 与包内工作树数据逐字节一致 → 发布的校验和能对上用户经 `fetch-data.R` 下载的文件
-- [ ] **待拍板**：数据集许可证（见 §7-A）
-- [ ] **待拍板**：作者 ORCID（见 §2）
+- [x] **已定**：数据集许可证 = `CC BY-SA 4.0`（保守路线，见 §7-A）
+- [ ] **待填**：作者 ORCID（占位 `<ORCID>`，发布前在 UI 补）
 
 > 不阻塞：可先「预保留 DOI」（Zenodo 上传页「Reserve DOI」），拿到 DOI 后回填 README 再正式发布。
 
@@ -113,19 +113,51 @@ repository and retrieved at build/runtime via tools/fetch-data.R.
 
 ---
 
-## 5. 上传步骤（手动，UI）
+## 5. 上传步骤（手动，UI，逐步照做）
 
-1. 打开 https://zenodo.org/deposit/ → **New upload**（登录 GitHub/ORCID 账号）。
-2. **Reserve DOI**（右上）→ 记下预留 DOI（形如 `10.5281/zenodo.XXXXXXX`），用于回填 README。
-3. 逐项填 §2 元数据；Related identifiers 按 §4 添加。
-4. **拖拽上传** 19 个 parquet（从 `backups/tcmnp-inst-extdata-2026-10-22/`）。
-   - 或用 REST API（见 §6，需你自己的 Zenodo token，凭证不代填）。
-5. 上传完成后，Zenodo 会显示每个文件的 sha256/size → **与 §3 逐一对账**（可脚本比对）。
-6. 确认无误 → **Publish**。
+> 若 `https://zenodo.org/uploads` 列表里已有一个 **空白草稿**（之前脚本半截创建残留），优先点进去**直接填它**复用，省得删建；或删掉它再 New upload。
+
+### 5.1 新建 / 打开草稿
+1. 打开 https://zenodo.org/uploads/new （已登录账号）。
+2. 页面分两层卡：**Files**（先传文件）与 **Basic information**（填元数据）。
+
+### 5.2 传文件（Files 区）
+3. 把 `D:/update new R/backups/tcmnp-inst-extdata-2026-10-22/` 下的 **19 个 `.parquet`** 直接**拖进**上传区（或点 browse 多选）。
+   - 共 182.3 MB，Zenodo 限制单文件 50 GB，毫无压力，无需分卷。
+   - 校园网若中途掉线，传完的文件会保留，刷新重传剩余即可。
+
+### 5.3 填元数据（Basic information 区，逐项照抄）
+4. 点开 **Basic information** 卡，按下表填（英文文本可直接复制）：
+
+| 字段 | 填值 |
+|---|---|
+| **Resource type** | `Dataset` |
+| **Title** | `tcmnetpharma runtime dataset: multi-source Traditional Chinese Medicine network pharmacology data (TCMNP v1.3.0)` |
+| **Authors / Creator** | `Zheng, JianXiao`，Affiliation 填 `Haihe Laboratory of Traditional Chinese Medicine, Tianjin University of Traditional Chinese Medicine`；ORCID 有就补（格式 `0000-000X-XXXX-XXXX`） |
+| **Description** | 复制粘贴下方「描述正文」整段（§2） |
+| **License** | 搜索并选 **`Creative Commons Attribution Share Alike 4.0 International`**（即 CC BY-SA 4.0） |
+| **Keywords** | `Traditional Chinese Medicine`, `network pharmacology`, `TCMSP`, `HERB`, `BATMAN-TCM`, `ETCM2`, `ChEMBL`, `herb-molecule-target`, `data integration`（逐条回车添加） |
+| **Version** | `1.3.0` |
+| **Language** | `English` |
+
+5. **Related identifiers**（同一区往下找「Add」）：逐条添加 §4 的 6 行：
+   - `IsSupplementTo` → `https://github.com/271705024/tcmnetpharma`
+   - `references` → 5 个上游 DOI（见 §4）
+
+### 5.4 发布
+6. 文件传完 + 元数据填妥后，点右上 **Reserve DOI**（记下 `10.5281/zenodo.XXXXXXX` 备用），再点 **Publish**。
+7. 发布后，Zenodo 会显示每个文件的 sha256/size → 与 §3 逐一对账（可在本机 `sha256sum` 复核）。
+
+### 5.5 回填（闭环）
+8. 把 DOI 基础 URL 回填 README 的 `TCMNETPHARMA_DATA_URL`（见 §8），`git commit` + `git push gitee main`。
 
 ---
 
-## 6. 可选：REST API 批量上传（带 token 占位，由你执行）
+## 6. 可选：REST API 批量上传【⚠️ 已不稳定，优先走 §5 手动 UI】
+
+> 注：Zenodo 已迁移到 InvenioRDM，旧 `/api/deposit/depositions` legacy 接口与文件上传路径在新界面下行为不稳，实测已失败。**新用户请直接按 §5 手动 UI 填**，以下仅作高级参考、不再推荐。
+
+```bash
 
 ```bash
 # 1) 创建 deposition（拿到 DEP_ID）
