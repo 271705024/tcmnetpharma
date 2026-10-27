@@ -106,17 +106,46 @@ fi
 echo "    元数据已提交"
 
 # ---------- 2. 上传快照 ----------
-echo "==> 上传 $SNAPSHOT"
-code=$(curl -sS -o "$TMP" -w '%{http_code}' \
-  -X POST "$API/$DEP_ID/files?access_token=$TOKEN" \
-  -F "file=@$SNAPSHOT" || true)
+# ⚠️ 2026-10-27 实测：legacy 的 `POST /depositions/{id}/files`（multipart）在新式
+#    deposit 上会**长时间无响应**（8.4 MB 卡满 2 分钟无输出）。改用 InvenioRDM 的
+#    bucket 接口 `PUT {bucket}/{filename}`，同样网络下一次成功。
+#    上行慢时用 ZENODO_SKIP_UPLOAD=1 只填元数据，再去网页把文件拖进去。
+if [ -n "${ZENODO_SKIP_UPLOAD:-}" ]; then
+  echo "==> 跳过上传（ZENODO_SKIP_UPLOAD 已设置）"
+  echo "    请打开 https://zenodo.org/uploads/$DEP_ID 手动拖入：$SNAPSHOT"
+  exit 0
+fi
+
+BUCKET=$(curl -sS --max-time 60 "$API/$DEP_ID?access_token=$TOKEN" \
+  | grep -o '"bucket": *"[^"]*"' | head -1 | sed 's/.*"\(http[^"]*\)"$/\1/')
+[ -n "$BUCKET" ] || { echo "!! 未能取得 bucket 链接，请手工上传：$SNAPSHOT"; exit 1; }
+
+FNAME=$(basename "$SNAPSHOT")
+echo "==> 上传 $FNAME（$((SNAP_SIZE / 1048576)) MiB，bucket 接口）"
+code=$(curl -sS -o "$TMP" -w '%{http_code}' --max-time 1800 \
+  -X PUT "$BUCKET/$FNAME?access_token=$TOKEN" \
+  -H "Content-Type: application/octet-stream" \
+  --data-binary @"$SNAPSHOT" || true)
 if [ "$code" != "201" ] && [ "$code" != "200" ]; then
   echo "    !! 上传失败 HTTP $code —— 返回体："
   cat "$TMP"; echo
-  echo "    → 网络不稳时可忽略本步，直接去网页把 $SNAPSHOT 拖进去再 Publish。"
+  echo "    → 上行不稳时：ZENODO_SKIP_UPLOAD=1 重跑本脚本，再打开"
+  echo "      https://zenodo.org/uploads/$DEP_ID 手动拖入 $SNAPSHOT"
   exit 1
 fi
 echo "    上传完成"
+
+# 上传后核对：Zenodo 记录的 checksum 必须等于本地 sha256
+REMOTE_SUM=$(curl -sS --max-time 60 "$API/$DEP_ID?access_token=$TOKEN" \
+  | grep -o '"checksum": *"sha256:[0-9a-f]*"' | head -1 | sed 's/.*sha256:\([0-9a-f]*\)"/\1/')
+if [ -n "$REMOTE_SUM" ]; then
+  if [ "$REMOTE_SUM" = "$SNAP_SHA" ]; then
+    echo "    checksum 核对一致（sha256:$SNAP_SHA）"
+  else
+    echo "    !! checksum 不一致！本地 $SNAP_SHA / 远端 $REMOTE_SUM —— 不要 Publish"
+    exit 1
+  fi
+fi
 
 echo
 echo "==> 完成。请打开以下链接核对元数据与文件，然后点 Publish："

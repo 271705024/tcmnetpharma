@@ -78,8 +78,9 @@ tcm_net(network.data, view = "cluster", style = "journal")
 
 ## 引用
 
-论文写作中，请按开源惯例引用本项目、**数据集 DOI** 及各数据源原始论文。
+论文写作中，请按开源惯例引用本项目、**软件 DOI**、**数据集 DOI** 及各数据源原始论文。
 
+- **软件**：Zheng, JianXiao. (2026). *tcmnetpharma: multi-source Traditional Chinese Medicine network pharmacology analysis toolkit* (v0.2.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23688903
 - **数据集**：Zheng, JianXiao. (2026). *tcmnetpharma runtime dataset: multi-source Traditional Chinese Medicine network pharmacology data (TCMNP v1.3.0)* [Data set]. Zenodo. https://doi.org/10.5281/zenodo.23681367
 
 ## 版本
