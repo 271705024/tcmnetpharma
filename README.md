@@ -37,6 +37,20 @@ R CMD INSTALL tcmnetpharma_*.tar.gz
 
 > 运行时数据（inst/extdata/*.parquet）已**外置、不入库**，详见文末「运行时数据（外部化）」。
 
+## 图形界面（Windows 便携版，免装 R）
+
+想直接点鼠标用、不想配 R 环境的话，下载 Windows 便携版：
+
+**[➡️ v0.2.0 发布页](https://github.com/271705024/tcmnetpharma/releases/tag/v0.2.0)**（约 559 MiB）
+
+1. 把 7 个分片（`.zip.001` … `.zip.007`）、`merge-parts.bat`、`SHA256SUMS.txt` **全部下载到同一目录**
+2. 双击 `merge-parts.bat` 合并 → 得到一个 zip（脚本会自动算 SHA256，与 `SHA256SUMS.txt` 比对）
+3. 解压 zip，双击 `tcmnetpharma.exe`
+
+> 为什么要分片：单文件 559 MiB，GitHub 资产上传不支持断点续传，切成 80 MiB 后每片可独立重试；下载时也支持断点续传。
+> 压缩包内附 `使用说明.txt`、`数据来源与许可.txt`、`CITATION.txt`、`LICENSE.txt` 四份声明，建议先看一眼。
+> 系统要求：Windows 10/11 64 位（依赖 WebView2，Win11 自带）；建议预留 2 GB 磁盘。
+
 ## 快速开始
 
 ```r
