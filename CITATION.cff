@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: >-
+  If you use tcmnetpharma in your research, please cite this software and the
+  runtime dataset it consumes (see references below).
+title: >-
+  tcmnetpharma: multi-source Traditional Chinese Medicine network pharmacology
+  analysis toolkit
+abstract: >-
+  An R package for Traditional Chinese Medicine (TCM) network pharmacology
+  analysis. It integrates six upstream sources (TCMSP, HERB 2.0, BATMAN-TCM 2.0,
+  ETCM2, ChEMBL 37, and SymMap/OpenTargets) calibrated against the 2025 edition
+  of the Chinese Pharmacopoeia, and provides network, enrichment and module
+  visualisation modules.
+type: software
+version: 0.2.0
+date-released: "2026-08-22"
+license: GPL-3.0-only
+repository-code: "https://github.com/271705024/tcmnetpharma"
+url: "https://github.com/271705024/tcmnetpharma"
+keywords:
+  - Traditional Chinese Medicine
+  - network pharmacology
+  - R
+  - data integration
+  - herb-molecule-target
+authors:
+  - family-names: Zheng
+    given-names: JianXiao
+    affiliation: >-
+      Haihe Laboratory of Traditional Chinese Medicine, Tianjin University of
+      Traditional Chinese Medicine
+references:
+  - type: dataset
+    title: >-
+      tcmnetpharma runtime dataset: multi-source Traditional Chinese Medicine
+      network pharmacology data (TCMNP v1.3.0)
+    authors:
+      - family-names: Zheng
+        given-names: JianXiao
+    version: "1.3.0"
+    date-released: "2026-10-27"
+    license: CC-BY-SA-4.0
+    doi: "10.5281/zenodo.23681367"
+    url: "https://zenodo.org/records/23681367"

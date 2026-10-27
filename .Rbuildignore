@@ -5,3 +5,4 @@
 ^TCMNP\.Rcheck$
 ^.*\.tar\.gz$
 ^\.git$
+^CITATION\.cff$
