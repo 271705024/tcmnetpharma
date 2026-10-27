@@ -45,7 +45,7 @@ carry gene symbols and UniProt accessions where ChEMBL resolves them.
 
 This table is the \strong{open-licence} stand-in for the withheld TTD MOA: it
 provides the same drug-target mechanism + development-phase value under
-ChEMBL 37 (CC BY-SA 4.0).
+ChEMBL 37 (CC BY-SA 3.0).
 }
 \examples{
 head(mol_moa("Aspirin"))

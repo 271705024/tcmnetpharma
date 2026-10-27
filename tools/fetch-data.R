@@ -10,7 +10,7 @@
 #   Rscript tools/fetch-data.R <BASE_URL>         # 覆盖数据源
 #   或 export TCMNETPHARMA_DATA_URL=<BASE_URL> 再 Rscript tools/fetch-data.R
 # 默认 <BASE_URL> = https://zenodo.org/records/23681367/files
-#        （DOI 10.5281/zenodo.23681367，数据版本 TCMNP_1.3.0，许可 CC BY-SA 4.0）
+#        （DOI 10.5281/zenodo.23681367，数据版本 TCMNP_1.3.0，许可 CC BY-NC-SA 4.0）
 # 其他源：任何提供同名 19 个 parquet 的 HTTP 目录 / 对象存储镜像（传参或设 env 覆盖）
 #
 # 注意：优先使用 curl（支持 -C - 断点续传，适配不稳定网络）；

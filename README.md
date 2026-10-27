@@ -84,9 +84,9 @@ tcm_net(network.data, view = "cluster", style = "journal")
 
 ## 许可与免责声明
 
-**代码**：GPL-3　**运行时数据**：CC BY-SA 4.0（DOI 见下文）
+**代码**：GPL-3　**运行时数据**：CC BY-NC-SA 4.0（DOI 见下文）
 
-⚠️ **并非所有上游源都是开放许可**：ETCM2 需注册后使用；TTD 保留所有权利（All rights reserved），**不随包分发**；KEGG 专有，**不随包分发**；SymMap 未明示许可，仅限学术使用。本包分发的是经筛选、键化与合并的**派生数据**，不包含上述来源的原始文件。各源许可、署名要求与 CC BY-SA 4.0 的「相同方式共享」义务详见 `inst/extdata/DATA-README.md` §来源与许可。
+⚠️ **并非所有上游源都是开放许可**：ETCM2 需注册后使用；TTD 保留所有权利（All rights reserved），**不随包分发**；KEGG 专有，**不随包分发**；SymMap 未明示许可，仅限学术使用。本包分发的是经筛选、键化与合并的**派生数据**，不包含上述来源的原始文件。各源许可、署名要求与 CC BY-NC-SA 4.0 的「非商业性使用 + 相同方式共享」义务详见 `inst/extdata/DATA-README.md` §来源与许可。
 
 **免责声明**：本软件与随附数据仅供科学研究与教学使用，**不构成任何医疗、诊断或用药建议**；数据按「现状」提供，不对完整性、准确性作明示或默示担保，不得作为临床决策依据。
 
@@ -99,7 +99,7 @@ tcm_net(network.data, view = "cluster", style = "journal")
 
 ## 版本
 
-- 0.2.0 (2026-08-22)：多源数据库整合版（数据更新至 2026）
+- 0.2.0 (2026-08-22)：多源数据库整合版（数据更新至 2026）。**代码归档日 2026-10-27**（签名 tag `v0.2.0`，软件 DOI `10.5281/zenodo.23688903`）——两者不是同一天，前者是功能冻结日，后者是 DOI 归档日，不是笔误
 - 0.1.0 (2023)：初版（TCMSP 单一数据源）
 
 ## 运行时数据（外部化）
@@ -116,7 +116,7 @@ tcm_net(network.data, view = "cluster", style = "journal")
 | **DOI（本版本 v1.3.0）** | [`10.5281/zenodo.23681367`](https://doi.org/10.5281/zenodo.23681367) |
 | **发布页** | https://zenodo.org/records/23681367 |
 | **下载基础 URL** | `https://zenodo.org/records/23681367/files` |
-| 许可证 | CC BY-SA 4.0 |
+| 许可证 | CC BY-NC-SA 4.0 |
 
 ```bash
 # 默认即从上面的 Zenodo 地址拉取（curl 支持断点续传，适配不稳定网络）

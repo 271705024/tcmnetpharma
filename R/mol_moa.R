@@ -26,7 +26,7 @@
 #'
 #' This table is the **open-licence** stand-in for the withheld TTD MOA: it
 #' provides the same drug-target mechanism + development-phase value under
-#' ChEMBL 37 (CC BY-SA 4.0).
+#' ChEMBL 37 (CC BY-SA 3.0).
 #'
 #' @seealso [mol_indication()], [disease_target()]
 #' @export

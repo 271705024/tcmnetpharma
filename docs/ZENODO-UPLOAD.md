@@ -26,7 +26,7 @@
 - [x] 19 个 parquet 已置于 `backups/tcmnp-inst-extdata-2026-10-22/`
 - [x] 每个文件 sha256 已算（见 `backups/.../ZENODO_MANIFEST_DATA.json` 与 §3）
 - [x] 与包内工作树数据逐字节一致 → 发布的校验和能对上用户经 `fetch-data.R` 下载的文件
-- [x] **已定**：数据集许可证 = `CC BY-SA 4.0`（保守路线，见 §7-A）
+- [x] **已定（2026-10-27 改）**：数据集许可证 = `CC BY-NC-SA 4.0`（非商用 + 相同方式共享，见 §7-A）
 - [ ] **待填**：作者 ORCID（占位 `<ORCID>`，发布前在 UI 补）
 
 > 不阻塞：可先「预保留 DOI」（Zenodo 上传页「Reserve DOI」），拿到 DOI 后回填 README 再正式发布。
@@ -42,7 +42,7 @@
 | **Authors** | `Zheng, JianXiao` | ORCID 待填（若有，格式 `0000-000X-XXXX-XXXX`）；可加共同作者 |
 | **Affiliations** | Haihe Laboratory of Modern Chinese Medicine, Tianjin University of Traditional Chinese Medicine | 天津中医药大学海河实验室 |
 | **Description** | 见下方「描述正文」块 | 建议英文为主 |
-| **License** | `CC BY-SA 4.0` *(已定，保守路线；ODbL 亦可，见 §7-A)* | |
+| **License** | `CC BY-NC-SA 4.0` *(已定 2026-10-27：非商用 + 相同方式共享；理由见 §7-A)* | |
 | **Keywords** | Traditional Chinese Medicine; network pharmacology; TCMSP; HERB; BATMAN-TCM; ETCM2; ChEMBL; herb-molecule-target; data integration | |
 | **Version** | `1.3.0` | 与数据版本 `TCMNP_1.3.0` 对应（前缀不进 Zenodo 版本号） |
 | **Language** | English | |
@@ -53,20 +53,40 @@
 ### 描述正文（可整段复制）
 
 ```
-tcmnetpharma runtime dataset (data version TCMNP_1.3.0, 2026-10-21) provides the 19 parquet
-tables consumed by the tcmnetpharma R package (https://github.com/271705024/tcmnetpharma),
-a toolkit for Traditional Chinese Medicine (TCM) network pharmacology analysis.
+tcmnetpharma runtime dataset (data version TCMNP_1.3.0, 2026-10-21) provides the 19 Apache
+Parquet tables consumed by the tcmnetpharma R package
+(https://github.com/271705024/tcmnetpharma), a toolkit for Traditional Chinese Medicine (TCM)
+network pharmacology analysis.
 
-The dataset integrates six upstream sources — TCMSP, HERB 2.0, BATMAN-TCM 2.0, ETCM2,
-ChEMBL 37, and SymMap/OpenTargets (disease dimension) — calibrated against the 2025 edition
-of the Chinese Pharmacopoeia. It contains a standardized herb–molecule–target wide table
-(16.3M rows, 33 columns, with provenance and QC-level columns), a 10-column compatibility
-table, disease/entity mapping tables, ETCM2 reference tables, ChEMBL-derived mechanism-of-action
-and indication tables, and row/table-level provenance tables.
+Sources — nine upstream databases plus three offline gene-set sources.
+The dataset integrates TCMSP, HERB 2.0, BATMAN-TCM 2.0, ETCM2, ChEMBL 37, STRING 12,
+TRRUST v2, Open Targets Platform 25.06 and SymMap V2, together with offline gene sets from
+WikiPathways, Reactome and Gene Ontology. It is calibrated against the 2025 edition of the
+Chinese Pharmacopoeia, which serves as a nomenclature and property reference only and is not
+redistributed. TTD (all rights reserved) and KEGG (proprietary) are not redistributed.
 
-All files are Apache Parquet. Each file's SHA-256 is published in the repository
-(docs/ZENODO-UPLOAD.md) for integrity verification. The dataset is externalized from the code
-repository and retrieved at build/runtime via tools/fetch-data.R.
+Contents.
+A standardised herb–molecule–target wide table (16.3M rows, 33 columns, with provenance and
+QC-level columns), a 10-column compatibility table, disease/entity mapping tables, ETCM2
+reference tables, ChEMBL-derived mechanism-of-action and indication tables, and row/table-level
+provenance tables. Every file's SHA-256 is published in the repository
+(docs/ZENODO-UPLOAD.md) for integrity verification. The dataset is externalised from the code
+repository and retrieved via tools/fetch-data.R.
+
+Licence — CC BY-NC-SA 4.0 (non-commercial, share-alike).
+The compilation is distributed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0
+International. Two deliberate choices: (i) non-commercial, because upstream SymMap is
+academic-use only and declares CC BY-NC, so granting commercial rights here would exceed what
+we received; (ii) share-alike, because upstream TCMSP is ODbL and ChEMBL is CC BY-SA, both of
+which carry reciprocal obligations.
+
+Upstream attribution and carve-outs.
+TCMSP is licensed under the ODbL; for the TCMSP-derived portion of this compilation the ODbL
+terms additionally apply and must be honoured. ChEMBL 37 is CC BY-SA 3.0; STRING is CC BY 4.0;
+TRRUST is CC BY-SA 4.0; Open Targets Platform is CC0 1.0; WikiPathways is CC0; Reactome and
+Gene Ontology are CC BY 4.0. HERB 2.0, BATMAN-TCM 2.0 and ETCM2 are used under their respective
+academic-use terms and must be cited. No upstream raw files are redistributed — only filtered,
+keyed and merged derivative tables. Per-source detail: inst/extdata/DATA-README.md.
 ```
 
 ---
@@ -145,7 +165,7 @@ repository and retrieved at build/runtime via tools/fetch-data.R.
 | **Title** | `tcmnetpharma runtime dataset: multi-source Traditional Chinese Medicine network pharmacology data (TCMNP v1.3.0)` |
 | **Authors / Creator** | `Zheng, JianXiao`，Affiliation 填 `Haihe Laboratory of Modern Chinese Medicine, Tianjin University of Traditional Chinese Medicine`；ORCID 有就补（格式 `0000-000X-XXXX-XXXX`） |
 | **Description** | 复制粘贴下方「描述正文」整段（§2） |
-| **License** | 搜索并选 **`Creative Commons Attribution Share Alike 4.0 International`**（即 CC BY-SA 4.0） |
+| **License** | 搜索并选 **`Creative Commons Attribution Non Commercial Share Alike 4.0 International`**（即 CC BY-NC-SA 4.0） |
 | **Keywords** | `Traditional Chinese Medicine`, `network pharmacology`, `TCMSP`, `HERB`, `BATMAN-TCM`, `ETCM2`, `ChEMBL`, `herb-molecule-target`, `data integration`（逐条回车添加） |
 | **Version** | `1.3.0` |
 | **Language** | `English` |
@@ -193,17 +213,28 @@ curl -X POST "https://zenodo.org/api/deposit/depositions/$DEP_ID/actions/publish
 
 ## 7. 待拍板项
 
-### A. 数据集许可证（已定 ✅）
-boss 拍板走**保守路线**，尊重上游「相同方式共享」义务：
-- **采用 `CC BY-SA 4.0`**（默认值，已写入 §2 元数据模板）。
-- **`ODbL` 亦可** —— 若希望与 TCMSP 上游许可完全同构，改用 ODbL 同样合规。
-- 理由：上游 TCMSP 为 **ODbL**、ChEMBL 37 为 **CC BY-SA 3.0**，均含 share-alike 义务；用 `CC BY-SA 4.0`/ODbL 可避免「宽松许可遮蔽上游 copyleft」的合规风险。
-- publish 前若导师/图书馆另有要求，仍可改；当前默认按上表执行。
+### A. 数据集许可证（已定 ✅ · 2026-10-27 改为非商用）
+
+boss 2026-10-27 拍板：**改为「最大兼容（非商用）」= `CC BY-NC-SA 4.0`**。
+
+- **为什么加 NC**：上游 SymMap V2.0 原文为 **CC BY-NC 4.0 / 仅限学术使用**。若我们以允许商用的许可发布，等于向下游授予了我们自己都没拿到的权利。
+- **为什么保留 SA**：上游 TCMSP 为 **ODbL**、ChEMBL 37 为 **CC BY-SA 3.0**，二者都带**互惠（share-alike）**义务；保留 SA 才不遮蔽上游 copyleft。
+- **ODbL 的处理**：ODbL 与 CC 系许可**不能互相覆盖**，因此不宣称「整包等价于 ODbL」，而是在描述里写明「TCMSP 派生部分另受 ODbL 约束、ODbL 条款优先适用」。这是能同时守住两边的最低成本做法。
+- **取舍**：这意味着数据集**不可用于商业用途**。若日后需要商业授权，须逐源重新取得许可（尤其 SymMap、ETCM2）。
+- **变更方式**：2026-10-27 已通过 metadata 编辑改到已发布记录 `10.5281/zenodo.23681367`，**DOI 未变、文件未动、未产生新版本**。
 
 ### B. 作者与 ORCID（占位待填 ⏳）
 - 第一作者 `Zheng, JianXiao`（已填占位）；**ORCID 留占位** `<ORCID>` 待你补入元数据与 §2。
 - 是否列共同作者/通讯作者：**留占位**，请确认后补。
 - 上传前务必补全这两项，Zenodo 发布后修改作者需发新版本。
+
+### D. ⛔ 不要开 GitHub–Zenodo 自动集成
+
+仓库根有 `.zenodo.json`，那是给「GitHub Release 自动归档」用的。**本项目已手动发布软件记录 `10.5281/zenodo.23688903`**，若再在 GitHub 侧开启 Zenodo 集成，GitHub 每发一个 Release 就会**新建一条独立软件记录**，与现有记录争 DOI、争引用，且概念 DOI 会分裂成两个。
+
+- 现状：Gitee 为主、GitHub 为镜像；Release 不常建，走手动脚本更可控。
+- 若日后确实要改用集成：先把现有记录 `23688903` 的内容迁过去并**在同一条概念 DOI 下**用 New version，再删手动记录，最后才开集成。
+- `.zenodo.json` 保留的价值：给 `tools/zenodo-upload-software.sh` 当**元数据单一来源**，不要删。
 
 ### C. DOI 版本化
 - 本次发 `1.3.0`；未来数据更新时**发新版本**（Zenodo 支持同一 deposition 下新版本，DOI 增加 suffix 如 `10.5281/zenodo.XXXXXXX.v2`），并同步 bump `fetch-data.R` 的默认版本。

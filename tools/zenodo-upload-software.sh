@@ -2,7 +2,7 @@
 # tcmnetpharma **软件** → Zenodo 归档脚本（resource_type=software；元数据单一来源 = .zenodo.json）
 #
 # 与 tools/zenodo-upload.sh（数据集版）的分工：
-#   - zenodo-upload.sh          → 数据集 19 个 parquet（upload_type=dataset，CC-BY-SA-4.0）
+#   - zenodo-upload.sh          → 数据集 19 个 parquet（upload_type=dataset，CC-BY-NC-SA-4.0）
 #   - zenodo-upload-software.sh → 源码快照（upload_type=software，GPL-3.0-only）← 本脚本
 #
 # 用法（首次，新建草稿）：

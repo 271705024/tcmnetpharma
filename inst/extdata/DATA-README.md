@@ -187,6 +187,16 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 | GO | org.Hs/Mm.eg.db 3.23.x + GO.db | CC BY 4.0 | 功能富集（随包离线） |
 | **KEGG** | 联网实时（`rest.kegg.jp`） | 专有（Kanehisa Labs）；**不可再分发** | **接口保留、数据不存**：`tcm_enrich(ont = "KEGG")` 运行时抓取并缓存到用户目录，包内零 KEGG 数据（历史示例对象 `KK`/`kegg.filter` 已于 2026-10-27 删除）。日常分析用 WikiPathways/Reactome/GO 离线替代 |
 
+### 本包分发数据的对外许可（2026-10-27 定）
+
+**`CC BY-NC-SA 4.0`（署名—非商业性使用—相同方式共享 4.0 国际）。**
+
+- **非商业（NC）是刻意的**：上游 SymMap V2.0 原文为 CC BY-NC 4.0 / 仅限学术使用；若以允许商用的许可发布，等于向下游授予我们自身并未取得的权利。
+- **相同方式共享（SA）是刻意的**：上游 TCMSP 为 ODbL、ChEMBL 为 CC BY-SA 3.0，均带互惠义务；保留 SA 才不遮蔽上游 copyleft。
+- **ODbL 例外**：ODbL 与 CC 系许可不能互相覆盖。**TCMSP 派生部分另受 ODbL 约束，ODbL 条款在该部分优先适用**（含署名与相同方式共享义务）。
+- **代码不受此约束**：R 包源码为 **GPL-3**；上表 NC 限制只作用于**数据**。
+- **实际影响**：数据不可用于商业用途（含商业软件内置、商业分析服务）。学术研究、教学、非商业科研合作不受影响，但须署名并同样以 CC BY-NC-SA 4.0 共享衍生数据。
+
 ## 清洗参数（S0-S6）
 
 - 标准键：成分 InChIKey（主）+ PubChem CID（辅）；靶点 Entrez Gene ID；草药拼音+中文双键
