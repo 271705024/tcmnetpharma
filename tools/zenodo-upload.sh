@@ -58,7 +58,7 @@ META=$(cat <<'JSON'
     "creators": [
       {
         "name": "Zheng, JianXiao",
-        "affiliation": "Haihe Laboratory of Traditional Chinese Medicine, Tianjin University of Traditional Chinese Medicine"
+        "affiliation": "Haihe Laboratory of Modern Chinese Medicine, Tianjin University of Traditional Chinese Medicine"
       }
     ],
     "description": "<p>tcmnetpharma runtime dataset (data version TCMNP_1.3.0, 2026-10-21) provides the 19 parquet tables consumed by the tcmnetpharma R package (https://github.com/271705024/tcmnetpharma), a toolkit for Traditional Chinese Medicine (TCM) network pharmacology analysis.</p><p>The dataset integrates six upstream sources — TCMSP, HERB 2.0, BATMAN-TCM 2.0, ETCM2, ChEMBL 37, and SymMap/OpenTargets (disease dimension) — calibrated against the 2025 edition of the Chinese Pharmacopoeia. It contains a standardized herb–molecule–target wide table (16.3M rows, 33 columns, with provenance and QC-level columns), a 10-column compatibility table, disease/entity mapping tables, ETCM2 reference tables, ChEMBL-derived mechanism-of-action and indication tables, and row/table-level provenance tables.</p><p>All files are Apache Parquet. Each file's SHA-256 is published in the repository (docs/ZENODO-UPLOAD.md) for integrity verification. The dataset is externalized from the code repository and retrieved at build/runtime via tools/fetch-data.R.</p>",

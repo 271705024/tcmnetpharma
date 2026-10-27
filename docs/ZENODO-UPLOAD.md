@@ -40,7 +40,7 @@
 | **Resource type** | Dataset | |
 | **Title** | tcmnetpharma runtime dataset: multi-source Traditional Chinese Medicine network pharmacology data (TCMNP v1.3.0) | |
 | **Authors** | `Zheng, JianXiao` | ORCID 待填（若有，格式 `0000-000X-XXXX-XXXX`）；可加共同作者 |
-| **Affiliations** | Haihe Laboratory of Traditional Chinese Medicine, Tianjin University of Traditional Chinese Medicine | 天津中医药大学海河实验室 |
+| **Affiliations** | Haihe Laboratory of Modern Chinese Medicine, Tianjin University of Traditional Chinese Medicine | 天津中医药大学海河实验室 |
 | **Description** | 见下方「描述正文」块 | 建议英文为主 |
 | **License** | `CC BY-SA 4.0` *(已定，保守路线；ODbL 亦可，见 §7-A)* | |
 | **Keywords** | Traditional Chinese Medicine; network pharmacology; TCMSP; HERB; BATMAN-TCM; ETCM2; ChEMBL; herb-molecule-target; data integration | |
@@ -143,7 +143,7 @@ repository and retrieved at build/runtime via tools/fetch-data.R.
 |---|---|
 | **Resource type** | `Dataset` |
 | **Title** | `tcmnetpharma runtime dataset: multi-source Traditional Chinese Medicine network pharmacology data (TCMNP v1.3.0)` |
-| **Authors / Creator** | `Zheng, JianXiao`，Affiliation 填 `Haihe Laboratory of Traditional Chinese Medicine, Tianjin University of Traditional Chinese Medicine`；ORCID 有就补（格式 `0000-000X-XXXX-XXXX`） |
+| **Authors / Creator** | `Zheng, JianXiao`，Affiliation 填 `Haihe Laboratory of Modern Chinese Medicine, Tianjin University of Traditional Chinese Medicine`；ORCID 有就补（格式 `0000-000X-XXXX-XXXX`） |
 | **Description** | 复制粘贴下方「描述正文」整段（§2） |
 | **License** | 搜索并选 **`Creative Commons Attribution Share Alike 4.0 International`**（即 CC BY-SA 4.0） |
 | **Keywords** | `Traditional Chinese Medicine`, `network pharmacology`, `TCMSP`, `HERB`, `BATMAN-TCM`, `ETCM2`, `ChEMBL`, `herb-molecule-target`, `data integration`（逐条回车添加） |
