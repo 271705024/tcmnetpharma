@@ -9,8 +9,10 @@
   与本文档长期宣称的「KEGG 不随包分发」矛盾。现已删除数据对象与其帮助页。
 - **影响**：`data(KK)` / `data(kegg.filter)` 不再可用；相关示例已改用
   `tcm_enrich()` 的 WikiPathways/Reactome/GO 离线结果。**函数接口未变。**
-- 需要 KEGG 富集：联网调用 `clusterProfiler::enrichKEGG()`，返回值可直接交给
-  `bar_plot()` / `dot_plot()` / `pathway_cirplot()` 等可视化函数。
+- **接口保留、数据不存**：`tcm_enrich(genes, ont = "KEGG")` 照常可用——运行时从
+  `rest.kegg.jp` 抓取并缓存到 `tools::R_user_dir("tcmnetpharma","cache")/kegg`（30 天过期），
+  返回对象带 `attr(x,"kegg_snapshot")` 记录快照日期。包内依旧零 KEGG 数据。
+  （自跑 `clusterProfiler::enrichKEGG()` 的结果同样能喂给各可视化函数。）
 
 ### 修正（声明与帮助页按实测对齐）
 

@@ -21,7 +21,7 @@ tcmnetpharma 提供中药复方/单药的网络药理学分析可视化功能（
 | **SymMap** | V2.0 | 疾病本体映射、拉丁药名交叉引用 | **未明示**（原文 CC BY-NC 4.0）；仅限学术使用 | 派生数据随包 |
 | WikiPathways / Reactome / GO | 20261010 / 2026-09-05 / 3.23.x | 通路与功能富集基因集 | CC0 / CC BY 4.0 / CC BY 4.0 | 随包离线 |
 | TTD | 2024.01.10 冻结版 | 靶点-疾病关联 | **All rights reserved** | **不随包分发**（仅内部交叉校验） |
-| KEGG | —— | 通路富集 | 专有（Kanehisa Labs） | **不随包分发**（2026-10-27 已删除历史示例结果对象） |
+| KEGG | 联网实时（`rest.kegg.jp`） | 通路富集 | 专有（Kanehisa Labs）；不可再分发 | **接口保留、数据不存**：`tcm_enrich(ont = "KEGG")` 运行时抓取并缓存到用户目录，包内零 KEGG 数据 |
 
 数据版本、逐表行数与清洗口径见 `inst/extdata/DATA-README.md`。
 

@@ -35,6 +35,9 @@
 #' res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
 #'                   pvalueCutoff = 0.05, qvalueCutoff = 1)
 #' dot_sankey2(res$wikipathways@result)
+#' # KEGG：接口内置、数据不随包分发（运行时联网抓取，缓存 30 天）
+#' # res2 <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human", ont = "KEGG")
+#' # dot_sankey2(res2$kegg@result)
 #' }
 dot_sankey2 <- function(data,
                        sankey.text.size = 3,

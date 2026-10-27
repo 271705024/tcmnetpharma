@@ -83,7 +83,7 @@ Windows 便携版（`tcmnetpharma.exe`）封装了同样的四步流程，双击
 |---|---|
 | `herb_target("麻黄")` 查不到 | 药名写法不在库里。先 `molecule_serch()` / `herb_target(..., type = "Herb_name_pin_yin")` 试拼音键；`resolve_herb = TRUE` 走别名解析 |
 | 富集报 "no significant" | 输入基因太少或阈值太严。放宽 `pvalueCutoff` / `qvalueCutoff`，或 `minGSSize` |
-| 想要 KEGG 通路 | KEGG 不允许随包分发。联网自行 `clusterProfiler::enrichKEGG()`，返回值可直接喂给 `bar_plot()` / `dot_plot()` / `pathway_cirplot()` |
+| 想要 KEGG 通路 | 接口内置、数据不随包分发：`tcm_enrich(hit$target_symbol, ont = "KEGG")` 会联网抓取（首次较慢，之后走本地缓存 30 天），返回对象带 `attr(x, "kegg_snapshot")` 记录快照日期，写论文时请报告该日期。也可自行 `clusterProfiler::enrichKEGG()`，返回值同样能喂给 `bar_plot()` / `pathway_cirplot()` |
 | 装包时报找不到 `inst/extdata/*.parquet` | 运行时数据未拉取，先跑 `Rscript tools/fetch-data.R` |
 | 想换数据源（内网镜像） | `export TCMNETPHARMA_DATA_URL="https://<mirror>/tcmnetpharma-data"` 后再跑拉取脚本 |
 

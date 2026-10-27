@@ -29,7 +29,11 @@ needed).}
 
 \item{ont}{character vector; any of \code{"GO"}, \code{"Reactome"},
 \code{"WikiPathways"}, \code{"KEGG"}.
-\code{"WikiPathways"}. Default all three.}
+前三个完全离线、默认全开；\code{"KEGG"} 默认\strong{不启用} —— 它需要联网
+（首次较慢，之后走本地缓存，缓存 30 天，路径见
+\code{tools::R_user_dir("tcmnetpharma", "cache")/kegg}）。
+\strong{KEGG 数据永不随包分发}：包内不含任何 KEGG 数据，只在用户机器上
+联网抓取并缓存，返回对象带 \code{attr(x, "kegg_snapshot")} 供复现报告。}
 
 \item{pvalueCutoff}{numeric cutoff passed to the underlying \code{enrich*} calls.}
 

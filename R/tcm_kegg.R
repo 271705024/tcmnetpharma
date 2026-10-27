@@ -1,3 +1,28 @@
+#' Normalize a TERM2NAME payload to the 2-column data.frame `enricher()` needs
+#'
+#' @description
+#' \strong{Regression fix 2026-10-27.} \code{clusterProfiler 4.20.0 / DOSE 4.5.0}
+#' 的 \code{enricher()} 在 \code{TERM2NAME} 收到**命名向量**时会在内部按二维对象
+#' 取列，报 \code{attempt to set 'colnames' on an object with less than two
+#' dimensions}。传两列 \code{data.frame} 则正常。
+#'
+#' 该缺陷此前一直没被发现：\code{tcm_enrich(ont = "KEGG")} 从未被真正跑通过
+#' （缓存对象、快照构建都正确，崩在最后一步的入参形态）。实测对照见
+#' \code{docs/RELEASE-AUDIT-2026-10-27.md} 与提交说明。
+#'
+#' 同时兼容两种缓存形态：旧缓存里 \code{t2n} 是命名向量，新缓存是两列 df。
+#' @noRd
+.tcm_kegg_t2n_df <- function(t2n) {
+  if (is.null(t2n)) return(NULL)
+  if (is.data.frame(t2n)) {
+    if (ncol(t2n) < 2L) stop("KEGG TERM2NAME data.frame must have 2 columns.", call. = FALSE)
+    return(as.data.frame(t2n[, 1:2, drop = FALSE], stringsAsFactors = FALSE))
+  }
+  data.frame(term = as.character(names(t2n)),
+             name = unname(as.character(t2n)),
+             stringsAsFactors = FALSE)
+}
+
 #' KEGG pathway enrichment via the KEGG REST API (online, cached)
 #'
 #' @description
@@ -45,7 +70,8 @@
   er <- clusterProfiler::enricher(
     gene = entrez,
     TERM2GENE = snap$t2g,
-    TERM2NAME = snap$t2n,
+    # ⚠️ 必须是两列 data.frame，**不能**直接传命名向量 —— 见 .tcm_kegg_t2n_df 注释
+    TERM2NAME = .tcm_kegg_t2n_df(snap$t2n),
     ...
   )
   if (is.null(er) || !nrow(as.data.frame(er))) return(NULL)

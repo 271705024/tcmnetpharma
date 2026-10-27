@@ -161,9 +161,11 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 > - **KEGG 不在安装包里**（不是技术限制，是许可要求）：KEGG 数据版权归 Kanehisa Laboratories，
 >   **学术自用免费，但随软件再分发需另行授权**（Service Provider / 商业许可）。
 >   为让你拿到「装上就能用、不必操心合规」的版本，本包不携带 KEGG 数据。
-> - **想用 KEGG**：联网时在 R 里运行 `clusterProfiler::enrichKEGG()`（学术用户免费，取到最新版），
->   返回的 `enrichResult` 可直接交给本包的可视化函数（`bar_plot` / `dot_plot` / `pathway_cirplot` 等），
->   与离线结果可混用做对照；离线分析（WikiPathways / Reactome / GO）不受影响。
+> - **想用 KEGG（接口内置，数据不存）**：直接 `tcm_enrich(genes, ont = "KEGG")` ——
+>   运行时从 `https://rest.kegg.jp` 抓取，缓存到 `tools::R_user_dir("tcmnetpharma", "cache")/kegg`
+>   （30 天过期），返回对象带 `attr(x, "kegg_snapshot")` 记录快照日期，供论文报告复现口径。
+>   **包内不含任何 KEGG 数据**（`data/` 已无 KEGG 对象，2026-10-27 删除）。
+>   也可自行 `clusterProfiler::enrichKEGG()`，返回值同样能交给 `bar_plot` / `dot_plot` / `pathway_cirplot`。
 > - 条款依据与出处：`docs/licensing-kegg-go-2026-10-19.md`
 
 ## 来源与许可
@@ -183,7 +185,7 @@ TCMNP_<major>.<minor>.<patch>_<YYYY-MM-DD>
 | WikiPathways | 20261010（GMT） | **CC0（公有领域）** | 通路富集（随包离线） |
 | Reactome | 2026-09-05（NCBI2Reactome） | CC BY 4.0 | 通路富集（随包离线） |
 | GO | org.Hs/Mm.eg.db 3.23.x + GO.db | CC BY 4.0 | 功能富集（随包离线） |
-| **KEGG** | —— | 专有（Kanehisa Labs）；**不可再分发** | **不随包分发**。历史示例结果对象 `data/KK.rda`（193 条）与 `data/kegg.filter.rda`（8 条）已于 **2026-10-27 删除**，包内现无任何 KEGG 派生数据；日常分析用 WikiPathways/Reactome/GO 离线替代，需要 KEGG 时联网自取（见下方说明） |
+| **KEGG** | 联网实时（`rest.kegg.jp`） | 专有（Kanehisa Labs）；**不可再分发** | **接口保留、数据不存**：`tcm_enrich(ont = "KEGG")` 运行时抓取并缓存到用户目录，包内零 KEGG 数据（历史示例对象 `KK`/`kegg.filter` 已于 2026-10-27 删除）。日常分析用 WikiPathways/Reactome/GO 离线替代 |
 
 ## 清洗参数（S0-S6）
 

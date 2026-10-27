@@ -55,6 +55,9 @@ data(xfbdf, package = "tcmnetpharma")
 res <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human",
                   pvalueCutoff = 0.05, qvalueCutoff = 1)
 pathway_ccplot(res$wikipathways, root = "WikiPathways")
+# KEGG：接口内置、数据不随包分发（运行时联网抓取，缓存 30 天）
+# res2 <- tcm_enrich(unique(xfbdf$target), keytype = "SYMBOL", species = "human", ont = "KEGG")
+# pathway_ccplot(res2$kegg, root = "KEGG")
 }
 
 }
