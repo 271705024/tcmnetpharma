@@ -1,0 +1,39 @@
+## Encoding: UTF-8
+citHeader("若在论文、报告或教学材料中使用了本软件或随附数据，请同时引用下列条目；")
+citHeader("上游数据库（TCMSP / HERB / ChEMBL / STRING 等）亦须按实际使用情况一并引用，")
+citHeader("逐源许可与引用格式见 inst/extdata/DATA-README.md。")
+
+bibentry(
+  bibtype  = "Misc",
+  key      = "tcmnetpharma2026",
+  title    = "tcmnetpharma: multi-source Traditional Chinese Medicine network pharmacology analysis toolkit",
+  author   = person(given = c("JianXiao"), family = "Zheng",
+                    email = "tcmnp.maintainer@localhost",
+                    comment = c(ORCID = "0009-0003-5096-1803")),
+  year     = "2026",
+  version  = "0.2.0",
+  note     = "R package version 0.2.0, GPL-3",
+  url      = "https://github.com/271705024/tcmnetpharma",
+  doi      = "10.5281/zenodo.23688903",
+  textVersion = paste("Zheng, J. (2026). tcmnetpharma: multi-source Traditional Chinese Medicine",
+                      "network pharmacology analysis toolkit (Version 0.2.0) [Computer software].",
+                      "https://doi.org/10.5281/zenodo.23688903")
+)
+
+bibentry(
+  bibtype  = "Misc",
+  key      = "tcmnetpharmaData2026",
+  title    = "tcmnetpharma runtime dataset: multi-source Traditional Chinese Medicine network pharmacology data (TCMNP v1.3.0)",
+  author   = person(given = c("JianXiao"), family = "Zheng",
+                    comment = c(ORCID = "0009-0003-5096-1803")),
+  year     = "2026",
+  version  = "1.3.0",
+  note     = "Data version TCMNP_1.3.0_2026-10-21, CC BY-NC-SA 4.0",
+  doi      = "10.5281/zenodo.23681367",
+  textVersion = paste("Zheng, J. (2026). tcmnetpharma runtime dataset: multi-source Traditional",
+                      "Chinese Medicine network pharmacology data (TCMNP v1.3.0) [Data set]. Zenodo.",
+                      "https://doi.org/10.5281/zenodo.23681367")
+)
+
+citFooter("本软件与数据仅供科学研究、教学学习与个人训练使用，不构成医疗或用药建议。")
+citFooter("数据集许可是 CC BY-NC-SA 4.0（含非商业与相同方式共享条款），代码许可是 GPL-3。")
