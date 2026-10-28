@@ -20,6 +20,7 @@ tcm_net(
   palette = NULL,
   max_nodes = NULL,
   min_degree = 1,
+  min_degree_iterate = FALSE,
   keep = NULL
 )
 }
@@ -74,7 +75,14 @@ a palette key replaces that base colour set.}
 \item{max_nodes}{节点数上限。\code{NULL}（默认）表示用 \code{view} 自带上限
 （overview / cluster 50，hub 30）；显式给数值则覆盖；\code{Inf} 不裁剪。}
 
-\item{min_degree}{度数下限（仅在触发裁剪时生效，见 \code{tcm_filter_network}）。}
+\item{min_degree}{\strong{严格度数下限}：\code{degree < min_degree} 的节点整体剔除。
+与 \code{max_nodes} \strong{正交}，未触发裁剪时同样生效（默认 1 = 只去掉零度
+孤立节点）。
+过滤后失联的孤点会一并剔除。}
+
+\item{min_degree_iterate}{是否把 \code{min_degree} 迭代到稳定（k-core，2026-10-28 新增）。
+默认 \code{FALSE} = 单次过滤；\code{TRUE} 会级联（食管炎实测 113 → 27 节点），
+除非明确要 k-core 骨架否则不要开。}
 
 \item{keep}{超限选点策略。\code{NULL}（默认）由 \code{view} 决定
 （hub 用 \code{"ego"}，其余 \code{"top_degree"}）。}
@@ -82,8 +90,9 @@ a palette key replaces that base colour set.}
 \value{
 Network Diagram（ggplot 对象）。裁剪信息挂在
 \code{attr(p, "cap_report")} 上：\code{list(shown_nodes=, total_nodes=,
-  shown_edges=, total_edges=, capped=)}，供 GUI 显示
-「已显示 118 / 2,340 个节点」。
+  shown_edges=, total_edges=, capped=, floored=, floor_dropped=)}，供 GUI 显示
+「已显示 118 / 2,340 个节点」。\code{floored} / \code{floor_dropped} 说明是否被
+\code{min_degree} 严格下限筛过、筛掉几个（2026-10-28 新增）。
 }
 \description{
 Network interaction diagram of herbs, ingredients, and targets

@@ -16,7 +16,7 @@ herb_pm
 \description{
 中药性味归经表：取自 HERB 2.0 的 herb 表，按 herb 实体键对齐；
 共 6,860 行（HERB 6,892 味去空后）。
-2025 版《中国药典》仅作口径参照，不打包、不重分发。
+2025 版《中国药典》仅作口径参照，\strong{不打包、不重分发}。
 A data frame with 6860 rows and 7 variables
 }
 \examples{

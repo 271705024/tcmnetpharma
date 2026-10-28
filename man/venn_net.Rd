@@ -22,6 +22,7 @@ venn_net(
   style = c("default", "journal", "cytoscape", "presentation"),
   max_nodes = 300L,
   min_degree = 1L,
+  min_degree_iterate = FALSE,
   keep = c("top_degree", "ego")
 )
 }
@@ -67,7 +68,12 @@ venn_net(
 \item{max_nodes}{节点数上限（默认 300）。二分图靠「哪些基因被多个来源共享」
 传达信息，把小度数基因裁掉会直接改变结论，所以默认给得比 \code{tcm_net} 宽松}
 
-\item{min_degree}{最小度数过滤（默认 1，即不过滤）}
+\item{min_degree}{严格度数下限：\code{degree < min_degree} 的节点整体剔除。
+与 \code{max_nodes} 正交，未触发裁剪时同样生效（默认 1 = 只去掉零度孤立节点）。
+过滤后失联的孤点会一并剔除。}
+
+\item{min_degree_iterate}{是否把 \code{min_degree} 迭代到稳定（k-core，2026-10-28 新增）。
+默认 \code{FALSE} = 单次过滤；\code{TRUE} 会级联，除非明确要 k-core 否则不要开。}
 
 \item{keep}{超限时的保留策略：\code{"top_degree"}（默认）/ \code{"ego"}}
 }

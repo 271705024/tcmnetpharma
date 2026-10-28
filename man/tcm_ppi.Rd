@@ -72,9 +72,14 @@ edges <- tcm_ppi(hit$target_symbol)                     # PPI sub-network
 nrow(edges)
 
 ppi_plot(edges)                                         # plot the network
+
+# PPI 边表 → 拓扑中心性 / 模块（input = "edge" 声明这是二列边表）
+tcm_centrality(edges, input = "edge", top_n = 20)
+tcm_modules(edges, input = "edge")$modules
 }
 }
 \seealso{
-\code{\link{ppi_plot}}, \code{\link{tcm_intersect_target}},
+\code{\link{ppi_plot}}, \code{\link{tcm_centrality}},
+\code{\link{tcm_modules}}, \code{\link{tcm_intersect_target}},
 \code{\link{herb_target}}
 }

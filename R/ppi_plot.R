@@ -25,21 +25,43 @@
 #'   \describe{
 #'     \item{`"degree"`}{按度数连续着色（默认）}
 #'     \item{`"module"`}{按 walktrap 社区着色 —— 看模块结构，而不是单个基因}
-#'     \item{`"hub"`}{只留 30 个核心节点并\strong{全部}带标签（摘要图用）}
+#'     \item{`"hub"`}{只留 30 个核心节点并\strong{全部}带标签（摘要图用）；
+#'       该 30 是\emph{预设默认值}，可被显式 `max_nodes` 覆盖}
 #'   }
 #' @param palette colour scheme key, see [tcm_palette_names()]. `NULL`
 #'   (default) keeps the ColorBrewer palette named by \code{node.color};
 #'   a palette key replaces that gradient. Colours only — the node set,
 #'   layout and statistics are identical.
-#' @param max_nodes node count upper bound. When the network exceeds this,
-#'   the highest-degree nodes (and their edges) are kept via the shared
-#'   `tcm_filter_network` pipeline. `Inf` disables capping.
-#' @param min_degree degree floor applied by `tcm_filter_network` (default 0
-#'   keeps everything up to `max_nodes`; raise to drop low-degree fringe nodes
-#'   first). Only matters when `max_nodes` is finite.
+#' @param max_nodes 节点数上限。网络超过该值时，按度数保留最高的若干节点
+#'   （及其边），走共享管线 `tcm_filter_network()`；`Inf` 关闭裁剪。
+#'   \strong{参数优先级：显式传入值 优先于 `view` 预设 优先于 函数默认 150}。
+#'   `view = "hub"` 自带的 30 只是预设默认值；显式传值总会生效 ——
+#'   `ppi_plot(..., view = "hub", max_nodes = 1000)` 的上限是 1000，不是 30。
+#' @param min_degree \strong{严格度数下限}：`degree < min_degree` 的节点整体
+#'   剔除（连同其边）。与 `max_nodes` \strong{正交}，\emph{任何} `max_nodes`
+#'   取值下都生效 —— 包括 `max_nodes = Inf` / 大于节点数（「不截断、只按度数
+#'   筛」正是本参数的主用法）。默认 0 = 不过滤。
+#'   被剔除的节点数会以 message 报出（不静默减点）；下限高于全图最大度数时
+#'   直接报错。
+#'   过滤后「自身够度数、但邻居全被筛光」的节点会被一并剔除（只清一次，不级联），
+#'   所以图上不会留孤零零一个点。
+#' @param min_degree_iterate 是否把 `min_degree` 迭代到稳定（k-core，2026-10-28 新增）。
+#'   默认 `FALSE` = 单次过滤（与 Cytoscape 的 Degree Filter 同口径）。
+#'   `TRUE` 会**级联**：**食管炎实测 113 → 27 个节点（10 轮，−76%）**，
+#'   因为度≥6 的节点之间大量靠低度节点搭桥。除非明确要 k-core 骨架，否则不要开。
 #' @param keep selection strategy when capping: `"top_degree"` keeps the
 #'   highest-degree nodes; `"ego"` keeps them plus their one-hop neighbours
 #'   (denser subnet, more nodes). See `tcm_filter_network()`.
+#' @param legend 图例档位（2026-10-28 新增）。`NULL`（默认）= 跟随 `style`
+#'   预设；显式传值覆盖：
+#'   \describe{
+#'     \item{`"auto"`}{只出\strong{颜色}图例（一份色条）—— 发表图默认}
+#'     \item{`"all"`}{颜色 + \strong{节点大小}两份图例（size 图例标题
+#'       `degree (size)`，避免与色条同名）}
+#'     \item{`"none"`}{全关}
+#'   }
+#'   注意：`style = "presentation"` 自 2026-10-28 起默认 `"auto"`（原本是
+#'   `"all"`），需要老的"两份图例"请显式 `legend = "all"`。
 #'
 #' @section 旧名映射（`style` 的向后兼容）:
 #' 旧版把「选哪些节点 / 颜色表什么」（数据轴）与「长什么样」（外观轴）塞进了
@@ -51,7 +73,7 @@
 #'
 #' | 旧 `style` | 等价于 | 与旧行为的差异 |
 #' |---|---|---|
-#' | `"hub30"` | `view="hub"` + `style="presentation"` | 30 节点仍全标；\strong{会多出图例}（旧版无）。要无图例可再传 `style="journal"` |
+#' | `"hub30"` | `view="hub"` + `style="presentation"` | 30 节点仍全标；\strong{会多出 1 份颜色图例}（旧版无）。要无图例可再传 `style="journal"` |
 #' | `"module"` | `view="module"` + `style="default"` | 仍按社区着色；标签数 10 → 8、节点大小范围 2–10 → 1–10 |
 #'
 #' @return network diagrams
@@ -94,11 +116,19 @@ ppi_plot <- function(data,
                      palette = NULL,
                      max_nodes = 150,
                      min_degree = 0,
-                     keep = c("top_degree", "ego")) {
+                     min_degree_iterate = FALSE,
+                     keep = c("top_degree", "ego"),
+                     legend = NULL) {
   # ⚠️ `match.arg()` 的实参必须是变量名，不能是表达式（铁律 80）
   style_in <- as.character(style)[1L]
   view_in <- as.character(view)[1L]
   keep <- match.arg(keep)
+  # legend 用 NULL 作哨兵（铁律 99）：`NULL` = 跟随 style 预设，显式值才覆盖。
+  # 不能写 `legend = c("auto","all","none")` 当默认 —— 那会让 journal/minimal
+  # 的「无图例」被默认值 "auto" 顶掉。
+  if (!is.null(legend)) {
+    legend <- match.arg(legend, c("auto", "all", "none"))
+  }
   palette <- .tcm_palette_check(palette)
 
   # ---- 0. 两轴解析：旧名自动拆成 view × style ---------------------------
@@ -167,16 +197,31 @@ ppi_plot <- function(data,
   igraph::E(net)$score <- igraph::E(net)$weight
 
   # ---- 3. view 自带的选点意图 -------------------------------------------
+  # ⚠️ 参数优先级（2026-10-28 修 D3）：**用户显式值 > view 预设 > 函数默认**。
+  #    旧实现无条件用 `vp$max_nodes` 覆盖 max_nodes，导致
+  #    `ppi_plot(..., view = "hub", max_nodes = 1000)` 仍是 30 个节点，
+  #    只在 message 里轻描淡写地说「超过上限」——用户传的参数被静默丢弃。
+  #    `missing()` 才是「没传 vs 传了」的判据（不能用 == 默认值判断：
+  #    用户显式传 150 与不传，语义不同）。
+  user_cap <- if (missing(max_nodes)) NULL else max_nodes
   vp <- .ppi_view_presets()[[view_in]]
-  cap_nodes <- if (!is.null(vp$max_nodes)) vp$max_nodes else max_nodes
-  net <- .ppi_cap_nodes(net, cap_nodes, min_degree, keep, style_in)
+  cap_nodes <- if (!is.null(user_cap)) {
+    user_cap
+  } else if (!is.null(vp$max_nodes)) {
+    vp$max_nodes
+  } else {
+    150
+  }
+  net <- .ppi_cap_nodes(net, cap_nodes, min_degree,
+                        min_degree_iterate = min_degree_iterate,
+                        keep = keep, style_label = style_in)
 
   .ppi_plot_core(net, view = view_in, style = style_in,
                  node.size = node.size, label.size = label.size,
                  label.degree = label.degree, label.repel = label.repel,
                  edge.color = edge.color, edge.width = edge.width,
                  graph.layout = graph.layout, node_base = node_base,
-                 palette = palette)
+                 palette = palette, legend = legend)
 }
 
 
@@ -238,7 +283,10 @@ ppi_plot <- function(data,
     presentation = list(layout = "fr", niter = 4000L, size_range = c(3, 13),
                         edge_alpha = 0.65, edge_width = c(0.4, 2.2),
                         n_label = 20L, label_size = 4.6, stroke = 0.8,
-                        legend = "all"),
+                        # 2026-10-28：由 "all" 改 "auto"。发表图只要一份色条；
+                        # size 图例（`"all"`）改为**显式** `ppi_plot(legend = "all")`
+                        # 才出 —— 默认两幅同名 "degree" 图例读者分不清。
+                        legend = "auto"),
     minimal      = list(layout = "fr", niter = 3000L, size_range = c(1.5, 6),
                         edge_alpha = 0.35, edge_width = c(0.2, 0.8),
                         n_label = 0L, label_size = 3.0, stroke = 0.3,
@@ -299,7 +347,7 @@ ppi_plot <- function(data,
 # ---------------------------------------------------------------------------
 .ppi_plot_core <- function(net, view, style, node.size, label.size,
                            label.degree, label.repel, edge.color, edge.width,
-                           graph.layout, node_base, palette) {
+                           graph.layout, node_base, palette, legend = NULL) {
   vp <- .ppi_view_presets()[[view]]
   pres <- .ppi_style_presets()[[style]]
   if (is.null(pres)) pres <- .ppi_style_presets()[["default"]]
@@ -359,10 +407,21 @@ ppi_plot <- function(data,
     edge_width_range = ew,
     edge_alpha = pres$edge_alpha,
     edge_lw = if (has_score) NULL else 0.45,
-    legend = if (identical(pres$legend, "none")) "none" else
-      if (identical(pres$legend, "all")) "all" else "auto",
+    legend = .ppi_legend_mode(legend, pres$legend),
     niter = nit
   )
+}
+
+#' 解析图例档位：显式值 > style 预设
+#'
+#' 三态语义（与 `.tcm_net_plot()` 一致）：`"auto"` 只出颜色图例、
+#' `"all"` 颜色 + size 两份、`"none"` 全关。
+#' @noRd
+.ppi_legend_mode <- function(user, style_value) {
+  v <- if (is.null(user)) style_value else user
+  if (is.null(v) || !nzchar(as.character(v)[1L])) return("auto")
+  v <- as.character(v)[1L]
+  if (identical(v, "none")) "none" else if (identical(v, "all")) "all" else "auto"
 }
 
 
@@ -393,17 +452,56 @@ ppi_plot <- function(data,
 #   让「边宽按 score」静默退化成固定线宽。
 # ---------------------------------------------------------------------------
 .ppi_cap_nodes <- function(net, max_nodes = 150L, min_degree = 0L,
+                           min_degree_iterate = FALSE,
                            keep = "top_degree", style_label = "") {
   capt <- .tcm_net_cap(net, view = "overview", max_nodes = max_nodes,
-                       min_degree = min_degree, keep = keep)
+                       min_degree = min_degree,
+                       min_degree_iterate = min_degree_iterate, keep = keep)
+  sfx <- if (nzchar(style_label)) paste0(" (style = \"", style_label, "\")") else ""
   if (isTRUE(capt$report$capped)) {
+    # ⚠️ 报**实际画出来的**节点数（report$shown_nodes），不是 max_nodes：
+    #    度数打平时被保留的节点里可能有「在子集内没有连线」的，induced subgraph
+    #    之后会少掉几个。旧 message 一律说「前 N 个」，于是报告与图对不上
+    #    （2026-10-28 实测：上限 30、图上 29）。
+    shown <- capt$report$shown_nodes
+    cap_used <- capt$report$cap_used
     message(sprintf(
-      "ppi_plot%s: %d \u4e2a\u8282\u70b9\u8d85\u8fc7\u663e\u793a\u4e0a\u9650\uff0c\u5df2\u6309\u5ea6\u6570\u4fdd\u7559\u524d %d \u4e2a\u6838\u5fc3\u8282\u70b9\uff08%d \u6761\u8fb9\uff09\u3002",
-      if (nzchar(style_label)) paste0(" (style = \"", style_label, "\")") else "",
-      capt$report$total_nodes, as.integer(max_nodes),
-      capt$report$shown_edges))
+      "ppi_plot%s: %d \u4e2a\u8282\u70b9\u8d85\u8fc7\u663e\u793a\u4e0a\u9650\uff08%d\uff09\uff0c\u5df2\u6309\u5ea6\u6570\u4fdd\u7559 %d \u4e2a\u6838\u5fc3\u8282\u70b9\uff08%d \u6761\u8fb9\uff09%s\u3002",
+      sfx, capt$report$total_nodes, as.integer(cap_used), shown,
+      capt$report$shown_edges,
+      if (shown < as.integer(cap_used)) {
+        sprintf("\uff1b%d \u4e2a\u8282\u70b9\u5728\u4fdd\u7559\u5b50\u96c6\u5185\u65e0\u8fde\u7ebf\u5df2\u5254\u9664",
+                as.integer(cap_used) - shown)
+      } else ""
+    ))
+  } else if (isTRUE(capt$report$floored)) {
+    # 只做了度数下限过滤（未触发容量上限）时也必须说一声：
+    # 否则用户传了 min_degree 却拿到少数节点，无从得知是被谁筛掉的。
+    message(.tcm_floor_msg(paste0("ppi_plot", sfx), min_degree, capt$report))
   }
   out <- capt$net
+  # 按度数保留的节点之间恰好没有连线（典型：多个小分量各有一个高 degree 核心，
+  # 上限又只够留下它们的核心）→ 图为空。必须明说，否则用户拿到一张空白图。
+  if (isTRUE(capt$report$capped) && igraph::vcount(out) == 0L) {
+    stop(sprintf(
+      paste0("ppi_plot%s: max_nodes = %d \u592a\u5c0f\uff0c\u6309\u5ea6\u6570\u4fdd\u7559\u7684\u8282\u70b9",
+             "\u4e4b\u95f4\u6ca1\u6709\u8fde\u7ebf\uff0c\u56fe\u4e3a\u7a7a\u3002\n",
+             "  \u8bf7\u8c03\u5927 max_nodes\uff0c\u6216\u6539\u7528 keep = \"ego\"",
+             "\uff08\u4fdd\u7559\u4e00\u8df3\u90bb\u5c45\uff0c\u5b50\u7f51\u66f4\u8fde\uff09\u3002"),
+      sfx, as.integer(capt$report$cap_used)
+    ), call. = FALSE)
+  }
+  # 下限把整张图筛空（典型：星型图取 min_degree=2，2-core 为空）→ 同样是
+  # 空白图，同样必须明说，并指明是下限而不是上限造成的。
+  if (!isTRUE(capt$report$capped) && igraph::vcount(out) == 0L) {
+    stop(sprintf(
+      paste0("ppi_plot%s: min_degree = %s \u628a\u6240\u6709\u8282\u70b9\u90fd\u7b5b\u6389\u4e86",
+             "\uff08\u5269\u4e0b\u7684\u8282\u70b9\u4e4b\u95f4\u6ca1\u6709\u8fde\u7ebf\uff09\u3002\n",
+             "  \u8bf7\u964d\u4f4e min_degree\uff08\u5f53\u524d\u5165\u53c2\u5171 %d \u4e2a\u8282\u70b9\uff09%s\u3002"),
+      sfx, format(min_degree), as.integer(capt$report$total_nodes),
+      if (isTRUE(min_degree_iterate)) "\uff0c\u6216\u5173\u95ed min_degree_iterate" else ""
+    ), call. = FALSE)
+  }
   # degree / size 必须按**裁剪后的子图**重算（铁律：拓扑相关属性不能沿用全图）
   igraph::V(out)$degree <- igraph::degree(out)
   igraph::V(out)$size <- igraph::degree(out)

@@ -2,34 +2,68 @@
 % Please edit documentation in R/tcm_topology.R
 \name{tcm_centrality}
 \alias{tcm_centrality}
-\title{拓扑中心性分析（degree / betweenness / closeness）}
+\title{拓扑中心性分析（degree / betweenness / closeness / coreness）}
 \usage{
-tcm_centrality(network.data, class = NULL, rem.dis.inter = FALSE, top_n = NULL)
+tcm_centrality(
+  network.data,
+  class = NULL,
+  rem.dis.inter = FALSE,
+  top_n = NULL,
+  input = c("triple", "edge"),
+  normalized = FALSE
+)
 }
 \arguments{
-\item{network.data}{数据框，必须含 \code{herb} / \code{molecule} / \code{target} 三列
-（与 \code{\link[=tcm_net]{tcm_net()}} 同构；通常来自 GUI 查询结果或 \link{network_data}）}
+\item{network.data}{数据框。\code{input = "triple"}（默认）时必须含
+\code{herb} / \code{molecule} / \code{target} 三列（与 \code{\link[=tcm_net]{tcm_net()}} 同构）；\code{input = "edge"}
+时是\strong{边表}，两端列按 \code{from}/\code{to}、\code{node1}/\code{node2}、\code{protein1}/\code{protein2}、
+\code{gene1}/\code{gene2} 的别名顺序精确匹配（\code{\link[=tcm_ppi]{tcm_ppi()}} 的输出可直接喂进来）。}
 
 \item{class}{仅返回该类型节点：\code{"herb"} / \code{"molecule"} / \code{"target"}；
-默认 NULL = 返回全部}
+默认 NULL = 返回全部。\code{input = "edge"} 时无角色信息，传它会报错。}
 
 \item{rem.dis.inter}{是否移除无连接的孤立节点（同 \code{\link[=tcm_net]{tcm_net()}}）}
 
 \item{top_n}{仅返回中心性最高的前 N 个节点（按 betweenness 降序）；NULL = 全部}
+
+\item{input}{输入形态（2026-10-28 新增）：
+\describe{
+\item{\code{"triple"}}{三层网络（herb / molecule / target），默认，行为不变}
+\item{\code{"edge"}}{二列边表（如 PPI）。直接用 \code{graph_from_data_frame()} 构图，
+跳过三层网络的节点角色判定；\code{class} 列全为 \code{NA}。
+\strong{边权不参与拓扑计算}（与 CytoNCA 默认的无权口径一致），
+所以 \code{combined_score} 只影响画图线宽，不影响中心性排序}
+}}
+
+\item{normalized}{\code{betweenness} 是否归一化到 \verb{[0, 1]}。默认 \code{FALSE} =
+igraph 默认的\strong{原始介数值}（与 CytoNCA 的 BC 口径一致，便于跨工具
+对照；旧版本一直如此，改成 TRUE 会让所有既有数值缩小
+\code{(n-1)(n-2)/2} 倍）。需要与 \code{igraph::betweenness(normalized = TRUE)}
+对齐时显式传 \code{TRUE}。}
 }
 \value{
-数据框：\code{node} / \code{class} / \code{degree} / \code{betweenness} / \code{closeness}
-按 \code{betweenness} 降序（核心靶点排最前）
+数据框：\code{node} / \code{class} / \code{degree} / \code{betweenness} / \code{closeness} /
+\code{coreness}，按 \code{betweenness} 降序（核心靶点排最前）。
+\code{betweenness} 与 \code{\link[igraph:betweenness]{igraph::betweenness()}} 同口径（默认\strong{不归一化}，
+见 \code{normalized} 参数）。
 }
 \description{
-从 herb-molecule-target 三元组构建无向图，计算各节点的度中心性、介数中心性
-（betweenness）与接近中心性（closeness）。三者是网络药理学"核心靶点"识别的
-标准拓扑指标（对应 CytoNCA 的 Degree / BC / CC）。
+从 herb-molecule-target 三元组\strong{或二列边表}构建无向图，计算各节点的
+度中心性、介数中心性（betweenness）、接近中心性（closeness）与 k-core 数
+（coreness）。四者是网络药理学"核心靶点"识别的标准拓扑指标（对应 CytoNCA
+的 Degree / BC / CC，以及 MCODE 的 k-Core）。
 }
 \examples{
 \dontrun{
 data("network_data", package = "tcmnetpharma")
 tcm_centrality(network_data)
 tcm_centrality(network_data, class = "target", top_n = 10)
+
+# PPI 边表 → 中心性（按 betweenness 取 hub 基因）
+edges <- tcm_ppi(tcm_intersect_target("麻黄", "Asthma")$target_symbol)
+tcm_centrality(edges, input = "edge", top_n = 20)
 }
+}
+\seealso{
+\code{\link[=tcm_ppi]{tcm_ppi()}}（PPI 边表来源）、\code{\link[=tcm_modules]{tcm_modules()}}、\code{\link[=ppi_plot]{ppi_plot()}}
 }

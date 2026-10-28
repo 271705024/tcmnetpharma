@@ -8,11 +8,14 @@ tcm_modules(
   network.data,
   algorithm = c("louvain", "infomap", "walktrap"),
   rem.dis.inter = FALSE,
-  mcode_k = 2
+  mcode_k = 2,
+  input = c("triple", "edge")
 )
 }
 \arguments{
-\item{network.data}{数据框，必须含 \code{herb} / \code{molecule} / \code{target} 三列}
+\item{network.data}{数据框。\code{input = "triple"}（默认）时须含
+\code{herb} / \code{molecule} / \code{target}；\code{input = "edge"} 时为边表
+（口径同 \code{\link[=tcm_centrality]{tcm_centrality()}}，\code{\link[=tcm_ppi]{tcm_ppi()}} 输出可直接用）}
 
 \item{algorithm}{社区发现算法：\code{"louvain"}（默认）/ \code{"infomap"} / \code{"walktrap"}}
 
@@ -20,12 +23,15 @@ tcm_modules(
 
 \item{mcode_k}{仅保留 k-core 数 ≥ \code{mcode_k} 的节点参与模块汇总（默认 2，
 过滤掉松散单点；设 0 表示不按 k-core 过滤）}
+
+\item{input}{输入形态：\code{"triple"}（三层网络，默认）或 \code{"edge"}（二列边表，
+如 PPI）。见 \code{\link[=tcm_centrality]{tcm_centrality()}} 的 \code{input} 参数。}
 }
 \value{
 长度为 2 的列表：
 \itemize{
 \item \code{nodes}：数据框 \code{node} / \code{class} / \code{module} / \code{degree} / \code{betweenness} /
-\code{closeness} / \code{coreness} / \code{mcode_score}
+\code{closeness} / \code{coreness} / \code{mcode_score}（\code{input = "edge"} 时 \code{class} 全为 \code{NA}）
 \item \code{modules}：数据框 \code{module} / \code{size} / \code{hub} / \code{top_targets} / \code{density} /
 \code{mean_mcode}（按 \code{size} 降序）
 }
@@ -45,5 +51,11 @@ tcm_modules(
 data("network_data", package = "tcmnetpharma")
 res <- tcm_modules(network_data)
 head(res$nodes); head(res$modules)
+
+# PPI 边表同样适用（class 列全 NA）
+tcm_modules(tcm_ppi(hit$target_symbol), input = "edge")
 }
+}
+\seealso{
+\code{\link[=tcm_centrality]{tcm_centrality()}}、\code{\link[=tcm_ppi]{tcm_ppi()}}
 }

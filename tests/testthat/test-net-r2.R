@@ -84,8 +84,13 @@ test_that("view 改变节点集合，且 cap_report 与图上节点数一致", {
   r_ov <- attr(p_ov, "cap_report")
   r_hub <- attr(p_hub, "cap_report")
   expect_type(r_ov, "list")
+  # 2026-10-28：report 增加 floored / floor_dropped（min_degree 从「裁剪时才生效」
+  # 改为「与 max_nodes 正交的严格度数下限」，报告必须同步说明是否被下限筛过）；
+  # 另加 cap_used（实际生效的上限，供 message 说「上限 N、实际画 M」）。
   expect_named(r_ov, c("shown_nodes", "total_nodes", "shown_edges",
-                       "total_edges", "capped"))
+                       "total_edges", "capped", "cap_used",
+                       "floored", "floor_dropped",
+                       "floor_isolated", "floor_rounds"))
   expect_true(r_ov$capped)
   expect_true(r_ov$shown_nodes <= 50L)
   expect_equal(r_ov$total_nodes, r_hub$total_nodes)

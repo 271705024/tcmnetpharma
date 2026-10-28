@@ -21,7 +21,9 @@ ppi_plot(
   palette = NULL,
   max_nodes = 150,
   min_degree = 0,
-  keep = c("top_degree", "ego")
+  min_degree_iterate = FALSE,
+  keep = c("top_degree", "ego"),
+  legend = NULL
 )
 }
 \arguments{
@@ -61,7 +63,8 @@ STRING database. 三列（node1 / node2 / combined_score）或两列（无分数
 \describe{
 \item{\code{"degree"}}{按度数连续着色（默认）}
 \item{\code{"module"}}{按 walktrap 社区着色 —— 看模块结构，而不是单个基因}
-\item{\code{"hub"}}{只留 30 个核心节点并\strong{全部}带标签（摘要图用）}
+\item{\code{"hub"}}{只留 30 个核心节点并\strong{全部}带标签（摘要图用）；
+该 30 是\emph{预设默认值}，可被显式 \code{max_nodes} 覆盖}
 }}
 
 \item{palette}{colour scheme key, see \code{\link[=tcm_palette_names]{tcm_palette_names()}}. \code{NULL}
@@ -69,17 +72,40 @@ STRING database. 三列（node1 / node2 / combined_score）或两列（无分数
 a palette key replaces that gradient. Colours only — the node set,
 layout and statistics are identical.}
 
-\item{max_nodes}{node count upper bound. When the network exceeds this,
-the highest-degree nodes (and their edges) are kept via the shared
-\code{tcm_filter_network} pipeline. \code{Inf} disables capping.}
+\item{max_nodes}{节点数上限。网络超过该值时，按度数保留最高的若干节点
+（及其边），走共享管线 \code{tcm_filter_network()}；\code{Inf} 关闭裁剪。
+\strong{参数优先级：显式传入值 优先于 \code{view} 预设 优先于 函数默认 150}。
+\code{view = "hub"} 自带的 30 只是预设默认值；显式传值总会生效 ——
+\code{ppi_plot(..., view = "hub", max_nodes = 1000)} 的上限是 1000，不是 30。}
 
-\item{min_degree}{degree floor applied by \code{tcm_filter_network} (default 0
-keeps everything up to \code{max_nodes}; raise to drop low-degree fringe nodes
-first). Only matters when \code{max_nodes} is finite.}
+\item{min_degree}{\strong{严格度数下限}：\code{degree < min_degree} 的节点整体
+剔除（连同其边）。与 \code{max_nodes} \strong{正交}，\emph{任何} \code{max_nodes}
+取值下都生效 —— 包括 \code{max_nodes = Inf} / 大于节点数（「不截断、只按度数
+筛」正是本参数的主用法）。默认 0 = 不过滤。
+被剔除的节点数会以 message 报出（不静默减点）；下限高于全图最大度数时
+直接报错。
+过滤后「自身够度数、但邻居全被筛光」的节点会被一并剔除（只清一次，不级联），
+所以图上不会留孤零零一个点。}
+
+\item{min_degree_iterate}{是否把 \code{min_degree} 迭代到稳定（k-core，2026-10-28 新增）。
+默认 \code{FALSE} = 单次过滤（与 Cytoscape 的 Degree Filter 同口径）。
+\code{TRUE} 会\strong{级联}：\strong{食管炎实测 113 → 27 个节点（10 轮，−76\%）}，
+因为度≥6 的节点之间大量靠低度节点搭桥。除非明确要 k-core 骨架，否则不要开。}
 
 \item{keep}{selection strategy when capping: \code{"top_degree"} keeps the
 highest-degree nodes; \code{"ego"} keeps them plus their one-hop neighbours
 (denser subnet, more nodes). See \code{tcm_filter_network()}.}
+
+\item{legend}{图例档位（2026-10-28 新增）。\code{NULL}（默认）= 跟随 \code{style}
+预设；显式传值覆盖：
+\describe{
+\item{\code{"auto"}}{只出\strong{颜色}图例（一份色条）—— 发表图默认}
+\item{\code{"all"}}{颜色 + \strong{节点大小}两份图例（size 图例标题
+\code{degree (size)}，避免与色条同名）}
+\item{\code{"none"}}{全关}
+}
+注意：\code{style = "presentation"} 自 2026-10-28 起默认 \code{"auto"}（原本是
+\code{"all"}），需要老的"两份图例"请显式 \code{legend = "all"}。}
 }
 \value{
 network diagrams
@@ -96,7 +122,7 @@ Protein-protein interaction analysis
 \code{"default"} / \code{"journal"} / \code{"cytoscape"} / \code{"presentation"} / \code{"minimal"}。
 只有下面两个旧名跨越了两个轴，会被自动拆分并给出提示：\tabular{lll}{
    旧 \code{style} \tab 等价于 \tab 与旧行为的差异 \cr
-   \code{"hub30"} \tab \code{view="hub"} + \code{style="presentation"} \tab 30 节点仍全标；\strong{会多出图例}（旧版无）。要无图例可再传 \code{style="journal"} \cr
+   \code{"hub30"} \tab \code{view="hub"} + \code{style="presentation"} \tab 30 节点仍全标；\strong{会多出 1 份颜色图例}（旧版无）。要无图例可再传 \code{style="journal"} \cr
    \code{"module"} \tab \code{view="module"} + \code{style="default"} \tab 仍按社区着色；标签数 10 → 8、节点大小范围 2–10 → 1–10 \cr
 }
 }

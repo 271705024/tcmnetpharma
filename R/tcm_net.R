@@ -35,15 +35,22 @@
 #'   a palette key replaces that base colour set.
 #' @param max_nodes 节点数上限。\code{NULL}（默认）表示用 \code{view} 自带上限
 #'   （overview / cluster 50，hub 30）；显式给数值则覆盖；\code{Inf} 不裁剪。
-#' @param min_degree 度数下限（仅在触发裁剪时生效，见 \code{tcm_filter_network}）。
+#' @param min_degree \strong{严格度数下限}：`degree < min_degree` 的节点整体剔除。
+#'   与 `max_nodes` \strong{正交}，未触发裁剪时同样生效（默认 1 = 只去掉零度
+#'   孤立节点）。
+#'   过滤后失联的孤点会一并剔除。
+#' @param min_degree_iterate 是否把 `min_degree` 迭代到稳定（k-core，2026-10-28 新增）。
+#'   默认 `FALSE` = 单次过滤；`TRUE` 会级联（食管炎实测 113 → 27 节点），
+#'   除非明确要 k-core 骨架否则不要开。
 #' @param keep 超限选点策略。\code{NULL}（默认）由 \code{view} 决定
 #'   （hub 用 \code{"ego"}，其余 \code{"top_degree"}）。
 #' @param label.repel label repel
 #'
 #' @return Network Diagram（ggplot 对象）。裁剪信息挂在
 #'   \code{attr(p, "cap_report")} 上：\code{list(shown_nodes=, total_nodes=,
-#'   shown_edges=, total_edges=, capped=)}，供 GUI 显示
-#'   「已显示 118 / 2,340 个节点」。
+#'   shown_edges=, total_edges=, capped=, floored=, floor_dropped=)}，供 GUI 显示
+#'   「已显示 118 / 2,340 个节点」。`floored` / `floor_dropped` 说明是否被
+#'   `min_degree` 严格下限筛过、筛掉几个（2026-10-28 新增）。
 #' @export
 #' @importFrom ggplot2 scale_color_gradientn
 #' @importFrom ggplot2 scale_size_continuous
@@ -89,6 +96,7 @@ tcm_net <- function(network.data,
                     palette = NULL,
                     max_nodes = NULL,
                     min_degree = 1,
+                    min_degree_iterate = FALSE,
                     keep = NULL) {
   view <- match.arg(view)
   style <- match.arg(style)
@@ -167,7 +175,8 @@ tcm_net <- function(network.data,
   # （boss 反馈「药物-靶点图爆炸」）。现走统一管线 tcm_filter_network。
   # 顶点属性（class）由 .tcm_net_cap 统一保留，这里不再手工重挂。
   capt <- .tcm_net_cap(net, view = view, max_nodes = max_nodes,
-                       min_degree = min_degree, keep = keep)
+                       min_degree = min_degree,
+                       min_degree_iterate = min_degree_iterate, keep = keep)
   net <- capt$net
   # degree 必须按**裁剪后的子图**重算：裁剪会重建图并丢掉拓扑相关属性，
   # 若沿用全图度数，点大小会与标签阈值口径不一致。
@@ -178,6 +187,10 @@ tcm_net <- function(network.data,
       view, capt$report$total_nodes, capt$report$shown_nodes,
       capt$report$shown_edges
     ))
+  } else if (isTRUE(capt$report$floored)) {
+    # 与 ppi_plot 共用同一份文案（迭代轮数 / 因失联被剔的个数都要交代）
+    message(.tcm_floor_msg(sprintf("tcm_net (view = \"%s\")", view),
+                           min_degree, capt$report))
   }
 
   p <- .tcm_net_plot(

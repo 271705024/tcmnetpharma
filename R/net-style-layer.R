@@ -262,19 +262,108 @@
 }
 
 #' 网络容量裁剪（view 感知），返回 list(net=, report=)
+#'
+#' 两个**正交**的收缩动作，顺序固定：
+#' 1. `min_degree`：严格度数下限（`degree < min_degree` 的节点整体剔除）。
+#'    与 `max_nodes` 无关，**任何** cap 取值下都生效。
+#'    - 默认**单次**过滤后，再清掉「因下限而失去全部连线」的孤点
+#'      （2026-10-28 起；否则图上会留孤零零一个点，与"度数下限"自相矛盾）。
+#'    - `min_degree_iterate = TRUE` 时迭代到稳定（k-core）。**代价很大**：
+#'      食管炎实测 113 → 27（10 轮，−76%），默认关。
+#' 2. `max_nodes`：容量上限（超限才按度数保留 top N / ego 子网）。
+#'
+#' report 里 `floor_dropped`（下限共剔除多少，含孤点）、`floor_isolated`
+#' （其中因失联被剔）、`floor_rounds`（迭代轮数）三个字段用于向用户交代。
+#'
 #' @noRd
 .tcm_net_cap <- function(net, view, max_nodes = NULL,
-                         min_degree = 0L, keep = NULL) {
+                         min_degree = 0L, min_degree_iterate = FALSE,
+                         keep = NULL) {
   vp <- .tcm_net_view_presets()[[view]]
   cap <- if (is.null(max_nodes)) vp$max_nodes else max_nodes
   keep <- if (is.null(keep)) vp$keep else keep
 
   total_n <- igraph::vcount(net)
   total_e <- igraph::ecount(net)
-  if (!is.finite(cap) || total_n <= cap) {
+
+  # ---- ① 度数下限先行（2026-10-28 修 D1）--------------------------------
+  # ⚠️ 旧实现的 `min_degree` 只在下游 `.tcm_filter_igraph()` 生效，而那里
+  #    `vcount <= max_nodes` 时会提前 return → 「不想截断、只想按度数筛」
+  #    （`max_nodes` 调大或 Inf）时参数**完全静默失效**，图照出 386 个点，
+  #    用户只会怀疑整个工具。度数下限与容量上限是两个正交诉求，必须先各自
+  #    独立生效（铁律 23：一个参数一个语义）。
+  floored <- FALSE
+  floor_dropped <- 0L
+  floor_isolated <- 0L
+  floor_rounds <- 0L
+  md <- suppressWarnings(as.numeric(min_degree)[1L])
+  if (is.finite(md) && md > 0) {
+    keep_idx <- which(igraph::degree(net) >= md)
+    if (!length(keep_idx)) {
+      # 「下限高于全图最大度数」= 用户要的是一张空图：这必须报错，
+      # 不能悄悄退回全图（那正是这次要修的静默失效）。
+      stop(sprintf(
+        paste0("min_degree = %s \u9ad8\u4e8e\u5168\u56fe\u6700\u5927\u5ea6\u6570 %d\uff0c",
+               "\u6ca1\u6709\u4efb\u4f55\u8282\u70b9\u6ee1\u8db3\u3002\n",
+               "  \u8bf7\u964d\u4f4e min_degree\uff08\u5f53\u524d %d \u4e2a\u8282\u70b9\uff09\u3002"),
+        format(md), max(igraph::degree(net)), total_n
+      ), call. = FALSE)
+    }
+    if (length(keep_idx) < total_n) {
+      if (isTRUE(min_degree_iterate)) {
+        # k-core：反复「按当前图重算度数 → 再筛」直到稳定。
+        # ⚠️ 代价很大且不可逆：食管炎实测 113 → 27（10 轮，−76%），因为
+        #    度≥6 的节点之间大量靠低度节点搭桥，桥一拆就级联掉。
+        #    所以默认关（min_degree_iterate = FALSE），只有明确要 k-core 才开。
+        repeat {
+          keep_idx <- which(igraph::degree(net) >= md)
+          if (!length(keep_idx)) {
+            stop(sprintf(
+              paste0("min_degree = %s \u8fed\u4ee3\u5230 %d \u8f6e\u65f6\u6240\u6709\u8282\u70b9",
+                     "\u90fd\u88ab\u7b5b\u6389\u4e86\uff08k-core \u4e3a\u7a7a\uff09\u3002\n",
+                     "  \u8bf7\u964d\u4f4e min_degree \u6216\u5173\u95ed min_degree_iterate\u3002"),
+              format(md), floor_rounds
+            ), call. = FALSE)
+          }
+          if (length(keep_idx) == igraph::vcount(net)) break
+          net <- igraph::induced_subgraph(net, keep_idx)
+          floor_rounds <- floor_rounds + 1L
+          if (floor_rounds > 500L) break   # 理论上到不了，防死循环
+        }
+      } else {
+        # 单次过滤（Cytoscape 的 Degree Filter 也是这一次）
+        net <- igraph::induced_subgraph(net, keep_idx)
+      }
+      # 清掉因下限而**失去全部连线**的节点：它自身 degree≥md，但邻居全被筛掉。
+      # 留着就是一个孤零零的圆点（食管炎 113 里有 1 个），而且与「度数下限」
+      # 的语义自相矛盾。只清一次、不级联 —— 与上面的迭代模式无关。
+      iso <- which(igraph::degree(net) == 0)
+      if (length(iso)) {
+        net <- igraph::delete_vertices(net, iso)
+        floor_isolated <- length(iso)
+      }
+      # 拓扑相关属性必须清掉：留着就是「全图度数」挂在子图上，
+      # 下游点大小 / 标签阈值会静默沿用旧口径（与下方 keep_attrs 同理）。
+      for (a in intersect(c("degree", "size", "module", "degree_bin"),
+                          igraph::vertex_attr_names(net))) {
+        net <- igraph::delete_vertex_attr(net, a)
+      }
+      floored <- TRUE
+      floor_dropped <- total_n - igraph::vcount(net)
+    }
+  }
+  n_now <- igraph::vcount(net)
+  e_now <- igraph::ecount(net)
+
+  if (!is.finite(cap) || n_now <= cap) {
     return(list(net = net, report = list(
-      shown_nodes = total_n, total_nodes = total_n,
-      shown_edges = total_e, total_edges = total_e, capped = FALSE
+      shown_nodes = n_now, total_nodes = total_n,
+      shown_edges = e_now, total_edges = total_e,
+      # cap_used：实际生效的上限（view 预设 / 用户值 / 默认值都归一到这里），
+      # 供调用方在 message 里说「上限多少、实际画了多少」（两者可能不等）。
+      capped = FALSE, cap_used = cap,
+      floored = floored, floor_dropped = floor_dropped,
+      floor_isolated = floor_isolated, floor_rounds = floor_rounds
     )))
   }
   # ⚠️ `.tcm_filter_igraph` 用 `graph_from_data_frame()` 从**边表重建**图，
@@ -288,8 +377,11 @@
     c("name", "degree", "size", "module", "degree_bin")
   )
   old <- igraph::vertex_attr(net)
+  # ⚠️ 这里传 `min_degree = 0`：严格下限已在 ① 应用过。`tcm_filter_network()`
+  #    的 `min_degree` 是**另一套语义**（边规则：两端都低于下限才剔边），
+  #    同一个名字在一条调用链上出现两套语义会互相抵消、也让报告口径说不清。
   out <- .tcm_filter_igraph(net, max_nodes = cap,
-                            min_degree = min_degree, keep = keep)
+                            min_degree = 0L, keep = keep)
   if (length(keep_attrs)) {
     idx <- match(igraph::V(out)$name, as.character(old$name))
     for (a in keep_attrs) {
@@ -301,8 +393,38 @@
   }
   list(net = out, report = list(
     shown_nodes = igraph::vcount(out), total_nodes = total_n,
-    shown_edges = igraph::ecount(out), total_edges = total_e, capped = TRUE
+    shown_edges = igraph::ecount(out), total_edges = total_e,
+    capped = TRUE, cap_used = cap,
+    floored = floored, floor_dropped = floor_dropped,
+    floor_isolated = floor_isolated, floor_rounds = floor_rounds
   ))
+}
+
+#' 度数下限的提示文案（三个入口共用，保证口径一致）
+#'
+#' 必须同时交代三件事，否则用户无法判断点了为什么少了：
+#' 1. 是**下限**筛掉的（而不是容量上限）；
+#' 2. 有没有**迭代**（k-core，会级联）、迭代了几轮；
+#' 3. 其中几个是「自身够度数、但邻居被筛光」而失去全部连线的。
+#'
+#' @param label 调用方标识（如 `ppi_plot (style = "journal")`）
+#' @param min_degree 用户传的下限
+#' @param report `.tcm_net_cap()` 返回的 report
+#' @noRd
+.tcm_floor_msg <- function(label, min_degree, report) {
+  # report 可能是旧调用方手工拼的（缺字段）—— 用 %||% 的等价写法兜底，
+  # 不要引入 rlang 的空值算子（包内没有定义，R CMD check 会报未声明符号）。
+  nz <- function(x) if (is.null(x) || !length(x) || is.na(x[1])) 0L else as.integer(x[1])
+  iso <- nz(report$floor_isolated)
+  rounds <- nz(report$floor_rounds)
+  sprintf(
+    "%s: min_degree = %s %s\u5df2\u5254\u9664 %d \u4e2a\u4f4e\u5ea6\u8282\u70b9%s\uff08%d \u2192 %d \u4e2a\u8282\u70b9\uff0c%d \u6761\u8fb9\uff09\u3002",
+    label, format(min_degree),
+    if (rounds > 0L) sprintf("\u8fed\u4ee3 %d \u8f6e\u5230\u7a33\u5b9a\uff08k-core\uff09\uff0c", rounds) else "",
+    nz(report$floor_dropped),
+    if (iso > 0L) sprintf("\uff0c\u5176\u4e2d %d \u4e2a\u56e0\u5931\u53bb\u5168\u90e8\u8fde\u7ebf\u88ab\u5254\u9664", iso) else "",
+    nz(report$total_nodes), nz(report$shown_nodes), nz(report$shown_edges)
+  )
 }
 
 #' 网络统一绘制（view × style 两个正交轴）
@@ -345,6 +467,15 @@
                           seed = 20261024L) {
   node_style <- match.arg(node_style)
   legend <- match.arg(legend)
+  # ---- legend 三态语义（2026-10-28 修 D4）--------------------------------
+  #   "auto" ：只给**颜色通道**出一份图例；size 不出（大小含义写图注）
+  #   "all"  ：颜色 + size 两份（size 图例标题带 "(size)" 以区分同名图例）
+  #   "none" ：全关
+  # 旧实现只有 `== "all"` / `== "none"` 两个分支（三态实际两态），且两个通道
+  # 都把 `show.legend` 打开，size 的 `guide = "none"` 又只关标度不关图层 →
+  # 图上出现「有标题、无键」的残影图例，和 fill 色条重复成两份 "degree"。
+  lg_size <- identical(legend, "all")
+  lg_on <- !identical(legend, "none")
   vp <- .tcm_net_view_presets()[[view]]
   sp <- .tcm_net_style_presets()[[style]]
   if (is.null(sp)) sp <- .tcm_net_style_presets()[["default"]]
@@ -431,6 +562,10 @@
       ggraph::create_layout(net, layout = lay)
     }
   )
+  # ★ 布局坐标归一化（2026-10-28 修 D2，见 .tcm_normalize_layout 说明）
+  #   传 net 才能做「分量按节点数分配面积」那一层：只归一化到 bbox 不够 ——
+  #   食管炎 520 节点 / 53 分量的实测里主分量只占画布宽 15%。
+  lay_obj <- .tcm_normalize_layout(lay_obj, net = net)
 
   # ---- 色标 ----
   # ★ 名义 ≠ 有序：`class` / `module` 是无序类别 → 必须用**定性**调色板；
@@ -560,18 +695,35 @@
   # ⚠️ 用 `!!rlang::sym(ccol)` 而不是 `.data[[ccol]]`：后者会把图例标题
   #    渲染成 ".data[[ccol]]" 这种表达式文本（因为 aes 的 label 取的是
   #    未求值的表达式）。sym 注入后标题就是真实列名。
+  # ⚠️ `show.legend` 用**命名逻辑向量**逐通道开关（ggplot2 支持
+  #    `c(fill = TRUE, size = FALSE)`）：一个 geom 同时映射 fill 与 size 时，
+  #    `show.legend = TRUE/FALSE` 只能整体开关，做不到「只出颜色图例」。
   node_layer <- if (identical(node_style, "ringed")) {
     # shape 21 = 有填充的圆：fill 上色 + 白色描边（Cytoscape 观感）
     ggraph::geom_node_point(
       ggplot2::aes(fill = !!rlang::sym(ccol), size = degree),
       shape = 21, colour = "white", stroke = node_stroke,
-      show.legend = !identical(legend, "none")
+      show.legend = if (lg_on) c(fill = TRUE, size = lg_size) else FALSE
     )
   } else {
     ggraph::geom_node_point(
       ggplot2::aes(colour = !!rlang::sym(ccol), size = degree),
-      alpha = 1, show.legend = !identical(legend, "none")
+      alpha = 1,
+      show.legend = if (lg_on) c(colour = TRUE, size = lg_size) else FALSE
     )
+  }
+
+  # size 图例（仅 legend = "all"）：必须显式给可见的填充/描边颜色。
+  # ringed 节点的 fill 来自色标，在 size 图例里没有对应色值 → 默认画出一排
+  # 白点，白底上等于「只有 4/8/12/16 四个数字、没有键」（2026-10-28 实测
+  # presentation 档就是这个观感，等于图例白出）。
+  size_guide <- if (lg_size) {
+    ggplot2::guide_legend(
+      order = 2,
+      override.aes = list(fill = "grey40", colour = "grey40", stroke = 0.4)
+    )
+  } else {
+    "none"
   }
 
   p <- ggraph::ggraph(lay_obj) +
@@ -586,9 +738,14 @@
     col_scale +
     edge_scale +
     ggplot2::scale_size(
-      range = node.size, name = "degree",
-      guide = if (identical(legend, "all")) "legend" else "none"
+      range = node.size,
+      # "all" 时 size 图例标题写成 "degree (size)"：否则两张图例都叫 degree，
+      # 读者无法判断哪一张是色阶、哪一张是点大小。
+      name = if (lg_size) "degree (size)" else "degree",
+      guide = size_guide
     ) +
+    # 兜底：任何分支漏出 size 残影图例都在这里收口（单图只允许一份 degree 图例）
+    ggplot2::guides(size = size_guide) +
     lab_layer +
     ggplot2::coord_fixed() +
     ggraph::theme_graph(background = "white", base_family = "sans") +
@@ -621,6 +778,200 @@
   }
   p
 }
+
+#' 布局坐标归一化（分量按节点数比例打包 + 中心化 + 缩放）
+#'
+#' 为什么必须有：力导向布局的坐标幅度完全由图结构与**分量间距离**决定。
+#' `coord_fixed()` 锁定 1:1 长宽比后，整幅画布的尺度由全图 bbox 决定 ——
+#' 主簇被压成画面一角的一小团。换 fr / kk / stress / nicely / graphopt 都一样，
+#' 因为问题不在布局算法，而在「坐标没归一化」。
+#'
+#' **两层修复**（2026-10-28 实测：只做第二层不够）：
+#' 1. `mem` 非空且存在多个连通分量时，先做**面积按节点数分配**的重新打包：
+#'    分量内部几何（力导向算出的结构）保持不变，只改「每个分量占多大画布」。
+#'    实测食管炎 520 节点 / 53 个分量：igraph 自带的 merge 把 386 节点主分量
+#'    压到画布宽度 15%，而按节点数分配面积应得 ~74%（线性 ~86%）。
+#' 2. 再做中心化 + 除以最大绝对坐标 → 画布恒为 `[-1, 1]`。
+#'    对单连通分量网络近似恒等（整体等比缩放 ± 平移），相对形态不变。
+#'
+#' 为什么必须两层：只做 ② 时「全图 bbox 装得下所有分量」是满足了，但各分量
+#' 占多大由 igraph 的 merge 决定，与节点数无关 —— 52 个两点小分量照样能吃掉
+#' 85% 的画布。只做 ① 而不归一化，则分量间距离仍可能是任意量级。
+#'
+#' 不做分位数裁剪（裁掉 98% 之外的离群点）：那会改变「点是否落在框内」的
+#' 语义，需要单独评估。
+#'
+#' @param lay_obj `ggraph::create_layout()` 的返回值（data.frame 子类）
+#' @param net 可选，igraph 对象；给了才算连通分量并按面积比重排
+#' @return 同类型对象，x / y 已归一化
+#' @noRd
+.tcm_normalize_layout <- function(lay_obj, net = NULL) {
+  lay_df <- as.data.frame(lay_obj)
+  if (!all(c("x", "y") %in% names(lay_df))) return(lay_obj)
+  ok <- is.finite(lay_df$x) & is.finite(lay_df$y)
+  if (!any(ok)) return(lay_obj)
+
+  # ---- ① 分量按节点数分配面积（仅多分量时）----
+  if (!is.null(net) && igraph::vcount(net) == nrow(lay_df)) {
+    lay_df <- .tcm_pack_components(lay_df, net)
+  }
+
+  # ---- ② 全局中心化 + 缩放 ----
+  ok <- is.finite(lay_df$x) & is.finite(lay_df$y)
+  cx <- mean(range(lay_df$x[ok]))
+  cy <- mean(range(lay_df$y[ok]))
+  x <- lay_df$x - cx
+  y <- lay_df$y - cy
+  rr <- max(abs(c(x[ok], y[ok])))
+  if (is.finite(rr) && rr > 0) {
+    x <- x / rr
+    y <- y / rr
+  }
+  lay_obj$x <- x
+  lay_obj$y <- y
+  lay_obj
+}
+
+#' 分量重新打包：主分量占主角，其余分量收成一条「卫星带」
+#'
+#' 为什么不是简单归一化：`create_layout()` 对多分量图会先分子量布局再 merge，
+#' 每个分量拿到的画布面积与它的节点数**无关**。食管炎实测（520 节点 / 53 个
+#' 分量）：386 节点的主分量只拿到画布宽度的 15%，而按节点数它该占 ~74%。
+#' 只做「全图 bbox 归一化」修不了这件事 —— bbox 装得下所有分量了，但每个
+#' 分量多大仍由 merge 决定。
+#'
+#' 排布规则（确定性，无随机、无调参）：
+#' 1. **面积 ∝ 节点数**；但非主分量的**总面积封顶在主分量的 30%** ——
+#'    否则 52 个两点分量能吃掉 85% 画布，主簇又缩回去。封顶后小分量之间
+#'    仍按节点数等比，读者能看出谁比谁大。
+#' 2. 主分量按**自己的长宽比**占左侧一块；其余分量在右侧一条
+#'    「宽度 = 主分量 0.30」的竖带里**网格**排布。网格而不是货架：货架对
+#'    五十来个两点分量空隙率能到 50%，排出来比主分量还高（实测卫星带高 57
+#'    vs 主分量 21.7，归一化后主分量被压回 55%）。格子在排布前就算准，
+#'    不会溢出画布。
+#' 3. 卫星在格子内按 `sqrt(节点数)` 等比（上限是格子边长，下限 1/4 格）：
+#'    既保留「谁比谁大」，又保证不少于可见像素。
+#' 4. 分量内部坐标：中心化后按 x / y 分别缩放到它的盒子里。盒子长宽比就是
+#'    该分量自己的长宽比，所以力导向算出的形状不变（不是拉成椭圆）。
+#'
+#' @param lay_df 含 x / y 的 data.frame（行序与 net 顶点序一致）
+#' @param net igraph 对象
+#' @noRd
+.tcm_pack_components <- function(lay_df, net) {
+  comp <- igraph::components(net)
+  if (!is.finite(comp$no) || comp$no <= 1L) return(lay_df)
+
+  mem <- comp$membership
+  # 行序可能与顶点序不同（布局实现不保证）—— 有 name 列就按名字对齐
+  if ("name" %in% names(lay_df) && !is.null(igraph::V(net)$name)) {
+    mem <- mem[match(as.character(lay_df$name), igraph::V(net)$name)]
+  }
+  if (all(is.na(mem))) return(lay_df)
+
+  ids <- unique(mem[!is.na(mem)])
+  cnt <- vapply(ids, function(k) sum(!is.na(mem) & mem == k), 0L)
+  # ⚠️ 排序**结果**与节点计数必须一起重排：只把 ids 排序、cnt 留在原顺序，
+  #    再 `names(area) <- 排好的 key`，名字与数值就错位了（实测：13 节点的
+  #    分量拿到 4 节点分量的面积，卫星大小完全乱序）。
+  ord <- order(-cnt, vapply(ids, function(k) min(which(mem == k)), 0L))
+  order_id <- ids[ord]
+  cnt <- as.numeric(cnt)[ord]
+  if (length(order_id) <= 1L) return(lay_df)
+
+  key <- as.character(order_id)
+  n_tot <- length(mem)
+  full <- sqrt(n_tot)
+
+  # ---- 面积：∝ 节点数，卫星合计封顶为主分量的 30% ----------------------
+  area <- stats::setNames(as.numeric(cnt), key)
+  big <- order_id[1L]
+  sat_ids <- order_id[-1L]
+  ks <- as.character(sat_ids)
+  cap <- 0.30 * area[[as.character(big)]]
+  # ⚠️ 必须按**名字**取（area 的顺序是 order_id，不是分量编号）：
+  #    `area[sat_ids]` 会按位置取到别的分量，面积分配整体错位。
+  sat_sum <- sum(area[ks])
+  if (sat_sum > cap && sat_sum > 0) {
+    area[ks] <- area[ks] / sat_sum * cap
+  }
+  # 单点分量也要留可见面积（画布线性的 2%，183 mm 图上约 3.6 mm）
+  area <- pmax(area, (full * 0.02)^2)
+  names(area) <- key
+
+  # ---- 每个分量的盒子：面积 + 自身长宽比 ---------------------------------
+  member_idx <- lapply(order_id, function(k) which(!is.na(mem) & mem == k))
+  names(member_idx) <- key
+  box <- lapply(key, function(k) {
+    idx <- member_idx[[k]]
+    sx <- diff(range(lay_df$x[idx]))
+    sy <- diff(range(lay_df$y[idx]))
+    asp <- if (is.finite(sy) && sy > 1e-12) sx / sy else 1
+    if (!is.finite(asp) || asp <= 0) asp <- 1
+    c(w = sqrt(area[[k]] * asp), h = sqrt(area[[k]] / asp))
+  })
+  names(box) <- key
+
+  bw <- box[[as.character(big)]][["w"]]
+  bh <- box[[as.character(big)]][["h"]]
+
+  # ---- 卫星带：右侧竖条内的**网格**排布 ---------------------------------
+  # 为什么用网格而不是「面积 ∝ 节点数的货架」：卫星动辄四五十个、每个只占
+  # 2~3 个节点，货架的空隙率能到 50%，排出来比主分量还高（实测食管炎 53 分量
+  # 时卫星带高度 57 > 主分量 21.7，归一化后主分量又被压回 55%）。
+  # 网格的占用是**先算准的**：格子数由卫星个数与带的宽高比决定，绝不溢出。
+  # 卫星之间的相对大小仍保留：格子内按 sqrt(节点数) 等比缩放（上限为格子）。
+  m <- length(sat_ids)
+  if (!m) return(lay_df)
+  # 带的目标：宽度 = 主分量的 0.30（画布长宽比 ≈ 1.2，接近常见面板比例）
+  strip_w <- 0.30 * bw
+  strip_h <- bh
+  aspect_cells <- strip_w / strip_h
+  ncol <- max(1L, as.integer(round(sqrt(m * aspect_cells))))
+  ncol <- min(ncol, m)
+  nrow <- as.integer(ceiling(m / ncol))
+  cell_w <- strip_w / ncol
+  cell_h <- strip_h / nrow
+  cell <- min(cell_w, cell_h)
+  cnt_sat <- vapply(sat_ids, function(k) area[[as.character(k)]], 0)
+  ref <- max(sqrt(cnt_sat), 1e-9)
+
+  # ---- 落位 -------------------------------------------------------------
+  x <- lay_df$x
+  y <- lay_df$y
+  place <- function(k, cx, cy, w, h) {
+    # ⚠️ 必须按**字符**键：member_idx 是按分量大小排的，用整数 k 会按下标取到
+    # 「第 k 大」的分量而不是编号 k 的那个分量（实测导致卫星大小与节点数反序）。
+    idx <- member_idx[[as.character(k)]]
+    xs <- lay_df$x[idx]
+    ys <- lay_df$y[idx]
+    xs <- xs - mean(range(xs))
+    ys <- ys - mean(range(ys))
+    rx <- max(abs(xs))
+    ry <- max(abs(ys))
+    if (is.finite(rx) && rx > 0) xs <- xs / rx * w / 2
+    if (is.finite(ry) && ry > 0) ys <- ys / ry * h / 2
+    x[idx] <<- xs + cx
+    y[idx] <<- ys + cy
+  }
+  place(big, bw / 2, bh / 2, bw, bh)
+
+  # 卫星逐个放进右侧网格：格子内按 sqrt(节点数) 等比，上限是格子边长
+  for (i in seq_along(sat_ids)) {
+    k <- sat_ids[i]
+    r <- (i - 1L) %/% ncol
+    cc <- (i - 1L) %% ncol
+    cx <- bw + cc * cell_w + cell_w / 2
+    cy <- r * cell_h + cell_h / 2
+    stay <- cell * sqrt(cnt_sat[i]) / ref      # 小分量留更小（信息量即节点数）
+    d <- min(cell, max(stay, cell * 0.25))     # 最小也留 1/4 格，避免成像素
+    place(k, cx, cy, d, d)
+  }
+
+  lay_df$x <- x
+  lay_df$y <- y
+  lay_df
+}
+
 
 #' 长标签截断（IUPAC 分子名可达 100+ 字符，会把版面横向劈开）
 #' @noRd

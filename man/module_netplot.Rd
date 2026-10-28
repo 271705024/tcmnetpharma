@@ -29,7 +29,10 @@ module_netplot(
 
 \item{max_nodes}{节点数上限（\code{Inf} 不裁剪），默认 150}
 
-\item{min_degree}{度数下限，默认 1（移除孤立节点）}
+\item{min_degree}{度数下限，默认 1（移除孤立节点）。此处由
+\code{tcm_filter_network()} 的\strong{边规则}实现（两端都低于下限才剔边），
+与 \code{tcm_net()} / \code{ppi_plot()} 的「严格节点下限」口径不同：
+这里保留悬在核心上的叶子，避免模块图被剪成孤岛。}
 
 \item{keep}{超限选点策略：\code{"top_degree"} / \code{"ego"}}
 

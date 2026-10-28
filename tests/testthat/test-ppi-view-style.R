@@ -119,8 +119,25 @@ test_that("style 决定 size 范围与图例，且不改变节点数", {
   expect_equal(got$journal$rng, c(1.2, 5))
   expect_equal(got$presentation$rng, c(3, 13))
   expect_equal(vapply(got, function(z) z$lg, numeric(1)),
+               # presentation 自 2026-10-28 起默认 auto（1 份色条）；
+               # 需要老的「颜色 + size」两份图例请显式 legend = "all"。
                c(default = 1, journal = 0, cytoscape = 1,
-                 presentation = 2, minimal = 0))
+                 presentation = 1, minimal = 0))
+})
+
+test_that("legend 形参：显式值覆盖 style 预设，NULL 跟随预设", {
+  d <- .ppi_d()
+  # presentation 默认 1 份；显式 all 回到 2 份；显式 none 全关
+  expect_equal(.ppi_n_legends(suppressMessages(
+    ppi_plot(d, style = "presentation", legend = "all"))), 2L)
+  expect_equal(.ppi_n_legends(suppressMessages(
+    ppi_plot(d, style = "presentation", legend = "none"))), 0L)
+  # 反向：journal 预设是 none，显式 auto 应出 1 份
+  expect_equal(.ppi_n_legends(suppressMessages(
+    ppi_plot(d, style = "journal", legend = "auto"))), 1L)
+  # NULL（默认）不改变预设行为
+  expect_equal(.ppi_n_legends(suppressMessages(
+    ppi_plot(d, style = "journal"))), 0L)
 })
 
 test_that("15 种 view × style 组合全部可渲染", {

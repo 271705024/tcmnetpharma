@@ -1,5 +1,53 @@
 # NEWS
 
+## 未发布（2026-10-28）
+
+### ⚠️ 行为变更：`ppi_plot()` 渲染层五个缺陷修正（D1–D5，全部有回归用例）
+
+用食管炎 900 靶点真实数据（`tcm_ppi(min_score = 900)` = 1,040 边 / 520 节点 /
+53 分量 / giant 386）回归验证。清单见 `netpharm-runs/issues/ISSUE-ppi_plot-render-defects-2026-10-28.md`。
+
+- **D1 `min_degree` 与 `max_nodes` 正交**：此前 `min_degree` 只在下游
+  `.tcm_filter_igraph()` 里生效，而那里在图未超限时**提前 return** ——
+  于是「不想截断、只想按度数筛」（`max_nodes` 调大或 `Inf`）时参数
+  **完全静默失效**，图照出 520 个点。现在度数下限在容量裁剪之前独立应用。
+  同时：单次下限后会**清掉因失联而度为 0 的节点**（实测 113 → **112**，
+  与 `degree≥6` 且过滤后仍有连线的手算结果一致），图上不再留孤点；
+  新增 `min_degree_iterate = FALSE` 开关，`TRUE` 时迭代到稳定（k-core，
+  该数据 **10 轮 → 27 节点**，故默认关）。
+- **D2 布局坐标归一化**：`create_layout()` 后未归一化，`coord_fixed()` 下
+  尺度由全图 bbox 决定，多分量网络的主簇被压成画面一角（实测主分量仅占
+  画布宽 **15.1%**）。现两层处理：① 分量按节点数重新打包（主分量按自身长宽比
+  占左侧，其余收成右侧「卫星带」网格排布）② 中心化 + 除以最大绝对坐标。
+  同一数据主分量占宽 **77.9%**，画布长宽比 1.05。
+- **D3 `view = "hub"` 不再覆盖显式 `max_nodes`**：优先级改为
+  「显式值 > view 预设 > 函数默认 150」，判据用 `missing()`（不能用默认值比较）。
+- **D4 图例收敛**：`show.legend` 改为命名逻辑向量逐通道开关，size 通道默认
+  不出图例（此前尺寸与颜色两幅图例同名 "degree"，读者分不清）；`presentation`
+  档的 `legend` 由 `"all"` 改为 `"auto"`（1 份色条）。需要两份时用新增形参
+  `ppi_plot(legend = "all")`（`NULL` = 跟随 style 预设）。size 图例补可见灰点
+  —— 此前 ringed 节点的 fill 在图例里没有色值，被画成一排白点，等于只有数字没有键。
+- **D5 边表可直接进拓扑函数**：`tcm_centrality()` / `tcm_modules()` 新增
+  `input = c("triple", "edge")`，边表按 `from`/`to`（含 `node1/node2`、
+  `protein1/2`、`gene1/2` 别名）解析；输出新增 `coreness` 列（此前要自己算）；
+  `betweenness` 保持 igraph 默认的**原始介数**（与 CytoNCA 的 BC 口径一致），
+  另加 `normalized = FALSE` 形参供需要时归一化。
+
+### 修正：报告数字与图不一致 / 并列名次不定序
+
+- `tcm_filter_network()` 选点由 `order(deg, decreasing = TRUE)` 改为
+  `order(-deg, nodes)` —— 度数并列时按节点名定序，同一份数据在任何机器上
+  选中同一集合。此前实测 `view = "hub", max_nodes = 30` 图上只有 29 个节点，
+  message 却说「保留前 30 个」。
+- 裁剪 message 改报**实际画出的节点数**，并补一句「N 个因保留子集内无连线
+  已剔除」；上限小到保留节点之间没有边、或下限把整张图筛空时**明确报错**
+  （提示改用 `keep = "ego"` / 降低 `min_degree`），不再渲染一张空白图。
+
+### 新增测试
+
+- `tests/testthat/test-render-defects-2026-10-28.R`：28 blocks / 91 断言，
+  逐条对应上述缺陷，每个断言都写成「修复前会被证伪」的形式。
+
 ## 未发布（2026-10-27）
 
 ### ⚠️ 移除两个 KEGG 示例数据对象（分发合规）

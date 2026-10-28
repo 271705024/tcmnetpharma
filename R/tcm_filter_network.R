@@ -97,7 +97,12 @@ tcm_filter_network <- function(links, max_nodes = 150L, min_degree = 1L,
 
   if (is.finite(n_nodes_limit) && length(nodes) > n_nodes_limit) {
     truncated <- TRUE
-    ord <- order(deg, decreasing = TRUE)
+    # ⚠️ 度数打平时必须**定序**（2026-10-28 修）：只写 `order(deg, decreasing=TRUE)`
+    #    时并列名次的先后取决于向量内部顺序，同一份数据换台机器就可能选中不同
+    #    的节点集 —— 更糟的是边界上可能选中「在保留子集内没有连线」的节点，
+    #    于是图上少一个点、而报告仍说保留了 N 个（报告与图不一致）。
+    #    次键用节点名，保证可复现（铁律 53）。
+    ord <- order(-deg, nodes)
     top_idx <- ord[seq_len(min(as.integer(n_nodes_limit), length(nodes)))]
     keep_nodes <- nodes[top_idx]
     if (identical(keep, "ego")) {
@@ -112,7 +117,7 @@ tcm_filter_network <- function(links, max_nodes = 150L, min_degree = 1L,
       # ego 可能超过 max_nodes —— 这是「要更密子网」的代价，但仍要封顶防爆炸：
       # 若一跳邻居太多，仍按度数回退到 top max_nodes*2 以内。
       if (length(keep_nodes) > as.integer(n_nodes_limit) * 2L) {
-        ord2 <- order(deg[keep_nodes], decreasing = TRUE)
+        ord2 <- order(-deg[keep_nodes], keep_nodes)
         keep_nodes <- keep_nodes[ord2[seq_len(as.integer(n_nodes_limit) * 2L)]]
       }
     }
@@ -158,6 +163,12 @@ tcm_filter_network <- function(links, max_nodes = 150L, min_degree = 1L,
 .tcm_filter_igraph <- function(net, max_nodes = 150L, min_degree = 0L,
                                keep = c("top_degree", "ego")) {
   keep <- match.arg(keep)
+  # ⚠️ 这里的提前返回意味着「未超限时 min_degree 不生效」。这是**边规则**语义下
+  #    的已知行为，判断依据是：本函数只在「容量裁剪」场景使用，而严格度数下限
+  #    已由 `.tcm_net_cap()` 在调用本函数之前独立完成（2026-10-28 修 D1）。
+  #    直接调用本函数的 `module_netplot()` 仍受此限制：`max_nodes` 未触发时
+  #    `min_degree` 只是「两端都低于下限才剔边」的边规则，且不生效——
+  #    已在其 Roxygen 中写明口径，不要误当成 tcm_net / ppi_plot 的严格下限。
   if (!is.finite(max_nodes) || igraph::vcount(net) <= max_nodes) return(net)
   edges <- igraph::as_data_frame(net, what = "edges")
   # ★ 边属性必须跨重建保留（2026-10-26 实测）：

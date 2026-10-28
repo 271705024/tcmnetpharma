@@ -28,7 +28,11 @@
 #' @param style 外观轴预设（与节点/边几何正交）
 #' @param max_nodes 节点数上限（默认 300）。二分图靠「哪些基因被多个来源共享」
 #'   传达信息，把小度数基因裁掉会直接改变结论，所以默认给得比 `tcm_net` 宽松
-#' @param min_degree 最小度数过滤（默认 1，即不过滤）
+#' @param min_degree 严格度数下限：`degree < min_degree` 的节点整体剔除。
+#'   与 `max_nodes` 正交，未触发裁剪时同样生效（默认 1 = 只去掉零度孤立节点）。
+#'   过滤后失联的孤点会一并剔除。
+#' @param min_degree_iterate 是否把 `min_degree` 迭代到稳定（k-core，2026-10-28 新增）。
+#'   默认 `FALSE` = 单次过滤；`TRUE` 会级联，除非明确要 k-core 否则不要开。
 #' @param keep 超限时的保留策略：`"top_degree"`（默认）/ `"ego"`
 #' @return ggraph / ggplot 对象
 #' @export
@@ -67,6 +71,7 @@ venn_net <- function(data,
                      style = c("default", "journal", "cytoscape",
                                "presentation"),
                      max_nodes = 300L, min_degree = 1L,
+                     min_degree_iterate = FALSE,
                      keep = c("top_degree", "ego")) {
   # ⚠️ `match.arg()` 的实参必须是「变量名」而不是表达式（铁律 80）：
   #    省略 choices 时它用 substitute(arg) 去读形参默认值。
@@ -174,8 +179,15 @@ venn_net <- function(data,
                                  "source", "gene")
 
   # ---- 5. 容量裁剪（与 tcm_net / module_netplot 同一条管线）---------------
-  net <- .tcm_net_cap(net, view = "overview", max_nodes = max_nodes,
-                      min_degree = min_degree, keep = keep)$net
+  capt <- .tcm_net_cap(net, view = "overview", max_nodes = max_nodes,
+                       min_degree = min_degree,
+                      min_degree_iterate = min_degree_iterate, keep = keep)
+  net <- capt$net
+  # min_degree 现在是**严格度数下限**（与 max_nodes 正交，任何上限下都生效），
+  # 被它筛掉的节点也要说一声 —— 静默减点正是 D1 的原始缺陷形态。
+  if (isTRUE(capt$report$floored) && !isTRUE(capt$report$capped)) {
+    message(.tcm_floor_msg("venn_net", min_degree, capt$report))
+  }
   # degree 必须按裁剪后的子图重算（铁律：裁剪会重建图）
   igraph::V(net)$degree <- igraph::degree(net)
 

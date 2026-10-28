@@ -53,6 +53,7 @@ Depends: R (>= 4.1)
 LazyData: true
 LazyDataCompression: xz
 Suggests: 
+    patchwork,
     png,
     testthat (>= 3.0.0),
     utils

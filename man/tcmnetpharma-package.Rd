@@ -6,7 +6,7 @@
 \alias{tcmnetpharma-package}
 \title{tcmnetpharma: Network Pharmacology Analysis Toolkit for Traditional Chinese Medicine}
 \description{
-A visualization tool for network pharmacology data analysis, powered by an integrated multi-source database (TCMSP, HERB 2.0, BATMAN-TCM 2.0, ETCM2, ChEMBL). Distributed data are from openly licensed sources; see inst/extdata/DATA-README.md for versioning and licensing details.
+A visualization tool for network pharmacology data analysis, powered by an integrated multi-source database. Distributed resources are TCMSP, HERB 2.0, BATMAN-TCM 2.0, ETCM2, ChEMBL 37, STRING 12, TRRUST v2, Open Targets Platform and SymMap V2, plus offline gene sets from WikiPathways, Reactome and Gene Ontology. TTD (all rights reserved) and KEGG (proprietary) are not redistributed. See inst/extdata/DATA-README.md for versioning, licensing and attribution requirements.
 }
 \author{
 \strong{Maintainer}: JianXiao Zheng \email{zhengjianxiao@tjutcm.edu.cn} (affiliation: Haihe Laboratory of Modern Chinese Medicine, Tianjin University of Traditional Chinese Medicine)
