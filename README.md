@@ -100,12 +100,14 @@ tcm_net(network.data, view = "cluster", style = "journal")
 
 论文写作中，请按开源惯例引用本项目、**软件 DOI**、**数据集 DOI** 及各数据源原始论文。
 
-- **软件**：Zheng, JianXiao. (2026). *tcmnetpharma: multi-source Traditional Chinese Medicine network pharmacology analysis toolkit* (v0.2.1) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23688903
+- **软件**：Zheng, JianXiao. (2026). *tcmnetpharma: multi-source Traditional Chinese Medicine network pharmacology analysis toolkit* (v0.2.1) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23688902
 - **数据集**：Zheng, JianXiao. (2026). *tcmnetpharma runtime dataset: multi-source Traditional Chinese Medicine network pharmacology data (TCMNP v1.3.0)* [Data set]. Zenodo. https://doi.org/10.5281/zenodo.23681367
+
+> 软件 DOI 采用**概念 DOI**（`10.5281/zenodo.23688902`），始终解析到最新版本；若论文需要精确指向本次版本，引用 v0.2.1 版本 DOI `10.5281/zenodo.23752260`。
 
 ## 版本
 
-- 0.2.1 (2026-10-29)：补丁版。**修复 `ppi_plot` 渲染层问题**；补全 `inst/CITATION` 与数据集许可元数据（CC BY-NC-SA 4.0）；**代码归档日 2026-10-29**（签名 tag `v0.2.1`，软件 DOI `10.5281/zenodo.23688903`）
+- 0.2.1 (2026-10-29)：补丁版。**修复 `ppi_plot` 渲染层问题**；补全 `inst/CITATION` 与数据集许可元数据（CC BY-NC-SA 4.0）；**代码归档日 2026-10-29**（签名 tag `v0.2.1`，软件 DOI `10.5281/zenodo.23688902`）
 - 0.2.0 (2026-08-22)：多源数据库整合版（数据更新至 2026）。**代码归档日 2026-10-27**（签名 tag `v0.2.0`，软件 DOI `10.5281/zenodo.23688903`）——两者不是同一天，前者是功能冻结日，后者是 DOI 归档日，不是笔误
 - 0.1.0 (2023)：初版（TCMSP 单一数据源）
 

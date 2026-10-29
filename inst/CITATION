@@ -14,10 +14,10 @@ bibentry(
   version  = "0.2.1",
   note     = "R package version 0.2.1, GPL-3",
   url      = "https://github.com/271705024/tcmnetpharma",
-  doi      = "10.5281/zenodo.23688903",
+  doi      = "10.5281/zenodo.23688902",
   textVersion = paste("Zheng, J. (2026). tcmnetpharma: multi-source Traditional Chinese Medicine",
                       "network pharmacology analysis toolkit (Version 0.2.1) [Computer software].",
-                      "https://doi.org/10.5281/zenodo.23688903")
+                      "https://doi.org/10.5281/zenodo.23688902")
 )
 
 bibentry(

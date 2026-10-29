@@ -15,10 +15,10 @@ abstract: >-
   redistributed. The package provides network, enrichment and module
   visualisation modules.
 type: software
-version: 0.2.0
-date-released: "2026-08-22"
+version: 0.2.1
+date-released: "2026-10-29"
 license: GPL-3.0-only
-doi: "10.5281/zenodo.23688903"
+doi: "10.5281/zenodo.23688902"
 repository-code: "https://github.com/271705024/tcmnetpharma"
 url: "https://github.com/271705024/tcmnetpharma"
 keywords:
