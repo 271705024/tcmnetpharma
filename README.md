@@ -47,7 +47,7 @@ R CMD INSTALL tcmnetpharma_*.tar.gz
 
 想直接点鼠标用、不想配 R 环境的话，下载 Windows 便携版：
 
-**[➡️ v0.2.0 发布页](https://github.com/271705024/tcmnetpharma/releases/tag/v0.2.0)**（约 559 MiB）
+**[➡️ v0.2.1 发布页](https://github.com/271705024/tcmnetpharma/releases/tag/v0.2.1)**（约 559 MiB）
 
 1. 把 7 个分片（`.zip.001` … `.zip.007`）、`merge-parts.bat`、`SHA256SUMS.txt` **全部下载到同一目录**
 2. 双击 `merge-parts.bat` 合并 → 得到一个 zip（脚本会自动算 SHA256，与 `SHA256SUMS.txt` 比对）
@@ -100,11 +100,12 @@ tcm_net(network.data, view = "cluster", style = "journal")
 
 论文写作中，请按开源惯例引用本项目、**软件 DOI**、**数据集 DOI** 及各数据源原始论文。
 
-- **软件**：Zheng, JianXiao. (2026). *tcmnetpharma: multi-source Traditional Chinese Medicine network pharmacology analysis toolkit* (v0.2.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23688903
+- **软件**：Zheng, JianXiao. (2026). *tcmnetpharma: multi-source Traditional Chinese Medicine network pharmacology analysis toolkit* (v0.2.1) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23688903
 - **数据集**：Zheng, JianXiao. (2026). *tcmnetpharma runtime dataset: multi-source Traditional Chinese Medicine network pharmacology data (TCMNP v1.3.0)* [Data set]. Zenodo. https://doi.org/10.5281/zenodo.23681367
 
 ## 版本
 
+- 0.2.1 (2026-10-29)：补丁版。**修复 `ppi_plot` 渲染层问题**；补全 `inst/CITATION` 与数据集许可元数据（CC BY-NC-SA 4.0）；**代码归档日 2026-10-29**（签名 tag `v0.2.1`，软件 DOI `10.5281/zenodo.23688903`）
 - 0.2.0 (2026-08-22)：多源数据库整合版（数据更新至 2026）。**代码归档日 2026-10-27**（签名 tag `v0.2.0`，软件 DOI `10.5281/zenodo.23688903`）——两者不是同一天，前者是功能冻结日，后者是 DOI 归档日，不是笔误
 - 0.1.0 (2023)：初版（TCMSP 单一数据源）
 

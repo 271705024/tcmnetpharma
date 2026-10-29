@@ -1,7 +1,7 @@
 Package: tcmnetpharma
 Type: Package
 Title: Network Pharmacology Analysis Toolkit for Traditional Chinese Medicine
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: 
     person(given = "JianXiao",
            family = "Zheng",
