@@ -5,6 +5,8 @@
 ^TCMNP\.Rcheck$
 ^.*\.tar\.gz$
 ^\.git$
+^\.github$
+^\.gitee$
 ^CITATION\.cff$
 ^LICENSE$
 ^\.zenodo\.json$
