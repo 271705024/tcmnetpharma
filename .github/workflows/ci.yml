@@ -63,6 +63,14 @@ jobs:
           Rscript -e 'remotes::install_deps(".", dependencies=TRUE, repos=c(BiocManager::repositories(), "https://cloud.r-project.org"))'
           Rscript -e 'install.packages(c("rcmdcheck","covr"), repos="https://cloud.r-project.org")'
 
+      # 数据外置（决策 1b）：inst/extdata/*.parquet（~183 MB）不入库，CI 必须先用
+      #   fetch-data.R 从 Zenodo 拉取，否则 R CMD check 跑依赖数据的 testthat 套件时
+      #   会因 system.file("extdata", ...) 取不到文件而 stop -> testthat.Rout.fail。
+      #   本步与本地「先 fetch 再 check/test/exe 打包」流程完全一致。
+      - name: Fetch external runtime data (parquet, ~183 MB; excluded from git)
+        run: |
+          Rscript tools/fetch-data.R
+
       - name: R CMD check
         run: |
           Rscript -e 'rcmdcheck::rcmdcheck(args=c("--no-manual"), error_on="error", check_dir="check")'
