@@ -8,6 +8,8 @@ Authors@R:
            role = c("aut", "cre"),
            email = "zhengjianxiao@tjutcm.edu.cn",
            comment = c(affiliation = "Haihe Laboratory of Modern Chinese Medicine, Tianjin University of Traditional Chinese Medicine"))
+Author: JianXiao Zheng [aut, cre]
+Maintainer: JianXiao Zheng <zhengjianxiao@tjutcm.edu.cn>
 Description: A visualization tool for network pharmacology data analysis, powered by an
     integrated multi-source database. Distributed resources are TCMSP, HERB 2.0,
     BATMAN-TCM 2.0, ETCM2, ChEMBL 37, STRING 12, TRRUST v2, Open Targets Platform and
