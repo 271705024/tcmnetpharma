@@ -1,0 +1,59 @@
+# =============================================================================
+# tcmnetpharma — Gitee Go CI（Gitee 侧主声明）
+# -----------------------------------------------------------------------------
+# ⚠️ 关键约束（已在 boss 决策中确认）：
+#   1. Gitee Go 原生没有 R 运行环境；
+#   2. Gitee Go 不解析 GitHub 市场动作 —— `uses: actions/*` 在 Gitee 上**无效**。
+#   因此本文件所有步骤均为纯 shell `run:`，在 Linux runner 上自行 apt 安装
+#   R 与系统依赖、再用 BiocManager + remotes 装 R 包依赖，最后跑 R CMD check。
+#   包在仓库根（.），无需 cd 子目录。
+#
+# 前置（需 boss 在 Gitee 网页手动操作，AI 不代操作账号）：
+#   1. 仓库「DevOps → Gitee Go」开启流水线；
+#   2. 绑定一个带 sudo 的 Linux 构建机（或开启 Gitee 公共构建资源）；
+#   3. 本文件置于 .gitee/workflows/ 后，push/PR 到 main 即触发。
+#
+# 若 Gitee 侧暂无可用的 R runner，真正能跑的门禁是 GitHub Actions
+#   (.github/workflows/ci.yml)，经 Gitee→GitHub 镜像自动同步执行。
+# 两份文件逻辑一致，保证「无论哪侧先就绪，门禁都可运行」。
+# =============================================================================
+name: r-check
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 确认工作区
+        run: pwd && ls -la
+
+      - name: 安装 R 与系统依赖（幂等）
+        run: |
+          if ! command -v R >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends \
+              r-base r-base-dev \
+              libcurl4-openssl-dev libssl-dev libxml2-dev \
+              libfontconfig1-dev libfreetype6-dev libharfbuzz-dev libfribidi-dev \
+              libpng-dev libtiff5-dev libjpeg-dev libmagick++-dev \
+              libglpk-dev pandoc qpdf
+          fi
+          R --version
+
+      - name: 安装 R 包依赖（CRAN + Bioconductor + Remotes）
+        run: |
+          Rscript -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")'
+          Rscript -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org")'
+          Rscript -e 'remotes::install_deps(".", dependencies=TRUE, repos=c(BiocManager::repositories(), "https://cloud.r-project.org"))'
+          Rscript -e 'install.packages(c("rcmdcheck","covr"), repos="https://cloud.r-project.org")'
+
+      - name: R CMD check
+        run: |
+          Rscript -e 'rcmdcheck::rcmdcheck(args=c("--no-manual"), error_on="error", check_dir="check")'
+
+      - name: 覆盖率（非阻断）
+        run: |
+          Rscript -e 'covr::package_coverage(quiet=FALSE)' || echo "coverage skipped"

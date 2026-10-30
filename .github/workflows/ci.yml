@@ -1,0 +1,72 @@
+# =============================================================================
+# tcmnetpharma — R CMD check + testthat CI
+# -----------------------------------------------------------------------------
+# 范围：科学分发 + 开源 + 论文复现（不投 CRAN）。
+# 触发：push / PR 到 main。
+# 包仓库即 TCMNP-main（本仓库根），CI 在仓库根直接跑 rcmdcheck（包在根目录，
+#   无需 cd 子目录）。
+#
+# 交付链路：本仓库 push Gitee（git@gitee.com:ZJX261/tcmnetpharma.git）
+#           → Gitee「仓库镜像管理」自动同步 GitHub
+#           → 本文件在 GitHub 侧真正执行（零额外配置）。
+# 为什么不直接在 Gitee 跑：Gitee Go 原生无 R 运行环境，且不解析 GitHub 市场
+#           动作（uses: actions/* 在 Gitee 上无效）。Gitee 侧主声明见
+#           .gitee/workflows/ci.yml（纯 shell 自装 R，需 boss 在 Gitee 网页
+#           启用 Gitee Go + 绑定 Linux runner）。
+#
+# 本 CI 用 rcmdcheck 在临时库构建并检查包（含 testthat 套件），自动绕开本机
+#   "旧包 TCMNP 未卸载" 地雷（CI 在临时库构建，test_check 跑的是新包）。
+# =============================================================================
+name: R CMD check + testthat
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          # 论文复现可锁定为 '4.6.1'；'release' 保 CI 镜像可用性。
+          r-version: 'release'
+
+      - name: Install system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libcurl4-openssl-dev libssl-dev libxml2-dev \
+            libfontconfig1-dev libfreetype6-dev libharfbuzz-dev libfribidi-dev \
+            libpng-dev libtiff5-dev libjpeg-dev libmagick++-dev \
+            libglpk-dev pandoc qpdf
+
+      # 包在仓库根（.），显式 install_deps(".") + BiocManager 源，
+      # 与 .gitee/workflows/ci.yml 逻辑完全一致。
+      - name: Install R package dependencies (CRAN + Bioconductor + Remotes)
+        run: |
+          Rscript -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")'
+          Rscript -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org")'
+          Rscript -e 'remotes::install_deps(".", dependencies=TRUE, repos=c(BiocManager::repositories(), "https://cloud.r-project.org"))'
+          Rscript -e 'install.packages(c("rcmdcheck","covr"), repos="https://cloud.r-project.org")'
+
+      - name: R CMD check
+        run: |
+          Rscript -e 'rcmdcheck::rcmdcheck(args=c("--no-manual"), error_on="error", check_dir="check")'
+
+      - name: Upload check results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: check-results
+          path: check
+
+      - name: Coverage (non-blocking)
+        if: always()
+        run: |
+          Rscript -e 'covr::package_coverage(quiet=FALSE)' || echo "coverage skipped"
