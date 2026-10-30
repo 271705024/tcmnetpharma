@@ -5,6 +5,7 @@
 ^TCMNP\.Rcheck$
 ^.*\.tar\.gz$
 ^\.git$
+^\.gitattributes$
 ^\.github$
 ^\.gitee$
 ^CITATION\.cff$
