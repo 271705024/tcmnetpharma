@@ -49,6 +49,14 @@ jobs:
       # 包在仓库根（.），显式 install_deps(".") + BiocManager 源，
       # 与 .gitee/workflows/ci.yml 逻辑完全一致。
       - name: Install R package dependencies (CRAN + Bioconductor + Remotes)
+        env:
+          # 本次 CI 失败根因：remotes 解析 DESCRIPTION 的
+          #   Remotes: github::davidsjoberg/ggsankey
+          # 时匿名访问 api.github.com，GitHub Actions 共享 IP 触发
+          # 60次/小时限流 -> cannot open URL 'api.github.com/.../ggsankey/...'。
+          # 注入 GITHUB_PAT（默认 GITHUB_TOKEN，无需在 repo 配置）把额度
+          # 提到 5000次/小时即可绕开。
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
         run: |
           Rscript -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org")'
           Rscript -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org")'
